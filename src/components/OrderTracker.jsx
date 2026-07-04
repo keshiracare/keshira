@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 
 const TRACKING_STEPS = [
-  { name: 'Order Received', desc: 'Order logged and added to the hand-pouring queue.' },
-  { name: 'Hand-Pouring in Batch', desc: 'Apothecary blending fresh Neem, Amla, and Shikakai in micro batches.' },
-  { name: 'Curing & Quality Check', desc: 'Curing the natural formula and verifying purity and bottle seals.' },
-  { name: 'Dispatched', desc: 'Handed over to courier partner. Tracking details SMS sent.' },
+  { name: 'Received', desc: 'Order received and added to preparation queue.' },
+  { name: 'Packed', desc: 'Bottled fresh, quality checked, and packed securely.' },
+  { name: 'Dispatched', desc: 'Handed over to courier partner. Tracking details sent.' },
   { name: 'Delivered', desc: 'At your doorstep. Open and remember to shake well before use!' }
 ];
 
@@ -33,11 +32,10 @@ export default function OrderTracker() {
       if (foundOrder) {
         orderDate = foundOrder.date;
         const statusMap = {
-          'Order Received': 1,
-          'Hand-Pouring in Batch': 2,
-          'Curing & Quality Check': 3,
-          'Dispatched': 4,
-          'Delivered': 5
+          'Received': 1,
+          'Packed': 2,
+          'Dispatched': 3,
+          'Delivered': 4
         };
         stepProgress = statusMap[foundOrder.status] || 1;
       } else {
@@ -45,16 +43,14 @@ export default function OrderTracker() {
         const digits = formattedInput.split('-')[1];
         const lastDigit = parseInt(digits.slice(-1));
         
-        if (lastDigit < 2) {
+        if (lastDigit < 3) {
           stepProgress = 1; // Received
-        } else if (lastDigit < 4) {
-          stepProgress = 2; // Pouring
         } else if (lastDigit < 6) {
-          stepProgress = 3; // Curing
+          stepProgress = 2; // Packed
         } else if (lastDigit < 8) {
-          stepProgress = 4; // Dispatched
+          stepProgress = 3; // Dispatched
         } else {
-          stepProgress = 5; // Delivered
+          stepProgress = 4; // Delivered
         }
       }
 

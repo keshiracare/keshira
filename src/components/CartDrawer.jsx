@@ -10,19 +10,34 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
   };
 
   const handleApplyPromo = () => {
-    if (promoCode.trim().toUpperCase() === 'KESHIRA10') {
-      setAppliedDiscount(10);
-      setPromoMessage({ text: 'Promo code KESHIRA10 applied! 10% discount added.', type: 'success' });
-    } else if (promoCode.trim() === '') {
+    const code = promoCode.trim().toUpperCase();
+    if (code === 'KESHIRA10') {
+      const savedOrders = localStorage.getItem('keshira_orders');
+      const orderList = savedOrders ? JSON.parse(savedOrders) : [];
+      if (orderList.length > 0) {
+        setAppliedDiscount(0);
+        setPromoMessage({ text: 'KESHIRA10 is only applicable for your first order.', type: 'error' });
+      } else {
+        setAppliedDiscount(10);
+        setPromoMessage({ text: 'Promo code KESHIRA10 applied! 10% discount added.', type: 'success' });
+      }
+    } else if (code === '') {
       setPromoMessage({ text: '', type: '' });
     } else {
       setPromoMessage({ text: 'Invalid promo code. Try KESHIRA10.', type: 'error' });
     }
   };
 
+  const savedOrders = localStorage.getItem('keshira_orders');
+  const orderList = savedOrders ? JSON.parse(savedOrders) : [];
+  const isFirstOrder = orderList.length === 0;
+
   const subtotal = calculateSubtotal();
   const shippingThreshold = 300; // Free shipping threshold in Rs
-  const shippingCost = subtotal >= shippingThreshold || subtotal === 0 ? 0 : 40;
+  
+  // Free shipping if it's the user's first order OR subtotal >= threshold
+  const shippingCost = (isFirstOrder || subtotal >= shippingThreshold || subtotal === 0) ? 0 : 40;
+  
   const discountAmount = Math.round((subtotal * appliedDiscount) / 100);
   const total = subtotal - discountAmount + shippingCost;
   const progressToFreeShipping = Math.min((subtotal / shippingThreshold) * 100, 100);
@@ -43,7 +58,9 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
         <div className="cart-body" style={{ padding: '24px' }}>
           {subtotal > 0 && (
             <div className="shipping-promo-bar" style={{ backgroundColor: 'rgba(200, 162, 97, 0.05)', border: '1px solid rgba(200, 162, 97, 0.25)', borderRadius: '12px', padding: '16px', marginBottom: '24px' }}>
-              {subtotal >= shippingThreshold ? (
+              {isFirstOrder ? (
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary)' }}>🎉 First Order Special: You qualify for <strong>FREE shipping</strong>!</span>
+              ) : subtotal >= shippingThreshold ? (
                 <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary)' }}>🎉 You qualify for <strong>FREE shipping</strong>!</span>
               ) : (
                 <span style={{ fontSize: '0.82rem', color: 'var(--color-primary)' }}>
@@ -51,7 +68,7 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
                 </span>
               )}
               <div className="shipping-progress-bg" style={{ backgroundColor: 'rgba(19, 46, 27, 0.08)', height: '3px', marginTop: '10px' }}>
-                <div className="shipping-progress-fill" style={{ backgroundColor: 'var(--color-accent-gold)', width: `${progressToFreeShipping}%`, height: '100%' }}></div>
+                <div className="shipping-progress-fill" style={{ backgroundColor: 'var(--color-accent-gold)', width: isFirstOrder ? '100%' : `${progressToFreeShipping}%`, height: '100%' }}></div>
               </div>
             </div>
           )}

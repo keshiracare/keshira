@@ -24,9 +24,11 @@ export default function Header({ cartCount, onCartOpen, onPortalOpen }) {
             window.scrollTo({ top: 0, behavior: 'smooth' }); 
           }}
         >
-          <svg className="logo-icon" viewBox="0 0 24 24" style={{ fill: 'var(--color-primary)' }}>
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15.92c-.02-.03-.06-.08-.1-.13-.39-.46-1.52-1.9-2.07-3.14-.52-1.18-.73-2.31-.69-3.21.05-1.17.65-2.22 1.58-2.92.17-.13.36-.25.56-.35V4.27c-4.05.47-7.24 3.73-7.69 7.82h5.18c.09 1.15.54 2.22 1.25 3.09.84 1.03 2.01 1.72 3.32 1.94v.8c-.85-.14-1.62-.51-2.25-1.04-.61-.51-1.02-1.2-1.15-1.96H6.1c.46 3.65 3.19 6.64 6.8 7.21v-.27z" />
-          </svg>
+          <img 
+            src="/favicon.svg" 
+            alt="Keshira Logo" 
+            style={{ width: '32px', height: '32px', objectFit: 'contain' }} 
+          />
           KESHIRA
         </a>
 
@@ -35,8 +37,8 @@ export default function Header({ cartCount, onCartOpen, onPortalOpen }) {
           <ul className="nav-links">
             <li><a href="#hero" onClick={(e) => { e.preventDefault(); handleScroll('hero'); }}>Home</a></li>
             <li><a href="#catalog" onClick={(e) => { e.preventDefault(); handleScroll('catalog'); }}>Shop</a></li>
-            <li><a href="#hair-journey" onClick={(e) => { e.preventDefault(); handleScroll('hair-journey'); }}>Journey</a></li>
             <li><a href="#ingredients" onClick={(e) => { e.preventDefault(); handleScroll('ingredients'); }}>Ingredients</a></li>
+            <li><a href="#hair-journey" onClick={(e) => { e.preventDefault(); handleScroll('hair-journey'); }}>Journey</a></li>
             <li><a href="#connect" onClick={(e) => { e.preventDefault(); handleScroll('connect'); }}>Connect</a></li>
           </ul>
         </nav>

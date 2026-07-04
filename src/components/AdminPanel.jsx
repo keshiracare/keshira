@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { collection, getDocs, doc, updateDoc, deleteDoc, query } from 'firebase/firestore';
 
 export default function AdminPanel({ isOpen, onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -7,6 +9,7 @@ export default function AdminPanel({ isOpen, onClose }) {
   const [reviews, setReviews] = useState([]);
   const [activeTab, setActiveTab] = useState('orders'); // orders, reviews
   const [errorMsg, setErrorMsg] = useState('');
+  const [activeReceiptUrl, setActiveReceiptUrl] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -15,19 +18,43 @@ export default function AdminPanel({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
-  const loadData = () => {
-    const savedOrders = localStorage.getItem('keshira_orders');
-    if (savedOrders) {
-      setOrders(JSON.parse(savedOrders));
-    } else {
-      setOrders([]);
+  const loadData = async () => {
+    // 1. Fetch orders from Firestore
+    try {
+      const ordersRef = collection(db, 'orders');
+      const q = query(ordersRef);
+      const querySnapshot = await getDocs(q);
+      const ordersList = [];
+      querySnapshot.forEach((doc) => {
+        ordersList.push({ ...doc.data() });
+      });
+      // Sort so newest orders are shown first (KES-xxxxxx descending)
+      ordersList.sort((a, b) => b.id.localeCompare(a.id));
+      setOrders(ordersList);
+    } catch (err) {
+      console.error('Error fetching orders from Firestore:', err);
+      // Fallback to localStorage
+      const savedOrders = localStorage.getItem('keshira_orders');
+      if (savedOrders) setOrders(JSON.parse(savedOrders));
     }
 
-    const savedReviews = localStorage.getItem('keshira_reviews');
-    if (savedReviews) {
-      setReviews(JSON.parse(savedReviews));
-    } else {
-      setReviews([]);
+    // 2. Fetch reviews from Firestore
+    try {
+      const reviewsRef = collection(db, 'reviews');
+      const q = query(reviewsRef);
+      const querySnapshot = await getDocs(q);
+      const reviewsList = [];
+      querySnapshot.forEach((doc) => {
+        reviewsList.push({ id: doc.id, ...doc.data() });
+      });
+      // Sort reviews so newest is first
+      reviewsList.sort((a, b) => new Date(b.date) - new Date(a.date));
+      setReviews(reviewsList);
+    } catch (err) {
+      console.error('Error fetching reviews from Firestore:', err);
+      // Fallback to localStorage
+      const savedReviews = localStorage.getItem('keshira_reviews');
+      if (savedReviews) setReviews(JSON.parse(savedReviews));
     }
   };
 
@@ -35,7 +62,8 @@ export default function AdminPanel({ isOpen, onClose }) {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password === 'admin123') {
+    const adminPasscode = import.meta.env.VITE_ADMIN_PASSCODE || 'admin123';
+    if (password === adminPasscode) {
       setIsAuthenticated(true);
       setErrorMsg('');
       loadData();
@@ -49,7 +77,7 @@ export default function AdminPanel({ isOpen, onClose }) {
     setPassword('');
   };
 
-  const handleStatusChange = (orderId, newStatus) => {
+  const handleStatusChange = async (orderId, newStatus) => {
     const updatedOrders = orders.map(order => {
       if (order.id === orderId) {
         return { ...order, status: newStatus };
@@ -58,12 +86,32 @@ export default function AdminPanel({ isOpen, onClose }) {
     });
     setOrders(updatedOrders);
     localStorage.setItem('keshira_orders', JSON.stringify(updatedOrders));
+
+    // Update status in Cloud Firestore
+    try {
+      const orderRef = doc(db, 'orders', orderId);
+      await updateDoc(orderRef, { status: newStatus });
+      console.log('Order status successfully updated in Firestore.');
+    } catch (err) {
+      console.error('Error updating order status in Firestore:', err);
+    }
   };
 
-  const handleDeleteReview = (indexToDelete) => {
+  const handleDeleteReview = async (reviewId, indexToDelete) => {
     const updatedReviews = reviews.filter((_, idx) => idx !== indexToDelete);
     setReviews(updatedReviews);
     localStorage.setItem('keshira_reviews', JSON.stringify(updatedReviews));
+
+    // Delete review document from Cloud Firestore
+    if (reviewId) {
+      try {
+        const reviewRef = doc(db, 'reviews', reviewId);
+        await deleteDoc(reviewRef);
+        console.log('Review deleted from Firestore.');
+      } catch (err) {
+        console.error('Error deleting review from Firestore:', err);
+      }
+    }
   };
 
   // Calculations for stats
@@ -75,7 +123,19 @@ export default function AdminPanel({ isOpen, onClose }) {
   const activeSubscriptions = orders.filter(order => {
     return order.items && order.items.some(item => item.purchaseType === 'subscribe');
   }).length;
-
+  const getStatusStyles = (status) => {
+    switch (status) {
+      case 'Delivered':
+        return { bg: 'rgba(39, 174, 96, 0.15)', text: '#2ecc71' };
+      case 'Dispatched':
+        return { bg: 'rgba(52, 152, 219, 0.15)', text: '#3498db' };
+      case 'Packed':
+        return { bg: 'rgba(155, 89, 182, 0.15)', text: '#9b59b6' };
+      case 'Received':
+      default:
+        return { bg: 'rgba(241, 196, 15, 0.15)', text: '#f1c40f' };
+    }
+  };
   return (
     <div className="modal-overlay" style={{ zIndex: 400 }}>
       <div 
@@ -222,6 +282,37 @@ export default function AdminPanel({ isOpen, onClose }) {
                               <td style={{ padding: '16px 12px' }}>
                                 <div style={{ fontWeight: 600 }}>{order.shippingAddress.fullName}</div>
                                 <div style={{ fontSize: '0.75rem', color: 'rgba(250, 245, 235, 0.5)' }}>{order.shippingAddress.phone}</div>
+                                {order.utr && (
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--color-accent-gold)', marginTop: '4px', fontWeight: 'bold' }}>
+                                    UTR: <span style={{ fontFamily: 'monospace', backgroundColor: 'rgba(250, 245, 235, 0.1)', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.05em' }}>{order.utr}</span>
+                                  </div>
+                                )}
+                                {order.screenshot ? (
+                                  <div style={{ marginTop: '8px' }}>
+                                    <button 
+                                      onClick={() => setActiveReceiptUrl(order.screenshot)}
+                                      style={{ 
+                                        color: '#3498db', 
+                                        fontSize: '0.75rem', 
+                                        textDecoration: 'underline',
+                                        cursor: 'pointer',
+                                        padding: 0,
+                                        background: 'none',
+                                        border: 'none',
+                                        fontWeight: 'bold',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                      }}
+                                    >
+                                      <span>View Receipt 🖼️</span>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div style={{ fontSize: '0.75rem', color: 'rgba(250, 245, 235, 0.3)', marginTop: '4px', fontStyle: 'italic' }}>
+                                    No receipt uploaded
+                                  </div>
+                                )}
                               </td>
                               <td style={{ padding: '16px 12px' }}>
                                 {order.items && order.items.map((item, itemIdx) => (
@@ -238,14 +329,8 @@ export default function AdminPanel({ isOpen, onClose }) {
                                     borderRadius: '50px', 
                                     fontSize: '0.75rem', 
                                     fontWeight: 'bold',
-                                    backgroundColor: 
-                                      order.status === 'Delivered' ? 'rgba(39, 174, 96, 0.2)' : 
-                                      order.status === 'Dispatched' ? 'rgba(52, 152, 219, 0.2)' : 
-                                      'rgba(241, 196, 15, 0.2)',
-                                    color: 
-                                      order.status === 'Delivered' ? '#2ecc71' : 
-                                      order.status === 'Dispatched' ? '#3498db' : 
-                                      '#f1c40f'
+                                    backgroundColor: getStatusStyles(order.status).bg,
+                                    color: getStatusStyles(order.status).text
                                   }}
                                 >
                                   {order.status}
@@ -265,9 +350,8 @@ export default function AdminPanel({ isOpen, onClose }) {
                                     fontFamily: 'inherit'
                                   }}
                                 >
-                                  <option value="Order Received" style={{ backgroundColor: '#1E2521' }}>Received</option>
-                                  <option value="Hand-Pouring in Batch" style={{ backgroundColor: '#1E2521' }}>Hand-Pouring</option>
-                                  <option value="Curing & Quality Check" style={{ backgroundColor: '#1E2521' }}>Curing</option>
+                                  <option value="Received" style={{ backgroundColor: '#1E2521' }}>Received</option>
+                                  <option value="Packed" style={{ backgroundColor: '#1E2521' }}>Packed</option>
                                   <option value="Dispatched" style={{ backgroundColor: '#1E2521' }}>Dispatched</option>
                                   <option value="Delivered" style={{ backgroundColor: '#1E2521' }}>Delivered</option>
                                 </select>
@@ -321,7 +405,7 @@ export default function AdminPanel({ isOpen, onClose }) {
                           </div>
                           <button 
                             className="cart-item-remove-btn" 
-                            onClick={() => handleDeleteReview(idx)}
+                            onClick={() => handleDeleteReview(rev.id, idx)}
                             style={{ color: '#e74c3c' }}
                             aria-label="Delete review"
                           >
@@ -342,6 +426,54 @@ export default function AdminPanel({ isOpen, onClose }) {
         )}
 
       </div>
+      
+      {/* Receipt Lightbox Modal overlay */}
+      {activeReceiptUrl && (
+        <div 
+          className="modal-overlay" 
+          onClick={() => setActiveReceiptUrl(null)} 
+          style={{ zIndex: 500, backgroundColor: 'rgba(0, 0, 0, 0.85)' }}
+        >
+          <div 
+            style={{ 
+              position: 'relative', 
+              maxWidth: '90%', 
+              maxHeight: '90vh', 
+              backgroundColor: '#1E2521', 
+              padding: '16px', 
+              borderRadius: '12px', 
+              border: '1px solid rgba(250, 245, 235, 0.15)',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.5)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setActiveReceiptUrl(null)} 
+              style={{ 
+                position: 'absolute', 
+                top: '-45px', 
+                right: '0', 
+                color: '#fff', 
+                fontSize: '1.1rem', 
+                fontWeight: 'bold',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              Close ✕
+            </button>
+            <img 
+              src={activeReceiptUrl} 
+              alt="Payment Receipt" 
+              style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', display: 'block', borderRadius: '6px' }} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

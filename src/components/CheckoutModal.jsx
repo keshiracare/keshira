@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { db } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onClearCart }) {
   const [step, setStep] = useState(1); // 1: Shipping, 2: Payment, 3: Processing, 4: Success
@@ -11,12 +13,13 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
     pinCode: ''
   });
   const [paymentForm, setPaymentForm] = useState({
-    cardNumber: '',
-    expiry: '',
-    cvv: '',
-    nameOnCard: ''
+    utr: '',
+    screenshot: ''
   });
   const [orderId, setOrderId] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const KESHIRA_UPI_ID = 'kapatel190-2@okaxis'; // User's custom UPI ID
 
   if (!isOpen) return null;
 
@@ -26,41 +29,205 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
       alert('Please fill in all shipping fields.');
       return;
     }
+    // Generate Order ID here so it can be encoded in the UPI QR code
+    if (!orderId) {
+      const randomId = 'KES-' + Math.floor(100000 + Math.random() * 900000);
+      setOrderId(randomId);
+    }
     setStep(2);
   };
 
   const handlePaymentSubmit = (e) => {
     e.preventDefault();
-    if (Object.values(paymentForm).some(x => x === '')) {
-      alert('Please fill in all payment fields.');
+    if (!paymentForm.utr || paymentForm.utr.trim().length !== 12) {
+      alert('Please enter a valid 12-digit UPI Ref No. (UTR) number.');
       return;
     }
     setStep(3); // Go to processing spinner
 
-    // Simulate payment processor call
-    setTimeout(() => {
-      const randomId = 'KES-' + Math.floor(100000 + Math.random() * 900000);
-      setOrderId(randomId);
-
+    // Simulate order registry and payment verification
+    setTimeout(async () => {
       // Create new order record
       const newOrder = {
-        id: randomId,
+        id: orderId,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         shippingAddress: shippingForm,
         items: cart,
         total: orderSummary.total,
-        status: 'Order Received'
+        utr: paymentForm.utr,
+        screenshot: paymentForm.screenshot || '',
+        status: 'Received'
       };
 
-      // Save to localStorage
+      // Save to Cloud Firestore
+      try {
+        const orderRef = doc(db, 'orders', orderId);
+        await setDoc(orderRef, newOrder);
+        console.log('Order saved to Firestore successfully.');
+      } catch (err) {
+        console.error('Error saving order to Firestore:', err);
+      }
+
+      // Save to localStorage (Local cache backup)
       const savedOrders = localStorage.getItem('keshira_orders');
       const orderList = savedOrders ? JSON.parse(savedOrders) : [];
       orderList.unshift(newOrder);
       localStorage.setItem('keshira_orders', JSON.stringify(orderList));
 
+      // Trigger automated email notification (Free via EmailJS API)
+      sendOrderEmail(newOrder);
+
       onClearCart(); // successful purchase clears cart
       setStep(4); // Success step
     }, 2000);
+  };
+
+  const sendOrderEmail = (order) => {
+    // These values can be populated directly or loaded via Vite environment variables
+    const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_ez47q6c';
+    const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_felpos2';
+    const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'dUvyAAVmDEHvYT4Nb';
+
+    // If template keys aren't configured, skip request
+    if (PUBLIC_KEY === 'YOUR_EMAILJS_PUBLIC_KEY') {
+      console.log('EmailJS Public Key is not configured yet. Set VITE_EMAILJS_PUBLIC_KEY environment variable.');
+      return;
+    }
+
+    // 1. Generate items HTML list matching the customized email layout
+    const itemsHtml = order.items
+      ? order.items.map(item => {
+          const cleanImgPath = item.image.startsWith('/') ? item.image.slice(1) : item.image;
+          const itemImgUrl = item.image.startsWith('http') 
+            ? item.image 
+            : `https://keshira.vercel.app/${cleanImgPath}`;
+          return `
+            <table style="width: 100%; border-collapse: collapse; border-bottom: 1px solid #eee; margin-bottom: 12px;">
+              <tr style="vertical-align: top">
+                <td style="padding: 16px 8px 16px 4px; display: inline-block; width: max-content">
+                  <img style="height: 64px; width: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;" height="64px" src="${itemImgUrl}" alt="${item.title}" />
+                </td>
+                <td style="padding: 16px 8px; width: 100%">
+                  <div style="font-size: 15px; font-weight: bold; color: #132E1B; font-family: system-ui, -apple-system, sans-serif;">${item.title}</div>
+                  <div style="font-size: 13px; color: #666; padding-top: 4px; font-family: system-ui, -apple-system, sans-serif;">
+                    Size: ${item.variant} | QTY: ${item.quantity} ${item.purchaseType === 'subscribe' ? '🔄 (Auto-Delivery)' : ''}
+                  </div>
+                </td>
+                <td style="padding: 16px 4px 0 0; white-space: nowrap; text-align: right; width: 100px;">
+                  <strong style="font-size: 15px; color: #132E1B; font-family: system-ui, -apple-system, sans-serif;">₹${item.price * item.quantity}</strong>
+                </td>
+              </tr>
+            </table>
+          `;
+        }).join('')
+      : '';
+
+    // 2. Pricing calculations
+    const subtotalVal = order.items ? order.items.reduce((sum, item) => sum + item.price * item.quantity, 0) : 0;
+    const discountAmount = orderSummary.discount || 0;
+    const shippingVal = orderSummary.shipping || 0;
+
+    const discountRowHtml = discountAmount > 0 
+      ? `<tr>
+          <td style="width: 50%"></td>
+          <td style="padding: 6px 0; color: #27ae60;">Discount Applied</td>
+          <td style="padding: 6px 0 6px 12px; white-space: nowrap; color: #27ae60;">-₹${discountAmount}</td>
+         </tr>`
+      : '';
+
+    const shippingCostText = shippingVal === 0 ? 'FREE' : `₹${shippingVal}`;
+    const shippingColorHex = shippingVal === 0 ? '#27ae60' : '#444';
+
+    const templateParams = {
+      customer_name: order.shippingAddress.fullName,
+      customer_email: order.shippingAddress.email,
+      customer_phone: order.shippingAddress.phone,
+      delivery_address: `${order.shippingAddress.address}, ${order.shippingAddress.city} - ${order.shippingAddress.pinCode}`,
+      order_id: order.id,
+      utr_ref: order.utr,
+      items_html: itemsHtml,
+      subtotal: subtotalVal,
+      discount_row: discountRowHtml,
+      shipping_cost: shippingCostText,
+      shipping_color: shippingColorHex,
+      order_total: order.total
+    };
+
+    fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        service_id: SERVICE_ID,
+        template_id: TEMPLATE_ID,
+        user_id: PUBLIC_KEY,
+        template_params: templateParams
+      })
+    })
+    .then(async (res) => {
+      if (res.ok) {
+        console.log('Order notification email sent successfully!');
+      } else {
+        const errorText = await res.text();
+        console.error('EmailJS returned an error status:', res.status, errorText);
+      }
+    })
+    .catch((err) => {
+      console.error('Error calling EmailJS API:', err);
+    });
+  };
+
+  const compressImage = (file, callback) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 600;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Export as compressed JPEG (60% quality, very small size but clear)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+        callback(compressedBase64);
+      };
+    };
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      compressImage(file, (compressedBase64) => {
+        setPaymentForm(prev => ({ ...prev, screenshot: compressedBase64 }));
+      });
+    }
+  };
+
+  const handleCopyUpi = () => {
+    navigator.clipboard.writeText(KESHIRA_UPI_ID);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShippingChange = (e) => {
@@ -213,73 +380,119 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
 
           {step === 2 && (
             <form onSubmit={handlePaymentSubmit}>
-              <h3 style={{ fontSize: '1.6rem', marginBottom: '20px' }}>Secure Mock Payment</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-                Note: This is a secure mock simulation. Please do not input your actual credit card details.
-              </p>
-
-              <div className="form-group">
-                <label className="form-label">Name on Card</label>
-                <input 
-                  type="text" 
-                  name="nameOnCard" 
-                  className="form-input" 
-                  placeholder="CARDHOLDER NAME"
-                  value={paymentForm.nameOnCard}
-                  onChange={handlePaymentChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Card Number</label>
-                <input 
-                  type="text" 
-                  name="cardNumber" 
-                  className="form-input" 
-                  placeholder="4111 2222 3333 4444"
-                  maxLength="19"
-                  value={paymentForm.cardNumber}
-                  onChange={handlePaymentChange}
-                  required
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Expiration Date</label>
-                  <input 
-                    type="text" 
-                    name="expiry" 
-                    className="form-input" 
-                    placeholder="MM/YY"
-                    maxLength="5"
-                    value={paymentForm.expiry}
-                    onChange={handlePaymentChange}
-                    required
+              <h3 style={{ fontSize: '1.6rem', marginBottom: '16px', textAlign: 'center' }}>UPI Payment (GPay/PhonePe/Paytm)</h3>
+              
+              <div style={{ 
+                backgroundColor: 'rgba(19, 46, 27, 0.03)', 
+                border: '1px solid var(--color-border)', 
+                borderRadius: '12px', 
+                padding: '20px', 
+                marginBottom: '20px', 
+                textAlign: 'center' 
+              }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Total Amount to Pay
+                </span>
+                <h4 style={{ fontSize: '2.2rem', color: 'var(--color-primary)', margin: '6px 0 12px 0', fontWeight: 'bold' }}>
+                  ₹{orderSummary.total}
+                </h4>
+                
+                {/* Dynamic UPI QR Code */}
+                <div style={{ 
+                  backgroundColor: '#FFFFFF', 
+                  padding: '12px', 
+                  borderRadius: '12px', 
+                  display: 'inline-block', 
+                  boxShadow: 'var(--shadow-sm)',
+                  border: '2px solid var(--color-accent-gold)',
+                  marginBottom: '16px'
+                }}>
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                      `upi://pay?pa=${KESHIRA_UPI_ID}&pn=Keshira&am=${orderSummary.total}&cu=INR&tn=Keshira_Order_${orderId}`
+                    )}`} 
+                    alt="Scan to Pay via UPI" 
+                    style={{ display: 'block', width: '180px', height: '180px' }}
                   />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Security Code (CVV)</label>
-                  <input 
-                    type="password" 
-                    name="cvv" 
-                    className="form-input" 
-                    placeholder="•••"
-                    maxLength="4"
-                    value={paymentForm.cvv}
-                    onChange={handlePaymentChange}
-                    required
-                  />
+                
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '0 0 12px 0' }}>
+                  Scan QR with GPay, PhonePe, Paytm, or BHIM
+                </p>
+                
+                {/* UPI ID copy option */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#FFFFFF', padding: '6px 12px', borderRadius: '50px', border: '1px solid var(--color-border)', fontSize: '0.85rem' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--color-text-dark)' }}>{KESHIRA_UPI_ID}</span>
+                  <button 
+                    type="button" 
+                    onClick={handleCopyUpi} 
+                    style={{ 
+                      color: 'var(--color-accent-gold-dark)', 
+                      fontSize: '0.8rem', 
+                      fontWeight: 'bold', 
+                      borderLeft: '1px solid var(--color-border)', 
+                      paddingLeft: '8px' 
+                    }}
+                  >
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
                 </div>
+              </div>
+
+              {/* UTR Input */}
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>UPI Ref No. / Transaction ID (UTR)</label>
+                <input 
+                  type="text" 
+                  name="utr" 
+                  className="form-input" 
+                  placeholder="Enter 12-digit UTR No. (e.g. 312345678901)"
+                  maxLength="12"
+                  pattern="\d{12}"
+                  value={paymentForm.utr}
+                  onChange={handlePaymentChange}
+                  style={{ textAlign: 'center', fontSize: '1.1rem', letterSpacing: '0.1em' }}
+                  required
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', marginTop: '6px', textAlign: 'center' }}>
+                  💡 Make the payment on your UPI app, then copy & paste the 12-digit UTR/Ref No. here.
+                </span>
+              </div>
+
+              {/* Screenshot Upload Input */}
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Attach Payment Screenshot (Optional)</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileChange}
+                  style={{ 
+                    display: 'block', 
+                    width: '100%', 
+                    padding: '8px 12px', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--color-border)', 
+                    backgroundColor: '#FFFFFF',
+                    fontSize: '0.85rem',
+                    fontFamily: 'inherit'
+                  }} 
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', marginTop: '6px', textAlign: 'center' }}>
+                  📸 Upload your transaction receipt for faster verification. (Max 1.5MB)
+                </span>
+                {paymentForm.screenshot && (
+                  <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#27ae60', fontWeight: 'bold' }}>✓ Screenshot attached successfully!</span>
+                  </div>
+                )}
               </div>
 
               <div className="checkout-actions">
                 <button type="button" className="btn-back" onClick={() => setStep(1)}>
                   Back
                 </button>
-                <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  Pay ₹{orderSummary.total}
+                <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                  Submit Order
                 </button>
               </div>
             </form>
@@ -289,10 +502,10 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
             <div className="processing-overlay">
               <div className="spinner"></div>
               <h3 style={{ fontSize: '1.5rem', color: 'var(--color-primary)', marginBottom: '8px' }}>
-                Authorizing Transaction
+                Submitting Order Details
               </h3>
               <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
-                Connecting to mock gateway... Please do not refresh.
+                Registering your UPI UTR ref for apothecary verification... Please wait.
               </p>
             </div>
           )}
@@ -315,6 +528,12 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
                   <span>Order Reference</span>
                   <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{orderId}</span>
                 </div>
+                {paymentForm.utr && (
+                  <div className="receipt-row">
+                    <span>Payment Ref (UTR)</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{paymentForm.utr}</span>
+                  </div>
+                )}
                 <div className="receipt-row">
                   <span>Subtotal</span>
                   <span>₹{orderSummary.subtotal}</span>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import HairQuiz from './components/HairQuiz';
@@ -24,6 +24,38 @@ export default function App() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isPortalOpen, setIsPortalOpen] = useState(false);
+  const [clickCount, setClickCount] = useState(0);
+
+  // 1. Secret URL Query Trigger (?admin=true)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === 'true') {
+      setIsAdminOpen(true);
+      // Clean query parameters from URL bar without reloading page
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  // 2. Secret Triple-Click Copyright Trigger
+  const handleSecretClick = () => {
+    setClickCount((prev) => {
+      const next = prev + 1;
+      if (next >= 3) {
+        setIsAdminOpen(true);
+        return 0; // reset
+      }
+      return next;
+    });
+  };
+
+  // Reset count after 1.5 seconds of inactivity
+  useEffect(() => {
+    if (clickCount > 0) {
+      const timer = setTimeout(() => setClickCount(0), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [clickCount]);
+
   const [checkoutSummary, setCheckoutSummary] = useState({
     subtotal: 0,
     discount: 0,
@@ -177,22 +209,21 @@ export default function App() {
 
           <div className="footer-contact">
             <h4>Contact Us</h4>
-            <p>Email: contact@keshirahaircare.com</p>
+            <p>Email: keshira.care@gmail.com</p>
             <p>Instagram: @keshira_haircare</p>
             <p>Batch Location: Ahmedabad, Gujarat, India</p>
           </div>
         </div>
         
         <div className="container footer-bottom">
-          <p>&copy; {new Date().getFullYear()} Keshira. All rights reserved.</p>
+          <p 
+            onClick={handleSecretClick} 
+            style={{ cursor: 'default', userSelect: 'none' }}
+          >
+            &copy; {new Date().getFullYear()} Keshira. All rights reserved.
+          </p>
           <p>
-            Ayurvedic Formulation • Homemade in Micro Batches •{' '}
-            <span 
-              onClick={() => setIsAdminOpen(true)} 
-              style={{ cursor: 'pointer', textDecoration: 'underline', opacity: 0.7 }}
-            >
-              🔒 Admin Access
-            </span>
+            Ayurvedic Formulation • Homemade in Micro Batches
           </p>
         </div>
       </footer>

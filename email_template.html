@@ -1,0 +1,115 @@
+<div
+  style="
+    font-family: system-ui, -apple-system, sans-serif, Arial;
+    font-size: 14px;
+    color: #333;
+    padding: 24px 8px;
+    background-color: #FAF7F2;
+  "
+>
+  <div style="max-width: 600px; margin: auto; background-color: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(19, 46, 27, 0.05); overflow: hidden;">
+    <!-- Brand Header -->
+    <div style="border-top: 6px solid #132E1B; border-bottom: 1px solid #eee; padding: 20px; background-color: #fff; text-align: left;">
+      <a
+        style="text-decoration: none; outline: none; margin-right: 8px; vertical-align: middle; display: inline-block;"
+        href="https://keshira.vercel.app/"
+        target="_blank"
+      >
+        <img
+          style="height: 32px; vertical-align: middle;"
+          height="32px"
+          src="https://keshira.vercel.app/favicon.svg"
+          alt="Keshira logo"
+        />
+      </a>
+      <span
+        style="
+          font-size: 18px;
+          vertical-align: middle;
+          border-left: 2px solid #132E1B;
+          padding-left: 10px;
+          font-family: Garamond, Georgia, serif;
+          letter-spacing: 0.05em;
+          color: #132E1B;
+        "
+      >
+        <strong>KESHIRA</strong>
+      </span>
+    </div>
+    
+    <div style="padding: 24px 20px;">
+      <h3 style="font-family: Garamond, Georgia, serif; font-size: 20px; color: #132E1B; margin-top: 0; margin-bottom: 8px;">
+        Thank You for Your Order, {{customer_name}}!
+      </h3>
+      <p style="color: #666; margin-bottom: 24px;">
+        We have received your order details and are verifying your payment. We'll send you tracking information when your hand-poured batch ships.
+      </p>
+      
+      <!-- Order ID and UTR Section -->
+      <div
+        style="
+          text-align: left;
+          font-size: 14px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #132E1B;
+          margin-bottom: 16px;
+        "
+      >
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="text-align: left; color: #132E1B;"><strong>Order #{{order_id}}</strong></td>
+            <td style="text-align: right; color: #888;">Ref UTR: <strong>{{utr_ref}}</strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Items Section (rendered dynamically from React) -->
+      {{{items_html}}}
+
+      <!-- Shipping Address section -->
+      <div style="margin-top: 24px; font-size: 13px; color: #58615A; background-color: #FAF7F2; padding: 16px; border-radius: 8px; border: 1px solid rgba(19, 46, 27, 0.06);">
+        <strong style="color: #132E1B; display: block; margin-bottom: 6px; font-size: 14px; border-bottom: 1px solid rgba(19, 46, 27, 0.1); padding-bottom: 4px;">
+          Delivery Details
+        </strong>
+        <span style="font-weight: bold; color: #1f2220;">{{customer_name}}</span><br />
+        <span>{{delivery_address}}</span><br />
+        <span>Phone: {{customer_phone}}</span>
+      </div>
+
+      <div style="padding: 20px 0 10px 0;">
+        <div style="border-top: 1px solid #eee;"></div>
+      </div>
+
+      <!-- Pricing Summary -->
+      <table style="border-collapse: collapse; width: 100%; text-align: right; font-size: 14px; color: #444;">
+        <tr>
+          <td style="width: 50%"></td>
+          <td style="padding: 6px 0;">Subtotal</td>
+          <td style="padding: 6px 0 6px 12px; white-space: nowrap;">₹{{subtotal}}</td>
+        </tr>
+        {{{discount_row}}}
+        <tr>
+          <td style="width: 50%"></td>
+          <td style="padding: 6px 0;">Shipping</td>
+          <td style="padding: 6px 0 6px 12px; white-space: nowrap; color: {{shipping_color}};">{{shipping_cost}}</td>
+        </tr>
+        <tr>
+          <td style="width: 50%"></td>
+          <td style="padding: 16px 0 0 0; border-top: 2px solid #132E1B;">
+            <strong style="white-space: nowrap; color: #132E1B; font-size: 16px;">Order Total</strong>
+          </td>
+          <td style="padding: 16px 0 0 12px; border-top: 2px solid #132E1B; white-space: nowrap;">
+            <strong style="color: #132E1B; font-size: 18px;">₹{{order_total}}</strong>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  
+  <div style="max-width: 600px; margin: auto; text-align: center; padding-top: 16px;">
+    <p style="color: #999; font-size: 12px; line-height: 1.5;">
+      This email was sent to {{customer_email}}<br />
+      You received this because you made a purchase on keshira.vercel.app.
+    </p>
+  </div>
+</div>

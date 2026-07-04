@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { collection, addDoc, getDocs, query } from 'firebase/firestore';
 
 const INGREDIENTS_LIST = [
   { name: 'Neem', desc: 'Soothes scalp irritation, fights dandruff, and keeps roots healthy with antibacterial properties.' },
@@ -36,13 +38,51 @@ export default function ProductDetail({ onAddToCart }) {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('keshira_reviews');
-    if (saved) {
-      setReviews(JSON.parse(saved));
-    } else {
-      localStorage.setItem('keshira_reviews', JSON.stringify(INITIAL_REVIEWS));
-      setReviews(INITIAL_REVIEWS);
-    }
+    const fetchReviews = async () => {
+      try {
+        const reviewsRef = collection(db, 'reviews');
+        const q = query(reviewsRef);
+        const querySnapshot = await getDocs(q);
+        const reviewsList = [];
+        querySnapshot.forEach((doc) => {
+          reviewsList.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (reviewsList.length === 0) {
+          // No reviews in Firestore yet, seed with INITIAL_REVIEWS
+          console.log('Seeding initial reviews to Firestore...');
+          const promises = INITIAL_REVIEWS.map(rev => addDoc(reviewsRef, rev));
+          await Promise.all(promises);
+          
+          // Re-fetch to get the reviews with their Firestore document IDs
+          const freshSnapshot = await getDocs(q);
+          const freshList = [];
+          freshSnapshot.forEach((doc) => {
+            freshList.push({ id: doc.id, ...doc.data() });
+          });
+          freshList.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setReviews(freshList);
+          localStorage.setItem('keshira_reviews', JSON.stringify(freshList));
+        } else {
+          // Sort newest first
+          reviewsList.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setReviews(reviewsList);
+          localStorage.setItem('keshira_reviews', JSON.stringify(reviewsList));
+        }
+      } catch (err) {
+        console.error('Error fetching reviews from Firestore:', err);
+        // Fallback to localStorage
+        const saved = localStorage.getItem('keshira_reviews');
+        if (saved) {
+          setReviews(JSON.parse(saved));
+        } else {
+          localStorage.setItem('keshira_reviews', JSON.stringify(INITIAL_REVIEWS));
+          setReviews(INITIAL_REVIEWS);
+        }
+      }
+    };
+
+    fetchReviews();
   }, []);
 
   const variants = {
@@ -77,7 +117,7 @@ export default function ProductDetail({ onAddToCart }) {
     setQuantity(1);
   };
 
-  const handleReviewSubmit = (e) => {
+  const handleReviewSubmit = async (e) => {
     e.preventDefault();
     if (!newReview.name || !newReview.text) {
       alert('Please fill out all fields before submitting.');
@@ -92,9 +132,22 @@ export default function ProductDetail({ onAddToCart }) {
       scalpType: newReview.scalpType
     };
 
-    const updatedReviews = [reviewObject, ...reviews];
-    setReviews(updatedReviews);
-    localStorage.setItem('keshira_reviews', JSON.stringify(updatedReviews));
+    // Save to Cloud Firestore
+    try {
+      const reviewsRef = collection(db, 'reviews');
+      const docRef = await addDoc(reviewsRef, reviewObject);
+      const savedObject = { id: docRef.id, ...reviewObject };
+      
+      const updatedReviews = [savedObject, ...reviews];
+      setReviews(updatedReviews);
+      localStorage.setItem('keshira_reviews', JSON.stringify(updatedReviews));
+    } catch (err) {
+      console.error('Error saving review to Firestore:', err);
+      // Fallback
+      const updatedReviews = [reviewObject, ...reviews];
+      setReviews(updatedReviews);
+      localStorage.setItem('keshira_reviews', JSON.stringify(updatedReviews));
+    }
 
     // Reset Form
     setNewReview({
