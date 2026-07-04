@@ -74,7 +74,7 @@ export default function HairQuiz({ onAddToCart }) {
           <p className="section-subtitle">Personalized Herbal Recommendations</p>
         </div>
 
-        <div style={{ backgroundColor: 'var(--color-bg-parchment-light)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '40px', boxShadow: 'var(--shadow-md)', minHeight: '340px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div className="quiz-card-container">
           
           {step === 1 && (
             <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
@@ -82,7 +82,7 @@ export default function HairQuiz({ onAddToCart }) {
                 Question 1 of 3
               </p>
               <h3 style={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '24px' }}>Describe your scalp type:</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="quiz-grid-2col">
                 <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('scalpType', 'Dry & Flaky')}>Dry & Flaky</button>
                 <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('scalpType', 'Oily & Greasy')}>Oily & Greasy</button>
                 <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('scalpType', 'Normal & Balanced')}>Normal & Balanced</button>
@@ -97,7 +97,7 @@ export default function HairQuiz({ onAddToCart }) {
                 Question 2 of 3
               </p>
               <h3 style={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '24px' }}>What is your primary hair concern?</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="quiz-grid-2col">
                 <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('concern', 'Excessive Hair Fall')}>Excessive Hair Fall</button>
                 <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('concern', 'Persistent Dandruff')}>Persistent Dandruff</button>
                 <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('concern', 'Frizz & Dryness')}>Frizz & Dryness</button>
@@ -113,7 +113,7 @@ export default function HairQuiz({ onAddToCart }) {
                 Question 3 of 3
               </p>
               <h3 style={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '24px' }}>What is your hair length?</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+              <div className="quiz-grid-3col">
                 <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('length', 'Short')}>Short</button>
                 <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('length', 'Medium')}>Medium</button>
                 <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('length', 'Long')}>Long</button>

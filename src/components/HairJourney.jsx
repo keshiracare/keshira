@@ -254,7 +254,7 @@ export default function HairJourney() {
             </div>
 
             {/* Micro details grid cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '8px' }}>
+            <div className="journey-details-grid">
               <div 
                 style={{ 
                   backgroundColor: 'rgba(19, 46, 27, 0.02)', 

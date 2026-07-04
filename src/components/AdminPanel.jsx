@@ -201,8 +201,8 @@ export default function AdminPanel({ isOpen, onClose }) {
           </div>
         ) : (
           /* Admin Dashboard */
-          <div style={{ padding: '40px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(250, 245, 235, 0.1)', paddingBottom: '20px', marginBottom: '30px' }}>
+          <div className="admin-modal-content">
+            <div className="admin-header">
               <div>
                 <h3 style={{ fontSize: '2.2rem', color: '#FAF5EB', margin: 0 }}>Apothecary Control Center</h3>
                 <span style={{ fontSize: '0.8rem', color: '#27ae60', fontWeight: 'bold' }}>● LIVE frontend simulation mode</span>
@@ -211,9 +211,9 @@ export default function AdminPanel({ isOpen, onClose }) {
                 Lock Panel
               </button>
             </div>
-
+ 
             {/* Analytics Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '35px' }}>
+            <div className="admin-analytics-grid">
               <div style={{ backgroundColor: 'rgba(250, 245, 235, 0.03)', border: '1px solid rgba(250, 245, 235, 0.08)', borderRadius: '8px', padding: '20px' }}>
                 <span style={{ fontSize: '0.8rem', color: 'rgba(250, 245, 235, 0.5)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Total Revenue</span>
                 <h4 style={{ fontSize: '2rem', color: '#FAF5EB', marginTop: '6px' }}>₹{totalRevenue}</h4>
@@ -231,7 +231,7 @@ export default function AdminPanel({ isOpen, onClose }) {
                 <h4 style={{ fontSize: '2rem', color: '#27ae60', marginTop: '6px' }}>{activeSubscriptions}</h4>
               </div>
             </div>
-
+ 
             {/* Tabs */}
             <ul className="tabs-nav" style={{ borderBottomColor: 'rgba(250, 245, 235, 0.1)', marginBottom: '24px' }}>
               <li>
@@ -253,7 +253,7 @@ export default function AdminPanel({ isOpen, onClose }) {
                 </button>
               </li>
             </ul>
-
+ 
             {/* Tab Contents */}
             <div style={{ minHeight: '300px' }}>
               {activeTab === 'orders' && (
@@ -264,22 +264,22 @@ export default function AdminPanel({ isOpen, onClose }) {
                     </p>
                   ) : (
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                      <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid rgba(250, 245, 235, 0.15)', textAlign: 'left', color: 'rgba(250, 245, 235, 0.6)' }}>
-                            <th style={{ padding: '12px' }}>Order ID</th>
-                            <th style={{ padding: '12px' }}>Customer</th>
-                            <th style={{ padding: '12px' }}>Items</th>
-                            <th style={{ padding: '12px' }}>Total Amount</th>
-                            <th style={{ padding: '12px' }}>Status</th>
-                            <th style={{ padding: '12px' }}>Modify Status</th>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Modify Status</th>
                           </tr>
                         </thead>
                         <tbody>
                           {orders.map((order, idx) => (
                             <tr key={idx} style={{ borderBottom: '1px solid rgba(250, 245, 235, 0.08)' }}>
-                              <td style={{ padding: '16px 12px', fontWeight: 'bold' }}>{order.id}</td>
-                              <td style={{ padding: '16px 12px' }}>
+                              <td style={{ fontWeight: 'bold' }}>{order.id}</td>
+                              <td>
                                 <div style={{ fontWeight: 600 }}>{order.shippingAddress.fullName}</div>
                                 <div style={{ fontSize: '0.75rem', color: 'rgba(250, 245, 235, 0.5)' }}>{order.shippingAddress.phone}</div>
                                 {order.utr && (
@@ -314,15 +314,15 @@ export default function AdminPanel({ isOpen, onClose }) {
                                   </div>
                                 )}
                               </td>
-                              <td style={{ padding: '16px 12px' }}>
+                              <td>
                                 {order.items && order.items.map((item, itemIdx) => (
                                   <div key={itemIdx} style={{ fontSize: '0.8rem' }}>
                                     • {item.variant} {item.purchaseType === 'subscribe' ? '🔄' : ''} (x{item.quantity})
                                   </div>
                                 ))}
                               </td>
-                              <td style={{ padding: '16px 12px', fontWeight: 600 }}>₹{order.total}</td>
-                              <td style={{ padding: '16px 12px' }}>
+                              <td style={{ fontWeight: 600 }}>₹{order.total}</td>
+                              <td>
                                 <span 
                                   style={{ 
                                     padding: '4px 10px', 
@@ -336,7 +336,7 @@ export default function AdminPanel({ isOpen, onClose }) {
                                   {order.status}
                                 </span>
                               </td>
-                              <td style={{ padding: '16px 12px' }}>
+                              <td>
                                 <select 
                                   value={order.status} 
                                   onChange={(e) => handleStatusChange(order.id, e.target.value)}

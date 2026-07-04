@@ -1951,4 +1951,122 @@ h1, h2, h3, h4 {
   transform: translateY(-7px) rotate(-45deg);
 }
 
+/* Responsive Layout Optimizations */
+.admin-modal-content {
+  padding: 40px;
+}
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(250, 245, 235, 0.1);
+  padding-bottom: 20px;
+  margin-bottom: 30px;
+}
+.admin-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 35px;
+}
+.admin-table th, .admin-table td {
+  padding: 16px 12px;
+}
+
+.portal-modal-content {
+  padding: 40px;
+}
+.portal-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.quiz-card-container {
+  background-color: var(--color-bg-parchment-light);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: var(--shadow-md);
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.quiz-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.quiz-grid-3col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.journey-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .admin-modal-content {
+    padding: 20px 16px;
+  }
+  .admin-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    text-align: center;
+  }
+  .admin-header h3 {
+    font-size: 1.8rem !important;
+  }
+  .admin-header button {
+    width: 100%;
+  }
+  .admin-analytics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .admin-table th, .admin-table td {
+    padding: 10px 8px;
+    font-size: 0.8rem;
+  }
+  .portal-modal-content {
+    padding: 24px 16px;
+  }
+  .quick-buy-bar {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 600px) {
+  .portal-details-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .quiz-card-container {
+    padding: 24px 16px;
+  }
+  .quiz-grid-2col, .quiz-grid-3col {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .journey-details-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
 

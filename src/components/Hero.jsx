@@ -124,25 +124,29 @@ export default function Hero() {
         
         {/* Right Column: Hero Image with gold frame accents */}
         <div className="hero-image-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-          <div 
-            style={{
-              position: 'absolute',
-              width: '100%',
-              height: '100%',
-              border: '1px solid rgba(200, 162, 97, 0.25)',
-              transform: 'translate(20px, 20px)',
-              borderRadius: '16px',
-              zIndex: 0,
-              pointerEvents: 'none'
-            }}
-          ></div>
-          <div className="hero-image-wrapper" style={{ zIndex: 1, borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
-            <img 
-              src="/assets/hero-shampoo.jpg" 
-              alt="Keshira Homemade Herbal Shampoo Bottle" 
-              className="hero-image" 
-              style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover' }}
-            />
+          <div style={{ position: 'relative', width: '100%', maxWidth: '420px', aspectRatio: '4/5' }}>
+            <div 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                border: '1px solid rgba(200, 162, 97, 0.25)',
+                transform: 'translate(20px, 20px)',
+                borderRadius: '16px',
+                zIndex: 0,
+                pointerEvents: 'none'
+              }}
+            ></div>
+            <div className="hero-image-wrapper" style={{ zIndex: 1, borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', width: '100%', height: '100%' }}>
+              <img 
+                src="/assets/hero-shampoo.jpg" 
+                alt="Keshira Homemade Herbal Shampoo Bottle" 
+                className="hero-image" 
+                style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
           </div>
         </div>
       </div>

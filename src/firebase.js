@@ -16,3 +16,23 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Cloud Firestore and export it
 export const db = getFirestore(app);
+
+// Normalizes email addresses to prevent sub-addressing (+) and dots (.) bypass hacks
+export const normalizeEmail = (email) => {
+  if (!email) return '';
+  const cleanEmail = email.trim().toLowerCase();
+  const parts = cleanEmail.split('@');
+  if (parts.length !== 2) return cleanEmail;
+  
+  let [local, domain] = parts;
+  
+  // Strip sub-addressing (+...) for all domains
+  local = local.split('+')[0];
+  
+  // Remove dots for Gmail domains specifically
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    local = local.replace(/\./g, '');
+  }
+  
+  return `${local}@${domain}`;
+};

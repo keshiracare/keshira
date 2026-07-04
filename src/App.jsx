@@ -25,6 +25,8 @@ export default function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isPortalOpen, setIsPortalOpen] = useState(false);
   const [clickCount, setClickCount] = useState(0);
+  const [userEmail, setUserEmail] = useState('');
+  const [isFirstTime, setIsFirstTime] = useState(null); // null = unchecked, true = first time, false = returning
 
   // 1. Secret URL Query Trigger (?admin=true)
   useEffect(() => {
@@ -236,6 +238,10 @@ export default function App() {
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveItem}
         onCheckout={handleCheckoutOpen}
+        userEmail={userEmail}
+        setUserEmail={setUserEmail}
+        isFirstTime={isFirstTime}
+        setIsFirstTime={setIsFirstTime}
       />
 
       {/* Checkout Modal Wizard */}
@@ -245,6 +251,8 @@ export default function App() {
         orderSummary={checkoutSummary}
         cart={cart}
         onClearCart={handleClearCart}
+        prefilledEmail={userEmail}
+        setIsFirstTime={setIsFirstTime}
       />
 
       {/* Admin Panel Wizard */}

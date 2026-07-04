@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { normalizeEmail } from '../firebase';
 
 export default function SubscriptionPortal({ isOpen, onClose }) {
   const [orders, setOrders] = useState([]);
@@ -31,7 +32,10 @@ export default function SubscriptionPortal({ isOpen, onClose }) {
 
   // Filter orders by email
   const customerOrders = orders.filter(
-    (o) => o.shippingAddress && o.shippingAddress.email.trim().toLowerCase() === emailSearch.trim().toLowerCase()
+    (o) => o.shippingAddress && (
+      o.shippingAddress.email.trim().toLowerCase() === emailSearch.trim().toLowerCase() ||
+      normalizeEmail(o.shippingAddress.email) === normalizeEmail(emailSearch)
+    )
   );
 
   // Extract all subscription items from customer orders
@@ -178,7 +182,7 @@ export default function SubscriptionPortal({ isOpen, onClose }) {
           </svg>
         </button>
 
-        <div style={{ padding: '40px' }}>
+        <div className="portal-modal-content">
           <h3 style={{ fontSize: '2rem', marginBottom: '8px' }}>Customer Subscription Portal</h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '24px' }}>
             Manage your recurring Ayurvedic auto-deliveries.
@@ -291,7 +295,7 @@ export default function SubscriptionPortal({ isOpen, onClose }) {
                           </div>
                         </div>
 
-                        <div style={{ borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', padding: '12px 0', margin: '16px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.85rem' }}>
+                        <div className="portal-details-grid" style={{ borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', padding: '12px 0', margin: '16px 0', fontSize: '0.85rem' }}>
                           <div>
                             📅 <strong>Next Dispatch:</strong> {sub.status === 'Active' ? sub.nextShipment : 'Paused'}
                           </div>

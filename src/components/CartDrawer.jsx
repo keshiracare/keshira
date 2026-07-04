@@ -1,20 +1,132 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { db, normalizeEmail } from '../firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
-export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, onRemoveItem, onCheckout }) {
+export default function CartDrawer({ 
+  isOpen, 
+  onClose, 
+  cart, 
+  onUpdateQuantity, 
+  onRemoveItem, 
+  onCheckout,
+  userEmail,
+  setUserEmail,
+  isFirstTime,
+  setIsFirstTime
+}) {
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0); // in percentage
   const [promoMessage, setPromoMessage] = useState({ text: '', type: '' });
+  
+  const [emailInput, setEmailInput] = useState(userEmail || '');
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailMessage, setEmailMessage] = useState({ text: '', type: '' });
+
+  // Sync email input if verified state changes externally
+  useEffect(() => {
+    setEmailInput(userEmail || '');
+  }, [userEmail]);
+
+  const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const checkEmailEligibility = async (emailToVerify) => {
+    const trimmed = emailToVerify.trim();
+    if (!trimmed) {
+      setEmailMessage({ text: 'Please enter an email address.', type: 'error' });
+      return;
+    }
+    if (!validateEmail(trimmed)) {
+      setEmailMessage({ text: 'Please enter a valid email address.', type: 'error' });
+      return;
+    }
+
+    setIsCheckingEmail(true);
+    setEmailMessage({ text: '', type: '' });
+
+    const normalized = normalizeEmail(trimmed);
+
+    try {
+      // 1. Check local storage cache
+      const savedOrders = localStorage.getItem('keshira_orders');
+      const localList = savedOrders ? JSON.parse(savedOrders) : [];
+      const hasLocalOrder = localList.some(
+        (o) => o.shippingAddress && (
+          o.shippingAddress.email.trim().toLowerCase() === trimmed.toLowerCase() ||
+          normalizeEmail(o.shippingAddress.email) === normalized
+        )
+      );
+
+      if (hasLocalOrder) {
+        setIsFirstTime(false);
+        setUserEmail(trimmed);
+        setEmailMessage({ text: 'Welcome back! Email verified (returning customer).', type: 'success' });
+        // Reset promo if returning
+        setAppliedDiscount(0);
+        setPromoMessage({ text: '', type: '' });
+        return;
+      }
+
+      // 2. Query Firestore
+      const ordersRef = collection(db, 'orders');
+      // Query raw email, normalized email matching raw, and normalized email matching normalized
+      const q1 = query(ordersRef, where('shippingAddress.email', '==', trimmed.toLowerCase()));
+      const q2 = query(ordersRef, where('shippingAddress.email', '==', normalized));
+      const q3 = query(ordersRef, where('normalizedEmail', '==', normalized));
+      
+      const [snap1, snap2, snap3] = await Promise.all([
+        getDocs(q1),
+        getDocs(q2),
+        getDocs(q3)
+      ]);
+
+      if (!snap1.empty || !snap2.empty || !snap3.empty) {
+        setIsFirstTime(false);
+        setUserEmail(trimmed);
+        setEmailMessage({ text: 'Welcome back! Email verified (returning customer).', type: 'success' });
+        // Reset promo if returning
+        setAppliedDiscount(0);
+        setPromoMessage({ text: '', type: '' });
+      } else {
+        setIsFirstTime(true);
+        setUserEmail(trimmed);
+        setEmailMessage({ text: 'Verification successful! You are eligible for first-order benefits 🎉', type: 'success' });
+      }
+    } catch (err) {
+      console.error('Error checking email verification:', err);
+      // Fallback: trust local order check if Firestore fails
+      setIsFirstTime(true);
+      setUserEmail(trimmed);
+      setEmailMessage({ text: 'Verification completed offline.', type: 'success' });
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
+  const handleEmailChange = (e) => {
+    const val = e.target.value;
+    setEmailInput(val);
+    if (val !== userEmail) {
+      setIsFirstTime(null); // Require re-verification
+      setEmailMessage({ text: '', type: '' });
+      setAppliedDiscount(0);
+      setPromoMessage({ text: '', type: '' });
+    }
+  };
 
   const calculateSubtotal = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
   const handleApplyPromo = () => {
+    if (isFirstTime === null) {
+      setPromoMessage({ text: 'Please verify your email address first.', type: 'error' });
+      return;
+    }
     const code = promoCode.trim().toUpperCase();
     if (code === 'KESHIRA10') {
-      const savedOrders = localStorage.getItem('keshira_orders');
-      const orderList = savedOrders ? JSON.parse(savedOrders) : [];
-      if (orderList.length > 0) {
+      if (isFirstTime === false) {
         setAppliedDiscount(0);
         setPromoMessage({ text: 'KESHIRA10 is only applicable for your first order.', type: 'error' });
       } else {
@@ -28,9 +140,7 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
     }
   };
 
-  const savedOrders = localStorage.getItem('keshira_orders');
-  const orderList = savedOrders ? JSON.parse(savedOrders) : [];
-  const isFirstOrder = orderList.length === 0;
+  const isFirstOrder = isFirstTime === true;
 
   const subtotal = calculateSubtotal();
   const shippingThreshold = 300; // Free shipping threshold in Rs
@@ -58,7 +168,11 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
         <div className="cart-body" style={{ padding: '24px' }}>
           {subtotal > 0 && (
             <div className="shipping-promo-bar" style={{ backgroundColor: 'rgba(200, 162, 97, 0.05)', border: '1px solid rgba(200, 162, 97, 0.25)', borderRadius: '12px', padding: '16px', marginBottom: '24px' }}>
-              {isFirstOrder ? (
+              {isFirstTime === null ? (
+                <span style={{ fontSize: '0.82rem', color: 'var(--color-primary)' }}>
+                  Enter and verify your email below to check eligibility for <strong>FREE shipping</strong> on your first order!
+                </span>
+              ) : isFirstOrder ? (
                 <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary)' }}>🎉 First Order Special: You qualify for <strong>FREE shipping</strong>!</span>
               ) : subtotal >= shippingThreshold ? (
                 <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary)' }}>🎉 You qualify for <strong>FREE shipping</strong>!</span>
@@ -68,7 +182,7 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
                 </span>
               )}
               <div className="shipping-progress-bg" style={{ backgroundColor: 'rgba(19, 46, 27, 0.08)', height: '3px', marginTop: '10px' }}>
-                <div className="shipping-progress-fill" style={{ backgroundColor: 'var(--color-accent-gold)', width: isFirstOrder ? '100%' : `${progressToFreeShipping}%`, height: '100%' }}></div>
+                <div className="shipping-progress-fill" style={{ backgroundColor: 'var(--color-accent-gold)', width: (isFirstTime === null) ? '0%' : (isFirstOrder ? '100%' : `${progressToFreeShipping}%`), height: '100%' }}></div>
               </div>
             </div>
           )}
@@ -135,16 +249,58 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
 
         {cart.length > 0 && (
           <div className="cart-footer" style={{ borderTop: '1px solid var(--color-border)', padding: '24px', backgroundColor: 'var(--color-bg-parchment)' }}>
-            <div className="promo-code-row" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            
+            {/* Email Verification Section */}
+            <div className="email-verification-section" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                Customer Email Verification
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="email" 
+                  className="promo-input" 
+                  placeholder="Enter email to check eligibility" 
+                  value={emailInput} 
+                  onChange={handleEmailChange}
+                  style={{ flexGrow: 1, height: '38px', borderRadius: '6px', border: '1px solid var(--color-border)', padding: '0 12px', fontSize: '0.82rem', fontFamily: 'inherit', backgroundColor: 'var(--color-bg-parchment-light)' }}
+                />
+                <button 
+                  type="button"
+                  className="promo-btn" 
+                  onClick={() => checkEmailEligibility(emailInput)} 
+                  disabled={isCheckingEmail}
+                  style={{ height: '38px', padding: '0 16px', borderRadius: '6px', backgroundColor: 'var(--color-primary)', color: 'var(--color-text-light)', fontSize: '0.8rem', fontWeight: 600, opacity: isCheckingEmail ? 0.6 : 1, cursor: 'pointer' }}
+                >
+                  {isCheckingEmail ? 'Checking...' : 'Verify'}
+                </button>
+              </div>
+              {emailMessage.text && (
+                <p style={{ fontSize: '0.78rem', color: emailMessage.type === 'success' ? '#27ae60' : '#c0392b', margin: '6px 0 0 0', fontWeight: 500 }}>
+                  {emailMessage.text}
+                </p>
+              )}
+            </div>
+
+            {/* Promo Code Entry */}
+            <div className="promo-code-row" style={{ display: 'flex', gap: '8px', marginBottom: '16px', opacity: isFirstTime !== null ? 1 : 0.5 }}>
               <input 
                 type="text" 
                 className="promo-input" 
-                placeholder="Promo Code (e.g. KESHIRA10)" 
+                placeholder={isFirstTime !== null ? "Promo Code (e.g. KESHIRA10)" : "Verify email first to enter promo code"}
                 value={promoCode} 
                 onChange={(e) => setPromoCode(e.target.value)}
+                disabled={isFirstTime === null}
                 style={{ flexGrow: 1, height: '38px', borderRadius: '6px', border: '1px solid var(--color-border)', padding: '0 12px', fontSize: '0.82rem', fontFamily: 'inherit', backgroundColor: 'var(--color-bg-parchment-light)' }}
               />
-              <button className="promo-btn" onClick={handleApplyPromo} style={{ height: '38px', padding: '0 16px', borderRadius: '6px', backgroundColor: 'var(--color-primary)', color: 'var(--color-text-light)', fontSize: '0.8rem', fontWeight: 600 }}>Apply</button>
+              <button 
+                type="button"
+                className="promo-btn" 
+                onClick={handleApplyPromo} 
+                disabled={isFirstTime === null} 
+                style={{ height: '38px', padding: '0 16px', borderRadius: '6px', backgroundColor: 'var(--color-primary)', color: 'var(--color-text-light)', fontSize: '0.8rem', fontWeight: 600 }}
+              >
+                Apply
+              </button>
             </div>
             {promoMessage.text && (
               <p className={`promo-message ${promoMessage.type}`} style={{ fontSize: '0.78rem', color: promoMessage.type === 'success' ? '#27ae60' : '#c0392b', margin: '0 0 16px 0', fontWeight: 500 }}>
@@ -165,7 +321,7 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
               )}
               <div className="summary-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                 <span>Shipping</span>
-                <span>{shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}</span>
+                <span>{isFirstTime === null ? '—' : (shippingCost === 0 ? 'FREE' : `₹${shippingCost}`)}</span>
               </div>
               <div className="summary-row total" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.15rem', color: 'var(--color-primary)', fontWeight: '700', borderTop: '1px solid var(--color-border)', paddingTop: '12px', marginTop: '4px' }}>
                 <span>Total</span>
@@ -174,9 +330,29 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
             </div>
 
             <button 
+              type="button"
               className="checkout-btn" 
-              onClick={() => onCheckout({ subtotal, discount: discountAmount, shipping: shippingCost, total })}
-              style={{ width: '100%', height: '48px', borderRadius: '8px', backgroundColor: 'var(--color-primary)', color: 'var(--color-text-light)', fontWeight: 600, fontSize: '0.95rem', letterSpacing: '0.05em', boxShadow: 'var(--shadow-md)' }}
+              onClick={() => {
+                if (isFirstTime === null) {
+                  alert('Please enter and verify your email address first to proceed.');
+                  return;
+                }
+                onCheckout({ subtotal, discount: discountAmount, shipping: shippingCost, total });
+              }}
+              style={{ 
+                width: '100%', 
+                height: '48px', 
+                borderRadius: '8px', 
+                backgroundColor: 'var(--color-primary)', 
+                color: 'var(--color-text-light)', 
+                fontWeight: 600, 
+                fontSize: '0.95rem', 
+                letterSpacing: '0.05em', 
+                boxShadow: 'var(--shadow-md)', 
+                opacity: isFirstTime !== null ? 1 : 0.6, 
+                cursor: isFirstTime !== null ? 'pointer' : 'not-allowed',
+                border: 'none'
+              }}
             >
               Checkout Now
             </button>

@@ -208,7 +208,7 @@ export default function ProductDetail({ onAddToCart }) {
             <p className="variant-picker-title" style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-primary)', marginBottom: '12px' }}>
               Select Size
             </p>
-            <div className="variant-cards-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="variant-cards-grid">
               <button 
                 type="button"
                 className={`variant-card ${activeVariant === '100ml' ? 'active' : ''}`}
@@ -472,7 +472,7 @@ export default function ProductDetail({ onAddToCart }) {
                   <form onSubmit={handleReviewSubmit} style={{ border: '1px solid var(--color-border)', borderRadius: '12px', padding: '24px', backgroundColor: 'var(--color-bg-parchment)' }}>
                     <h4 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-serif)', color: 'var(--color-primary)', marginBottom: '16px', fontWeight: 600 }}>Write a Review</h4>
                     
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                    <div className="form-row" style={{ marginBottom: '16px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>Full Name</label>
                         <input 

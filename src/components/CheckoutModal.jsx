@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
-import { db } from '../firebase';
+import { db, normalizeEmail } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
-export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onClearCart }) {
+export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onClearCart, prefilledEmail, setIsFirstTime }) {
   const [step, setStep] = useState(1); // 1: Shipping, 2: Payment, 3: Processing, 4: Success
   const [shippingForm, setShippingForm] = useState({
     fullName: '',
-    email: '',
+    email: prefilledEmail || '',
     phone: '',
     address: '',
     city: '',
     pinCode: ''
   });
+
+  // Sync prefilled email from shopping cart
+  React.useEffect(() => {
+    if (isOpen && prefilledEmail) {
+      setShippingForm(prev => ({ ...prev, email: prefilledEmail }));
+    }
+  }, [isOpen, prefilledEmail]);
   const [paymentForm, setPaymentForm] = useState({
     utr: '',
     screenshot: ''
@@ -52,6 +59,7 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
         id: orderId,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         shippingAddress: shippingForm,
+        normalizedEmail: normalizeEmail(shippingForm.email),
         items: cart,
         total: orderSummary.total,
         utr: paymentForm.utr,
@@ -78,6 +86,7 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
       sendOrderEmail(newOrder);
 
       onClearCart(); // successful purchase clears cart
+      setIsFirstTime(false); // No longer a first-time user
       setStep(4); // Success step
     }, 2000);
   };
@@ -311,7 +320,10 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
                     value={shippingForm.email}
                     onChange={handleShippingChange}
                     required
+                    readOnly
+                    style={{ backgroundColor: 'rgba(250, 245, 235, 0.05)', cursor: 'not-allowed', opacity: 0.85 }}
                   />
+                  <span style={{ fontSize: '0.7rem', color: '#27ae60', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>✓ Verified in Shopping Bag</span>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Phone Number</label>
