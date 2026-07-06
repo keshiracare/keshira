@@ -1,0 +1,148 @@
+<div
+  style="
+    font-family: system-ui, -apple-system, sans-serif, Arial;
+    font-size: 14px;
+    color: #333;
+    padding: 24px 8px;
+    background-color: #FAF7F2;
+  "
+>
+  <div style="max-width: 600px; margin: auto; background-color: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(19, 46, 27, 0.05); overflow: hidden;">
+    <!-- Brand Header -->
+    <div style="border-top: 6px solid #b33939; border-bottom: 1px solid #eee; padding: 20px; background-color: #fff; text-align: left;">
+      <a
+        style="text-decoration: none; outline: none; margin-right: 8px; vertical-align: middle; display: inline-block;"
+        href="https://keshira.vercel.app/"
+        target="_blank"
+      >
+        <img
+          style="height: 32px; vertical-align: middle;"
+          height="32px"
+          src="https://keshira.vercel.app/favicon.svg"
+          alt="Keshira logo"
+        />
+      </a>
+      <span
+        style="
+          font-size: 18px;
+          vertical-align: middle;
+          border-left: 2px solid #b33939;
+          padding-left: 10px;
+          font-family: Garamond, Georgia, serif;
+          letter-spacing: 0.05em;
+          color: #b33939;
+        "
+      >
+        <strong>KESHIRA ADMIN ALERTS</strong>
+      </span>
+    </div>
+    
+    <div style="padding: 24px 20px;">
+      <!-- Title Block -->
+      <h3 style="font-family: Garamond, Georgia, serif; font-size: 22px; color: #132E1B; margin-top: 0; margin-bottom: 8px;">
+        🚨 New Order Placed: {{order_id}}
+      </h3>
+      <p style="color: #666; margin-bottom: 24px; font-size: 15px; line-height: 1.5;">
+        A customer has submitted a new order. Please verify the UPI payment using the UTR reference number below before processing.
+      </p>
+
+      <!-- Urgent Payment Action Card -->
+      <div style="background-color: #ffe6e6; border: 1px solid #ffb3b3; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <strong style="color: #b33939; display: block; font-size: 15px; margin-bottom: 6px;">
+          Action Required: Verify UPI Credit
+        </strong>
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <tr>
+            <td style="padding: 4px 0; color: #555;">Payment UTR Code:</td>
+            <td style="padding: 4px 0; text-align: right;"><strong style="font-family: monospace; font-size: 16px; color: #b33939; background: #fff; padding: 2px 6px; border: 1px dashed #ffb3b3; border-radius: 4px;">{{utr_ref}}</strong></td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; color: #555;">Amount to Match:</td>
+            <td style="padding: 4px 0; text-align: right;"><strong style="color: #132E1B; font-size: 16px;">₹{{order_total}}</strong></td>
+          </tr>
+        </table>
+      </div>
+      
+      <!-- Order Info Section -->
+      <div
+        style="
+          text-align: left;
+          font-size: 14px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #132E1B;
+          margin-bottom: 16px;
+        "
+      >
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="text-align: left; color: #132E1B;"><strong>Order Details</strong></td>
+            <td style="text-align: right; color: #888;">Order ID: <strong>{{order_id}}</strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Items Section (rendered dynamically from React) -->
+      {{{items_html}}}
+
+      <!-- Customer & Shipping details -->
+      <div style="margin-top: 24px; font-size: 13px; color: #58615A; background-color: #FAF7F2; padding: 16px; border-radius: 8px; border: 1px solid rgba(19, 46, 27, 0.06);">
+        <strong style="color: #132E1B; display: block; margin-bottom: 6px; font-size: 14px; border-bottom: 1px solid rgba(19, 46, 27, 0.1); padding-bottom: 4px;">
+          Customer & Delivery Address
+        </strong>
+        <span style="font-weight: bold; color: #1f2220;">{{customer_name}}</span><br />
+        <span>{{delivery_address}}</span><br />
+        <span>Phone: <a href="tel:{{customer_phone}}" style="color: #132E1B; text-decoration: underline; font-weight: bold;">{{customer_phone}}</a></span><br />
+        <span>Email: <a href="mailto:{{customer_email}}" style="color: #132E1B; text-decoration: underline;">{{customer_email}}</a></span>
+      </div>
+
+      <div style="padding: 20px 0 10px 0;">
+        <div style="border-top: 1px solid #eee;"></div>
+      </div>
+
+      <!-- Pricing Summary -->
+      <table style="border-collapse: collapse; width: 100%; text-align: right; font-size: 14px; color: #444;">
+        <tr>
+          <td style="width: 50%"></td>
+          <td style="padding: 6px 0;">Subtotal</td>
+          <td style="padding: 6px 0 6px 12px; white-space: nowrap;">₹{{subtotal}}</td>
+        </tr>
+        {{{discount_row}}}
+        <tr>
+          <td style="width: 50%"></td>
+          <td style="padding: 6px 0;">Shipping</td>
+          <td style="padding: 6px 0 6px 12px; white-space: nowrap; color: {{shipping_color}};">{{shipping_cost}}</td>
+        </tr>
+        <tr>
+          <td style="width: 50%"></td>
+          <td style="padding: 16px 0 0 0; border-top: 2px solid #132E1B;">
+            <strong style="white-space: nowrap; color: #132E1B; font-size: 16px;">Total Amount</strong>
+          </td>
+          <td style="padding: 16px 0 0 12px; border-top: 2px solid #132E1B; white-space: nowrap;">
+            <strong style="color: #132E1B; font-size: 18px;">₹{{order_total}}</strong>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Admin Panel Call-to-action Button -->
+      <div style="margin-top: 32px; text-align: center;">
+        <a
+          href="https://keshira.vercel.app/admin"
+          target="_blank"
+          style="
+            background-color: #132E1B;
+            color: #fff;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 4px 6px rgba(19, 46, 27, 0.15);
+          "
+        >
+          Open Admin Control Panel
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

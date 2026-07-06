@@ -55,16 +55,20 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
     // Simulate order registry and payment verification
     setTimeout(async () => {
       // Create new order record
+      const now = new Date();
       const newOrder = {
         id: orderId,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        date: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        timestamp: now.getTime(),
         shippingAddress: shippingForm,
         normalizedEmail: normalizeEmail(shippingForm.email),
         items: cart,
         total: orderSummary.total,
         utr: paymentForm.utr,
         screenshot: paymentForm.screenshot || '',
-        status: 'Received'
+        status: 'Received',
+        adminNotes: ''
       };
 
       // Save to Cloud Firestore
@@ -84,6 +88,7 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
 
       // Trigger automated email notification (Free via EmailJS API)
       sendOrderEmail(newOrder);
+      sendAdminNotifications(newOrder);
 
       onClearCart(); // successful purchase clears cart
       setIsFirstTime(false); // No longer a first-time user
@@ -185,6 +190,182 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
     .catch((err) => {
       console.error('Error calling EmailJS API:', err);
     });
+  };
+
+  const sendAdminNotifications = (order) => {
+    // 1. EmailJS Admin Notification
+    const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_ez47q6c';
+    const ADMIN_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_ADMIN_TEMPLATE_ID;
+    const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'dUvyAAVmDEHvYT4Nb';
+
+    // Rich items HTML table
+    const itemsHtml = order.items
+      ? order.items.map(item => {
+          const cleanImgPath = item.image.startsWith('/') ? item.image.slice(1) : item.image;
+          const itemImgUrl = item.image.startsWith('http') 
+            ? item.image 
+            : `https://keshira.vercel.app/${cleanImgPath}`;
+          return `
+            <table style="width: 100%; border-collapse: collapse; border-bottom: 1px solid #eee; margin-bottom: 12px;">
+              <tr style="vertical-align: top">
+                <td style="padding: 16px 8px 16px 4px; display: inline-block; width: max-content">
+                  <img style="height: 64px; width: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;" height="64px" src="${itemImgUrl}" alt="${item.title}" />
+                </td>
+                <td style="padding: 16px 8px; width: 100%">
+                  <div style="font-size: 15px; font-weight: bold; color: #132E1B; font-family: system-ui, -apple-system, sans-serif;">${item.title}</div>
+                  <div style="font-size: 13px; color: #666; padding-top: 4px; font-family: system-ui, -apple-system, sans-serif;">
+                    Size: ${item.variant} | QTY: ${item.quantity} ${item.purchaseType === 'subscribe' ? '🔄 (Auto-Delivery)' : ''}
+                  </div>
+                </td>
+                <td style="padding: 16px 4px 0 0; white-space: nowrap; text-align: right; width: 100px;">
+                  <strong style="font-size: 15px; color: #132E1B; font-family: system-ui, -apple-system, sans-serif;">₹${item.price * item.quantity}</strong>
+                </td>
+              </tr>
+            </table>
+          `;
+        }).join('')
+      : '';
+
+    const subtotalVal = order.items ? order.items.reduce((sum, item) => sum + item.price * item.quantity, 0) : 0;
+    const discountAmount = orderSummary.discount || 0;
+    const shippingVal = orderSummary.shipping || 0;
+
+    const discountRowHtml = discountAmount > 0 
+      ? `<tr>
+          <td style="width: 50%"></td>
+          <td style="padding: 6px 0; color: #27ae60;">Discount Applied</td>
+          <td style="padding: 6px 0 6px 12px; white-space: nowrap; color: #27ae60;">-₹${discountAmount}</td>
+         </tr>`
+      : '';
+
+    const shippingCostText = shippingVal === 0 ? 'FREE' : `₹${shippingVal}`;
+    const shippingColorHex = shippingVal === 0 ? '#27ae60' : '#444';
+
+    const itemsTextList = order.items
+      ? order.items.map(item => `- ${item.title} (${item.variant}) x ${item.quantity} [${item.purchaseType === 'subscribe' ? '🔄 Subscription' : 'One-Time'}] - ₹${item.price * item.quantity}`).join('\n')
+      : '';
+
+    // If an Admin Template ID is configured, send the notification email
+    if (ADMIN_TEMPLATE_ID && PUBLIC_KEY && PUBLIC_KEY !== 'YOUR_EMAILJS_PUBLIC_KEY' && ADMIN_TEMPLATE_ID !== 'your_emailjs_admin_template_id') {
+      const adminTemplateParams = {
+        order_id: order.id,
+        customer_name: order.shippingAddress.fullName,
+        customer_email: order.shippingAddress.email,
+        customer_phone: order.shippingAddress.phone,
+        delivery_address: `${order.shippingAddress.address}, ${order.shippingAddress.city} - ${order.shippingAddress.pinCode}`,
+        utr_ref: order.utr,
+        subtotal: subtotalVal,
+        discount_row: discountRowHtml,
+        shipping_cost: shippingCostText,
+        shipping_color: shippingColorHex,
+        order_total: order.total,
+        items_html: itemsHtml
+      };
+
+      fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          service_id: SERVICE_ID,
+          template_id: ADMIN_TEMPLATE_ID,
+          user_id: PUBLIC_KEY,
+          template_params: adminTemplateParams
+        })
+      })
+      .then(async (res) => {
+        if (res.ok) {
+          console.log('Admin notification email sent successfully!');
+        } else {
+          const errorText = await res.text();
+          console.error('EmailJS Admin Template error:', res.status, errorText);
+        }
+      })
+      .catch((err) => {
+        console.error('Error sending Admin EmailJS notification:', err);
+      });
+    }
+
+    // 2. Discord Webhook Notification
+    const DISCORD_WEBHOOK_URL = import.meta.env.VITE_DISCORD_WEBHOOK_URL;
+    if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL !== 'your_discord_webhook_url') {
+      const discordPayload = {
+        username: "Keshira Apothecary Bot",
+        avatar_url: "https://keshira.vercel.app/logo.png",
+        embeds: [{
+          title: `🟢 New Order Received: ${order.id}`,
+          color: 1257003, // Hex #132E1B (Keshira brand dark green)
+          fields: [
+            { name: "Customer Name", value: order.shippingAddress.fullName, inline: true },
+            { name: "Phone", value: order.shippingAddress.phone, inline: true },
+            { name: "Email", value: order.shippingAddress.email, inline: true },
+            { name: "Delivery Address", value: `${order.shippingAddress.address}, ${order.shippingAddress.city} - ${order.shippingAddress.pinCode}` },
+            { name: "Payment UTR (UPI Ref No.)", value: `\`${order.utr}\``, inline: true },
+            { name: "Total Amount", value: `**₹${order.total}**`, inline: true },
+            { name: "Items Ordered", value: itemsTextList || "No items details" }
+          ],
+          timestamp: new Date().toISOString()
+        }]
+      };
+
+      fetch(DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(discordPayload)
+      })
+      .then((res) => {
+        if (res.ok) console.log('Discord webhook alert sent successfully!');
+        else console.error('Discord webhook failed with status:', res.status);
+      })
+      .catch((err) => {
+        console.error('Error sending Discord alert:', err);
+      });
+    }
+
+    // 3. Telegram Bot Notification
+    const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+    const TELEGRAM_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID && 
+        TELEGRAM_BOT_TOKEN !== 'your_telegram_bot_token' && 
+        TELEGRAM_CHAT_ID !== 'your_telegram_chat_id') {
+      
+      const telegramMessage = `
+<b>🟢 New Order Received: ${order.id}</b>
+---------------------------------------
+<b>Customer:</b> ${order.shippingAddress.fullName}
+<b>Phone:</b> ${order.shippingAddress.phone}
+<b>Email:</b> ${order.shippingAddress.email}
+<b>Address:</b> ${order.shippingAddress.address}, ${order.shippingAddress.city} - ${order.shippingAddress.pinCode}
+
+<b>Items:</b>
+${order.items ? order.items.map(item => `• ${item.title} (${item.variant}) x ${item.quantity} [${item.purchaseType === 'subscribe' ? '🔄 Subscription' : 'One-Time'}] - ₹${item.price * item.quantity}`).join('\n') : ''}
+
+<b>Payment UTR:</b> <code>${order.utr}</code>
+<b>Total Amount:</b> <b>₹${order.total}</b>
+`.trim();
+
+      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: telegramMessage,
+          parse_mode: 'HTML'
+        })
+      })
+      .then((res) => {
+        if (res.ok) console.log('Telegram bot alert sent successfully!');
+        else console.error('Telegram bot failed with status:', res.status);
+      })
+      .catch((err) => {
+        console.error('Error sending Telegram alert:', err);
+      });
+    }
   };
 
   const compressImage = (file, callback) => {

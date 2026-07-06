@@ -3,6 +3,7 @@ import { db } from '../firebase';
 import { collection, getDocs, doc, updateDoc, deleteDoc, query } from 'firebase/firestore';
 
 export default function AdminPanel({ isOpen, onClose }) {
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [orders, setOrders] = useState([]);
@@ -10,6 +11,9 @@ export default function AdminPanel({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('orders'); // orders, reviews
   const [errorMsg, setErrorMsg] = useState('');
   const [activeReceiptUrl, setActiveReceiptUrl] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [copiedId, setCopiedId] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -28,8 +32,11 @@ export default function AdminPanel({ isOpen, onClose }) {
       querySnapshot.forEach((doc) => {
         ordersList.push({ ...doc.data() });
       });
-      // Sort so newest orders are shown first (KES-xxxxxx descending)
-      ordersList.sort((a, b) => b.id.localeCompare(a.id));
+      // Sort so newest orders are shown first by timestamp (or fallback to id comparison)
+      ordersList.sort((a, b) => {
+        if (b.timestamp && a.timestamp) return b.timestamp - a.timestamp;
+        return b.id.localeCompare(a.id);
+      });
       setOrders(ordersList);
     } catch (err) {
       console.error('Error fetching orders from Firestore:', err);
@@ -78,6 +85,12 @@ export default function AdminPanel({ isOpen, onClose }) {
   };
 
   const handleStatusChange = async (orderId, newStatus) => {
+    if (isLocal) {
+      const confirmChange = window.confirm(
+        `⚠️ WARNING: You are running locally but connected to the LIVE database!\n\nAre you sure you want to change the status of Order ${orderId} to '${newStatus}' on the LIVE website?`
+      );
+      if (!confirmChange) return;
+    }
     const updatedOrders = orders.map(order => {
       if (order.id === orderId) {
         return { ...order, status: newStatus };
@@ -98,6 +111,12 @@ export default function AdminPanel({ isOpen, onClose }) {
   };
 
   const handleDeleteReview = async (reviewId, indexToDelete) => {
+    const confirmDelete = window.confirm(
+      isLocal
+        ? `⚠️ WARNING: You are running locally but connected to the LIVE database!\n\nAre you sure you want to PERMANENTLY delete this review from the LIVE website?`
+        : `Are you sure you want to permanently delete this customer review?`
+    );
+    if (!confirmDelete) return;
     const updatedReviews = reviews.filter((_, idx) => idx !== indexToDelete);
     setReviews(updatedReviews);
     localStorage.setItem('keshira_reviews', JSON.stringify(updatedReviews));
@@ -113,6 +132,103 @@ export default function AdminPanel({ isOpen, onClose }) {
       }
     }
   };
+
+  const handleNotesChange = async (orderId, newNotes) => {
+    const updatedOrders = orders.map(order => {
+      if (order.id === orderId) {
+        return { ...order, adminNotes: newNotes };
+      }
+      return order;
+    });
+    setOrders(updatedOrders);
+    localStorage.setItem('keshira_orders', JSON.stringify(updatedOrders));
+
+    // Update notes in Cloud Firestore
+    try {
+      const orderRef = doc(db, 'orders', orderId);
+      await updateDoc(orderRef, { adminNotes: newNotes });
+      console.log('Order notes successfully updated in Firestore.');
+    } catch (err) {
+      console.error('Error updating order notes in Firestore:', err);
+    }
+  };
+
+  const handleCopyText = (text, label) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(label);
+    setTimeout(() => setCopiedId(''), 2000);
+  };
+
+  const getWhatsAppLink = (phone, name, orderId, total) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const message = encodeURIComponent(
+      `Hello ${name},\n\nThis is Keshira Apothecary. We have received your order *${orderId}* for *₹${total}* and are verifying your payment details. We will notify you once it's processed and shipped! 🌿`
+    );
+    return `https://wa.me/${formattedPhone}?text=${message}`;
+  };
+
+  const exportToCSV = () => {
+    if (orders.length === 0) return;
+    
+    // Headers
+    const headers = [
+      "Order ID", "Date", "Time", "Customer Name", "Phone", "Email", 
+      "Address", "City", "Pincode", "Items", "Total Amount", "UTR", "Status", "Admin Notes"
+    ];
+    
+    // Rows
+    const rows = orders.map(order => {
+      const itemsStr = order.items 
+        ? order.items.map(item => `${item.title} (${item.variant}) x${item.quantity}`).join('; ')
+        : '';
+      return [
+        order.id,
+        order.date || '',
+        order.time || '',
+        order.shippingAddress?.fullName || '',
+        order.shippingAddress?.phone || '',
+        order.shippingAddress?.email || '',
+        `"${(order.shippingAddress?.address || '').replace(/"/g, '""')}"`,
+        order.shippingAddress?.city || '',
+        order.shippingAddress?.pinCode || '',
+        `"${itemsStr.replace(/"/g, '""')}"`,
+        order.total,
+        order.utr || '',
+        order.status,
+        `"${(order.adminNotes || '').replace(/"/g, '""')}"`
+      ];
+    });
+    
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `keshira_orders_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const filteredOrders = orders.filter(order => {
+    // 1. Status Filter
+    if (statusFilter !== 'All' && order.status !== statusFilter) return false;
+    
+    // 2. Search Term Filter
+    if (!searchTerm.trim()) return true;
+    
+    const term = searchTerm.toLowerCase();
+    const matchesId = order.id.toLowerCase().includes(term);
+    const matchesName = (order.shippingAddress?.fullName || '').toLowerCase().includes(term);
+    const matchesPhone = (order.shippingAddress?.phone || '').includes(term);
+    const matchesEmail = (order.shippingAddress?.email || '').toLowerCase().includes(term);
+    const matchesUtr = (order.utr || '').toLowerCase().includes(term);
+    const matchesAddress = (order.shippingAddress?.address || '').toLowerCase().includes(term);
+    const matchesCity = (order.shippingAddress?.city || '').toLowerCase().includes(term);
+    
+    return matchesId || matchesName || matchesPhone || matchesEmail || matchesUtr || matchesAddress || matchesCity;
+  });
 
   // Calculations for stats
   const totalRevenue = orders.reduce((acc, order) => acc + order.total, 0);
@@ -141,7 +257,7 @@ export default function AdminPanel({ isOpen, onClose }) {
       <div 
         className="modal-content" 
         style={{ 
-          width: '950px', 
+          width: '1150px', 
           maxWidth: '95%', 
           backgroundColor: '#1E2521', 
           color: '#FAF5EB',
@@ -202,6 +318,27 @@ export default function AdminPanel({ isOpen, onClose }) {
         ) : (
           /* Admin Dashboard */
           <div className="admin-modal-content">
+            {isLocal && (
+              <div style={{
+                backgroundColor: 'rgba(231, 76, 60, 0.12)',
+                color: '#e74c3c',
+                border: '1px solid rgba(231, 76, 60, 0.25)',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                marginBottom: '16px',
+                fontSize: '0.85rem',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                lineHeight: '1.4'
+              }}>
+                <span style={{ fontSize: '1.1rem' }}>⚠️</span>
+                <span>
+                  <strong>Production Database Warning:</strong> You are accessing this panel from <code>localhost</code> but you are connected to the <strong>LIVE Production Database</strong>. Actions performed here will modify live customer orders and reviews.
+                </span>
+              </div>
+            )}
             <div className="admin-header">
               <div>
                 <h3 style={{ fontSize: '2.2rem', color: '#FAF5EB', margin: 0 }}>Apothecary Control Center</h3>
@@ -258,9 +395,94 @@ export default function AdminPanel({ isOpen, onClose }) {
             <div style={{ minHeight: '300px' }}>
               {activeTab === 'orders' && (
                 <div>
+                  {/* Actions & Filters Panel */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    flexWrap: 'wrap', 
+                    gap: '12px', 
+                    marginBottom: '20px',
+                    backgroundColor: 'rgba(250, 245, 235, 0.02)',
+                    border: '1px solid rgba(250, 245, 235, 0.08)',
+                    borderRadius: '8px',
+                    padding: '12px 16px'
+                  }}>
+                    {/* Search Bar */}
+                    <div style={{ flex: '1', minWidth: '240px', position: 'relative' }}>
+                      <input
+                        type="text"
+                        placeholder="Search by customer, UTR, Order ID, address..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          paddingLeft: '32px',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(250, 245, 235, 0.15)',
+                          backgroundColor: 'rgba(0,0,0,0.15)',
+                          color: '#FAF5EB',
+                          fontSize: '0.85rem',
+                          outline: 'none'
+                        }}
+                      />
+                      <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+                    </div>
+
+                    {/* Quick Filters (Status Filter Tabs) */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {['All', 'Received', 'Packed', 'Dispatched', 'Delivered'].map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => setStatusFilter(status)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            border: '1px solid',
+                            borderColor: statusFilter === status ? 'var(--color-accent-gold)' : 'rgba(250,245,235,0.1)',
+                            backgroundColor: statusFilter === status ? 'rgba(195,155,62,0.15)' : 'transparent',
+                            color: statusFilter === status ? 'var(--color-accent-gold)' : 'rgba(250,245,235,0.7)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {status}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* CSV Export Button */}
+                    <button
+                      onClick={exportToCSV}
+                      disabled={orders.length === 0}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        fontWeight: 'bold',
+                        backgroundColor: 'var(--color-accent-gold)',
+                        color: '#1E2521',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      📥 Export Excel (CSV)
+                    </button>
+                  </div>
+
                   {orders.length === 0 ? (
                     <p style={{ textAlign: 'center', color: 'rgba(250, 245, 235, 0.4)', padding: '40px' }}>
                       No orders have been placed yet. Use checkout to create mock orders.
+                    </p>
+                  ) : filteredOrders.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: 'rgba(250, 245, 235, 0.4)', padding: '40px' }}>
+                      No orders matching your search or filters.
                     </p>
                   ) : (
                     <div style={{ overflowX: 'auto' }}>
@@ -269,6 +491,7 @@ export default function AdminPanel({ isOpen, onClose }) {
                           <tr style={{ borderBottom: '1px solid rgba(250, 245, 235, 0.15)', textAlign: 'left', color: 'rgba(250, 245, 235, 0.6)' }}>
                             <th>Order ID</th>
                             <th>Customer</th>
+                            <th>Delivery Details</th>
                             <th>Items</th>
                             <th>Total Amount</th>
                             <th>Status</th>
@@ -276,15 +499,29 @@ export default function AdminPanel({ isOpen, onClose }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {orders.map((order, idx) => (
+                          {filteredOrders.map((order, idx) => (
                             <tr key={idx} style={{ borderBottom: '1px solid rgba(250, 245, 235, 0.08)' }}>
-                              <td style={{ fontWeight: 'bold' }}>{order.id}</td>
+                              <td style={{ fontWeight: 'bold', padding: '12px 8px' }}>
+                                <div>{order.id}</div>
+                                {order.date && (
+                                  <div style={{ fontSize: '0.7rem', color: 'rgba(250, 245, 235, 0.4)', fontWeight: 'normal', marginTop: '4px' }}>
+                                    {order.date}
+                                    {order.time && ` at ${order.time}`}
+                                  </div>
+                                )}
+                              </td>
                               <td>
-                                <div style={{ fontWeight: 600 }}>{order.shippingAddress.fullName}</div>
-                                <div style={{ fontSize: '0.75rem', color: 'rgba(250, 245, 235, 0.5)' }}>{order.shippingAddress.phone}</div>
+                                <div style={{ fontWeight: 600 }}>{order.shippingAddress?.fullName || 'N/A'}</div>
                                 {order.utr && (
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--color-accent-gold)', marginTop: '4px', fontWeight: 'bold' }}>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--color-accent-gold)', marginTop: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     UTR: <span style={{ fontFamily: 'monospace', backgroundColor: 'rgba(250, 245, 235, 0.1)', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.05em' }}>{order.utr}</span>
+                                    <button 
+                                      onClick={() => handleCopyText(order.utr, `${order.id}-utr`)}
+                                      style={{ background: 'none', border: 'none', color: 'rgba(250,245,235,0.4)', cursor: 'pointer', padding: '0 4px', fontSize: '0.75rem', outline: 'none' }}
+                                      title="Copy UTR"
+                                    >
+                                      {copiedId === `${order.id}-utr` ? '✅' : '📋'}
+                                    </button>
                                   </div>
                                 )}
                                 {order.screenshot ? (
@@ -313,6 +550,95 @@ export default function AdminPanel({ isOpen, onClose }) {
                                     No receipt uploaded
                                   </div>
                                 )}
+                              </td>
+                              <td>
+                                {order.shippingAddress ? (
+                                  <>
+                                    <div style={{ display: 'flex', alignItems: 'start', gap: '4px' }}>
+                                      <div style={{ fontWeight: 500, fontSize: '0.8rem', color: '#FAF5EB', whiteSpace: 'pre-wrap', lineHeight: '1.4', maxWidth: '200px' }}>
+                                        {order.shippingAddress.address}
+                                      </div>
+                                      <button 
+                                        onClick={() => handleCopyText(`${order.shippingAddress.address}, ${order.shippingAddress.city} - ${order.shippingAddress.pinCode}`, `${order.id}-addr`)}
+                                        style={{ background: 'none', border: 'none', color: 'rgba(250,245,235,0.4)', cursor: 'pointer', padding: '2px 0 0 4px', fontSize: '0.7rem', outline: 'none' }}
+                                        title="Copy Address"
+                                      >
+                                        {copiedId === `${order.id}-addr` ? '✅' : '📋'}
+                                      </button>
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: 'rgba(250, 245, 235, 0.7)', marginTop: '2px' }}>
+                                      {order.shippingAddress.city} - <span style={{ fontWeight: 'bold' }}>{order.shippingAddress.pinCode}</span>
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: 'rgba(250, 245, 235, 0.5)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      📧 {order.shippingAddress.email}
+                                      <button 
+                                        onClick={() => handleCopyText(order.shippingAddress.email, `${order.id}-email`)}
+                                        style={{ background: 'none', border: 'none', color: 'rgba(250,245,235,0.3)', cursor: 'pointer', fontSize: '0.65rem', padding: '0 2px' }}
+                                        title="Copy Email"
+                                      >
+                                        {copiedId === `${order.id}-email` ? '✅' : '📋'}
+                                      </button>
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: 'rgba(250, 245, 235, 0.5)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      📞 {order.shippingAddress.phone}
+                                      <button 
+                                        onClick={() => handleCopyText(order.shippingAddress.phone, `${order.id}-phone`)}
+                                        style={{ background: 'none', border: 'none', color: 'rgba(250,245,235,0.3)', cursor: 'pointer', fontSize: '0.65rem', padding: '0 2px' }}
+                                        title="Copy Phone"
+                                      >
+                                        {copiedId === `${order.id}-phone` ? '✅' : '📋'}
+                                      </button>
+                                      <a 
+                                        href={getWhatsAppLink(order.shippingAddress.phone, order.shippingAddress.fullName, order.id, order.total)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ 
+                                          color: '#2ecc71', 
+                                          textDecoration: 'none', 
+                                          fontSize: '0.68rem', 
+                                          fontWeight: 'bold',
+                                          marginLeft: '6px',
+                                          backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                                          padding: '1px 5px',
+                                          borderRadius: '4px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '2px'
+                                        }}
+                                        title="WhatsApp Customer"
+                                      >
+                                        💬 WA
+                                      </a>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div style={{ fontSize: '0.75rem', color: 'rgba(250, 245, 235, 0.3)', fontStyle: 'italic' }}>
+                                    No shipping details
+                                  </div>
+                                )}
+                                
+                                {/* Admin Notes text area */}
+                                <div style={{ marginTop: '12px', borderTop: '1px dashed rgba(250,245,235,0.1)', paddingTop: '8px' }}>
+                                  <div style={{ fontSize: '0.7rem', color: 'rgba(250, 245, 235, 0.4)', marginBottom: '3px', fontWeight: 600 }}>Admin Notes:</div>
+                                  <textarea
+                                    defaultValue={order.adminNotes || ''}
+                                    onBlur={(e) => handleNotesChange(order.id, e.target.value)}
+                                    placeholder="Add private note..."
+                                    style={{
+                                      width: '100%',
+                                      backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                                      color: '#FAF5EB',
+                                      border: '1px solid rgba(250, 245, 235, 0.1)',
+                                      borderRadius: '4px',
+                                      padding: '4px 6px',
+                                      fontSize: '0.75rem',
+                                      resize: 'vertical',
+                                      minHeight: '38px',
+                                      fontFamily: 'inherit',
+                                      outline: 'none'
+                                    }}
+                                  />
+                                </div>
                               </td>
                               <td>
                                 {order.items && order.items.map((item, itemIdx) => (
