@@ -2068,5 +2068,60 @@ h1, h2, h3, h4 {
   }
 }
 
+/* ==========================================
+   Premium UI Enhancements & Micro-interactions
+   ========================================== */
+
+/* Button Hover Gloss & Ripple */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 0;
+  background: rgba(200, 162, 97, 0.15);
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(45deg);
+  transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 1;
+}
+.btn-primary:hover::after {
+  height: 250%;
+  opacity: 1;
+}
+
+/* Subtle elevation lift for product cards */
+.product-card {
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.product-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg), 0 10px 30px rgba(200, 162, 97, 0.05);
+}
+
+/* Smooth zoom transition for product images */
+.product-card-image img {
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.product-card:hover .product-card-image img {
+  transform: scale(1.05);
+}
+
+/* Smooth active state scaling for key interactive elements */
+.quiz-option, .ingredient-card, .faq-item {
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.quiz-option:hover, .ingredient-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-accent-gold) !important;
+  box-shadow: var(--shadow-md);
+}
+
+
 
 
