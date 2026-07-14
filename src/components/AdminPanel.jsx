@@ -8,7 +8,7 @@ export default function AdminPanel({ isOpen, onClose }) {
   const [password, setPassword] = useState('');
   const [orders, setOrders] = useState([]);
   const [reviews, setReviews] = useState([]);
-  const [activeTab, setActiveTab] = useState('orders'); // orders, reviews
+  const [activeTab, setActiveTab] = useState('orders'); // orders, reviews, subscriptions
   const [errorMsg, setErrorMsg] = useState('');
   const [activeReceiptUrl, setActiveReceiptUrl] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -389,6 +389,15 @@ export default function AdminPanel({ isOpen, onClose }) {
                   Customer Reviews ({reviews.length})
                 </button>
               </li>
+              <li>
+                <button 
+                  className={`tab-btn ${activeTab === 'subscriptions' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('subscriptions')}
+                  style={{ color: activeTab === 'subscriptions' ? '#FAF5EB' : 'rgba(250, 245, 235, 0.5)' }}
+                >
+                  Subscribers ({orders.filter(o => o.items && o.items.some(i => i.purchaseType === 'subscribe')).length})
+                </button>
+              </li>
             </ul>
  
             {/* Tab Contents */}
@@ -742,6 +751,160 @@ export default function AdminPanel({ isOpen, onClose }) {
                           </button>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'subscriptions' && (
+                <div>
+                  {orders.filter(o => o.items && o.items.some(i => i.purchaseType === 'subscribe')).length === 0 ? (
+                    <p style={{ textAlign: 'center', color: 'rgba(250, 245, 235, 0.4)', padding: '40px' }}>
+                      No active customer subscriptions yet.
+                    </p>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(250, 245, 235, 0.1)' }}>
+                            <th style={{ padding: '12px 8px' }}>Customer</th>
+                            <th style={{ padding: '12px 8px' }}>Product</th>
+                            <th style={{ padding: '12px 8px' }}>Frequency</th>
+                            <th style={{ padding: '12px 8px' }}>Next Auto-Delivery</th>
+                            <th style={{ padding: '12px 8px' }}>Status</th>
+                            <th style={{ padding: '12px 8px' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orders.filter(o => o.items && o.items.some(i => i.purchaseType === 'subscribe')).map((order) => {
+                            const subItem = order.items.find(i => i.purchaseType === 'subscribe');
+                            if (!subItem) return null;
+                            const orderDate = new Date(order.date);
+                            const days = subItem.frequency && subItem.frequency.includes('45') ? 45 : 30;
+                            const nextShipDate = order.nextShipment 
+                              ? new Date(order.nextShipment) 
+                              : new Date(orderDate.getTime() + days * 24 * 60 * 60 * 1000);
+                            
+                            const nextShipDateStr = nextShipDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            
+                            // Check if upcoming (within next 7 days)
+                            const today = new Date();
+                            const diffDays = Math.ceil((nextShipDate - today) / (1000 * 60 * 60 * 24));
+                            const isUpcomingAlert = diffDays >= 0 && diffDays <= 7 && (order.subscriptionStatus || 'Active') === 'Active';
+
+                            return (
+                              <tr 
+                                key={order.id} 
+                                style={{ 
+                                  borderBottom: '1px solid rgba(250, 245, 235, 0.05)',
+                                  backgroundColor: isUpcomingAlert ? 'rgba(200, 162, 97, 0.08)' : 'transparent'
+                                }}
+                              >
+                                <td style={{ padding: '12px 8px' }}>
+                                  <div style={{ fontWeight: 'bold' }}>{order.shippingAddress?.fullName}</div>
+                                  <div style={{ fontSize: '0.75rem', color: 'rgba(250, 245, 235, 0.6)' }}>
+                                    {order.shippingAddress?.phone} | {order.shippingAddress?.email}
+                                  </div>
+                                </td>
+                                <td style={{ padding: '12px 8px' }}>
+                                  {subItem.title} ({subItem.variant})
+                                </td>
+                                <td style={{ padding: '12px 8px' }}>
+                                  🔄 {subItem.frequency || '30 Days'}
+                                </td>
+                                <td style={{ padding: '12px 8px', color: isUpcomingAlert ? 'var(--color-accent-gold)' : 'inherit', fontWeight: isUpcomingAlert ? 'bold' : 'normal' }}>
+                                  {nextShipDateStr} {isUpcomingAlert && '⚠️ (Prepare soon!)'}
+                                </td>
+                                <td style={{ padding: '12px 8px' }}>
+                                  <span style={{ 
+                                    padding: '4px 8px', 
+                                    borderRadius: '4px', 
+                                    fontSize: '0.75rem', 
+                                    fontWeight: 'bold',
+                                    backgroundColor: (order.subscriptionStatus || 'Active') === 'Active' ? 'rgba(39, 174, 96, 0.15)' : 'rgba(241, 196, 15, 0.15)',
+                                    color: (order.subscriptionStatus || 'Active') === 'Active' ? '#2ecc71' : '#f1c40f'
+                                  }}>
+                                    {order.subscriptionStatus || 'Active'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '12px 8px' }}>
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button 
+                                      className="btn-secondary" 
+                                      onClick={async () => {
+                                        const currentStatus = order.subscriptionStatus || 'Active';
+                                        const nextStatus = currentStatus === 'Active' ? 'Paused' : 'Active';
+                                        const confirmMsg = isLocal 
+                                          ? `⚠️ Running locally but connected to LIVE database!\n\nAre you sure you want to change subscription status to '${nextStatus}'?`
+                                          : `Are you sure you want to set subscription status to '${nextStatus}'?`;
+                                        
+                                        if (!window.confirm(confirmMsg)) return;
+
+                                        const updatedOrders = orders.map(o => {
+                                          if (o.id === order.id) {
+                                            return { ...o, subscriptionStatus: nextStatus };
+                                          }
+                                          return o;
+                                        });
+                                        setOrders(updatedOrders);
+                                        localStorage.setItem('keshira_orders', JSON.stringify(updatedOrders));
+
+                                        // Update Firestore
+                                        try {
+                                          const orderRef = doc(db, 'orders', order.id);
+                                          await updateDoc(orderRef, { subscriptionStatus: nextStatus });
+                                        } catch (err) {
+                                          console.error('Error updating subscription status in Firestore:', err);
+                                        }
+                                      }}
+                                      style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#FAF5EB', borderColor: 'rgba(250, 245, 235, 0.2)' }}
+                                    >
+                                      {(order.subscriptionStatus || 'Active') === 'Active' ? 'Pause' : 'Activate'}
+                                    </button>
+                                    <button 
+                                      className="btn-secondary" 
+                                      onClick={async () => {
+                                        const confirmMsg = isLocal 
+                                          ? `⚠️ Running locally but connected to LIVE database!\n\nAre you sure you want to PERMANENTLY cancel this subscription?`
+                                          : `Are you sure you want to permanently cancel this auto-delivery subscription?`;
+                                        
+                                        if (!window.confirm(confirmMsg)) return;
+
+                                        const updatedOrders = orders.map(o => {
+                                          if (o.id === order.id) {
+                                            const updatedItems = o.items.filter(item => item.id !== subItem.id);
+                                            return { ...o, items: updatedItems };
+                                          }
+                                          return o;
+                                        }).filter(o => o.items && o.items.length > 0);
+
+                                        setOrders(updatedOrders);
+                                        localStorage.setItem('keshira_orders', JSON.stringify(updatedOrders));
+
+                                        // Update Firestore (delete subscription item or full document if no other items)
+                                        try {
+                                          const orderRef = doc(db, 'orders', order.id);
+                                          const updatedItems = order.items.filter(item => item.id !== subItem.id);
+                                          if (updatedItems.length === 0) {
+                                            await deleteDoc(orderRef);
+                                          } else {
+                                            await updateDoc(orderRef, { items: updatedItems });
+                                          }
+                                        } catch (err) {
+                                          console.error('Error cancelling subscription in Firestore:', err);
+                                        }
+                                      }}
+                                      style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#e74c3c', borderColor: 'rgba(231, 76, 60, 0.2)' }}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </div>
