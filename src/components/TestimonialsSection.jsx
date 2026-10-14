@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase, serializeReviewText, deserializeReviewRow, normalizeEmail } from '../supabase';
+import { useToast } from '../context/ToastContext';
 
 const INITIAL_TESTIMONIALS = [
   {
@@ -50,6 +51,7 @@ const INITIAL_TESTIMONIALS = [
 ];
 
 export default function TestimonialsSection() {
+  const { showToast } = useToast();
   const [reviews, setReviews] = useState(() => {
     try {
       const saved = localStorage.getItem('keshira_reviews');
@@ -121,12 +123,13 @@ export default function TestimonialsSection() {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 8 * 1024 * 1024) {
-        alert('Please choose an image under 8MB.');
+        showToast('Please choose an image under 8MB.', 'warning');
         return;
       }
       setSelectedImageName(file.name);
       compressReviewImage(file, (base64) => {
         setForm(prev => ({ ...prev, photo: base64 }));
+        showToast(`Photo "${file.name}" attached successfully!`, 'success');
       });
     }
   };
@@ -134,7 +137,7 @@ export default function TestimonialsSection() {
   const verifyOrderEligibility = async () => {
     const rawQuery = form.orderIdOrEmail.trim();
     if (!rawQuery) {
-      alert('Please enter your Order ID or purchase email.');
+      showToast('Please enter your Order ID or purchase email.', 'warning');
       return;
     }
 
@@ -157,6 +160,7 @@ export default function TestimonialsSection() {
 
       if (localMatch) {
         setVerificationStatus('verified');
+        showToast('✓ Order verified! Green badge activated.', 'success');
         if (localMatch.shippingAddress?.fullName && !form.name) {
           setForm(prev => ({ 
             ...prev, 
@@ -188,6 +192,7 @@ export default function TestimonialsSection() {
 
       if (!error && dbOrders && dbOrders.length > 0) {
         setVerificationStatus('verified');
+        showToast('✓ Verified Buyer! Thank you for your purchase.', 'success');
         const orderData = dbOrders[0].order_data || {};
         if (orderData.shippingAddress?.fullName && !form.name) {
           setForm(prev => ({
@@ -198,15 +203,18 @@ export default function TestimonialsSection() {
         }
       } else {
         setVerificationStatus('not_found');
+        showToast('Order not found. Posting as community review.', 'info');
       }
     } catch (err) {
       console.warn('Verification lookup fallback:', err);
       // If network times out, hangs, or table is inaccessible, smoothly conclude as community review
       setVerificationStatus('not_found');
+      showToast('Order not found. Posting as community review.', 'info');
     } finally {
       setIsVerifying(false);
     }
   };
+
 
   // Load reviews from Supabase or fallback to localStorage
   useEffect(() => {
@@ -288,7 +296,7 @@ export default function TestimonialsSection() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.text.trim()) {
-      alert('Please fill in your name and comments.');
+      showToast('Please fill in your name and comments.', 'warning');
       return;
     }
 
@@ -356,6 +364,8 @@ export default function TestimonialsSection() {
         window.dispatchEvent(new CustomEvent('keshira:review-added'));
         return updated;
       });
+
+      showToast('🎉 Review published successfully! Thank you for sharing.', 'success');
     } catch (err) {
       console.error('Failed to save review to Supabase, falling back to local storage cache:', err);
       const saved = { id: `local-${Date.now()}`, ...newEntry };
@@ -366,6 +376,7 @@ export default function TestimonialsSection() {
         window.dispatchEvent(new CustomEvent('keshira:review-added'));
         return updated;
       });
+      showToast('🎉 Review saved and published!', 'success');
     } finally {
       setIsSubmitting(false);
       setSubmitSuccess(true);

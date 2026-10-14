@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, normalizeEmail } from '../supabase';
 import { getActiveOffers } from '../data/products';
+import { useToast } from '../context/ToastContext';
 
 export default function CartDrawer({ 
   isOpen, 
@@ -14,7 +15,9 @@ export default function CartDrawer({
   isFirstTime,
   setIsFirstTime
 }) {
+  const { showToast } = useToast();
   const [storeOffers, setStoreOffers] = useState(getActiveOffers());
+
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0); // in percentage
   const [promoMessage, setPromoMessage] = useState({ text: '', type: '' });
@@ -76,6 +79,7 @@ export default function CartDrawer({
         setIsFirstTime(false);
         setUserEmail(trimmed);
         setEmailMessage({ text: 'Welcome back! Email verified (returning customer).', type: 'success' });
+        showToast('Welcome back! Returning customer verified.', 'info');
         // Reset promo if returning
         setAppliedDiscount(0);
         setPromoMessage({ text: '', type: '' });
@@ -97,6 +101,7 @@ export default function CartDrawer({
         setIsFirstTime(false);
         setUserEmail(trimmed);
         setEmailMessage({ text: 'Welcome back! Email verified (returning customer).', type: 'success' });
+        showToast('Welcome back! Returning customer verified.', 'info');
         // Reset promo if returning
         setAppliedDiscount(0);
         setPromoMessage({ text: '', type: '' });
@@ -107,6 +112,7 @@ export default function CartDrawer({
         setAppliedDiscount(10);
         setEmailMessage({ text: '🎉 First order verified! 10% discount + Free Shipping applied!', type: 'success' });
         setPromoMessage({ text: 'Promo code KESHIRA10 automatically applied (10% OFF)!', type: 'success' });
+        showToast('🎉 First-order verified! KESHIRA10 applied (10% OFF).', 'success');
       }
     } catch (err) {
       console.error('Error checking email verification:', err);
@@ -117,6 +123,7 @@ export default function CartDrawer({
       setAppliedDiscount(10);
       setEmailMessage({ text: 'Verification completed offline. First-order discount active!', type: 'success' });
       setPromoMessage({ text: 'KESHIRA10 applied (10% OFF)!', type: 'success' });
+      showToast('First-order discount active (10% OFF)!', 'success');
     } finally {
       setIsCheckingEmail(false);
     }
@@ -141,6 +148,7 @@ export default function CartDrawer({
     const code = promoCode.trim().toUpperCase();
     if (!code) {
       setPromoMessage({ text: '', type: '' });
+      showToast('Please enter a coupon code.', 'warning');
       return;
     }
 
@@ -149,23 +157,27 @@ export default function CartDrawer({
 
     if (!matchedCoupon) {
       setPromoMessage({ text: 'Invalid promo code.', type: 'error' });
+      showToast(`Coupon "${code}" is invalid.`, 'error');
       return;
     }
 
     if (!matchedCoupon.enabled) {
       setAppliedDiscount(0);
       setPromoMessage({ text: `Promo code "${code}" is currently paused or inactive.`, type: 'error' });
+      showToast(`Coupon "${code}" is currently paused.`, 'warning');
       return;
     }
 
     if (matchedCoupon.firstOrderOnly) {
       if (isFirstTime === null) {
         setPromoMessage({ text: `Enter and verify your email above to apply first-order code "${code}".`, type: 'error' });
+        showToast(`Verify email above to use "${code}".`, 'warning');
         return;
       }
       if (isFirstTime === false) {
         setAppliedDiscount(0);
         setPromoMessage({ text: `"${code}" is only applicable for first-time orders.`, type: 'error' });
+        showToast(`"${code}" is only for first-time customers.`, 'error');
         return;
       }
     }
@@ -173,11 +185,13 @@ export default function CartDrawer({
     if (matchedCoupon.returningOnly) {
       if (isFirstTime === null) {
         setPromoMessage({ text: `Enter and verify your email above to verify returning customer code "${code}".`, type: 'error' });
+        showToast(`Verify email above to use "${code}".`, 'warning');
         return;
       }
       if (isFirstTime === true) {
         setAppliedDiscount(0);
         setPromoMessage({ text: `"${code}" is reserved for returning customers.`, type: 'error' });
+        showToast(`"${code}" is only for returning customers.`, 'error');
         return;
       }
     }
@@ -186,11 +200,13 @@ export default function CartDrawer({
     if (matchedCoupon.minOrderValue && currentGross < matchedCoupon.minOrderValue) {
       setAppliedDiscount(0);
       setPromoMessage({ text: `Minimum order value of ₹${matchedCoupon.minOrderValue} required for ${code}.`, type: 'error' });
+      showToast(`Minimum order value of ₹${matchedCoupon.minOrderValue} required for ${code}.`, 'warning');
       return;
     }
 
     setAppliedDiscount(matchedCoupon.discountPercent);
     setPromoMessage({ text: `Promo code ${code} applied! ${matchedCoupon.discountPercent}% OFF added.`, type: 'success' });
+    showToast(`✓ Promo code "${code}" applied! ${matchedCoupon.discountPercent}% OFF.`, 'success');
   };
 
   const isFirstOrder = isFirstTime === true;

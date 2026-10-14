@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase, serializeReviewText, deserializeReviewRow } from '../supabase';
 import { getActiveProducts, getActiveOffers, KESHIRA_BUNDLES, computeReviewsStats } from '../data/products';
 import PincodeDeliveryChecker from './PincodeDeliveryChecker';
+import { useToast } from '../context/ToastContext';
+
 
 const INGREDIENTS_LIST = [
   { name: 'Bhringraj', desc: 'The King of Hair; awakens resting follicles and noticeably reduces hair fall.' },
@@ -27,7 +29,9 @@ const INITIAL_REVIEWS = [
 ];
 
 export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffers }) {
+  const { showToast } = useToast();
   const [catalogMap, setCatalogMap] = useState(getActiveProducts());
+
   const [storeOffers, setStoreOffers] = useState(propStoreOffers || getActiveOffers());
   // Current active product: 'hairfall', 'dandruff', 'gentle', 'oil', or 'bundle'
   const [activeProductId, setActiveProductId] = useState('hairfall');
@@ -230,6 +234,7 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
         window.dispatchEvent(new CustomEvent('keshira:review-added'));
         return updated;
       });
+      showToast('🎉 Review submitted successfully! Thank you.', 'success');
     } catch (err) {
       console.error('Exception inserting review from ProductDetail:', err);
       const saved = { id: `local-${Date.now()}`, ...reviewObj };
@@ -240,7 +245,9 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
         window.dispatchEvent(new CustomEvent('keshira:review-added'));
         return updated;
       });
+      showToast('🎉 Review submitted successfully!', 'success');
     }
+
 
     setNewReview({ name: '', rating: 5, scalpType: 'Normal & Balanced', text: '' });
   };

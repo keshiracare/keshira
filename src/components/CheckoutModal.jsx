@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, normalizeEmail } from '../supabase';
+import { useToast } from '../context/ToastContext';
 
 export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onClearCart, prefilledEmail, setIsFirstTime }) {
+  const { showToast } = useToast();
+
   const [step, setStep] = useState(1); // 1: Shipping, 2: Payment, 3: Processing, 4: Success
   const [shippingForm, setShippingForm] = useState({
     fullName: '',
@@ -250,8 +253,10 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
       onClearCart(); // successful purchase clears cart
       setIsFirstTime(false); // No longer a first-time user
       setStep(4); // Success step
+      showToast(`🎉 Order #${orderId} confirmed successfully! Confirmation sent to ${shippingForm.email}.`, 'success', 5000);
     }, 2000);
   };
+
 
   const sendOrderEmail = (order) => {
     // These values can be populated directly or loaded via Vite environment variables
@@ -620,8 +625,10 @@ ${order.items ? order.items.map(item => `• ${item.title} (${item.variant}) x $
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(KESHIRA_UPI_ID);
     setCopied(true);
+    showToast(`✓ UPI ID copied: ${KESHIRA_UPI_ID}`, 'success');
     setTimeout(() => setCopied(false), 2000);
   };
+
 
   const getEstimatedDeliveryDate = () => {
     const today = new Date();

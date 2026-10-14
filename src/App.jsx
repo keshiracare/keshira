@@ -1,6 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { seo } from './seo.js';
+import { useToast } from './context/ToastContext';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ProductCatalog from './components/ProductCatalog';
@@ -43,7 +44,9 @@ import Footer from './components/Footer';
 import { getActiveOffers } from './data/products';
 
 export default function App() {
+  const { showToast } = useToast();
   const [storeOffers, setStoreOffers] = useState(getActiveOffers());
+
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -241,7 +244,9 @@ export default function App() {
 
     // Open cart drawer immediately for visual feedback
     setIsCartOpen(true);
+    showToast(`🛒 "${newItem.title}" added to your bag!`, 'success');
   };
+
 
   // Handler to claim the 200ml Shampoo + Free 30ml Herbal Oil offer from the popup
   const handleClaimPromoOffer = () => {
@@ -313,6 +318,7 @@ export default function App() {
     });
 
     setIsCartOpen(true);
+    showToast('🎁 Offer claimed! 200ml Shampoo + Free 30ml Herbal Hair Oil added to bag.', 'success');
   };
 
   const handleUpdateQuantity = (id, delta) => {
@@ -351,6 +357,11 @@ export default function App() {
   };
 
   const handleRemoveItem = (id) => {
+    const itemToRemove = cart.find(item => item.id === id);
+    if (itemToRemove) {
+      showToast(`Removed "${itemToRemove.title}" from bag.`, 'info');
+    }
+
     setCart((prevCart) => {
       const targetItem = prevCart.find((item) => item.id === id);
       if (!targetItem) return prevCart;
@@ -371,6 +382,7 @@ export default function App() {
       });
     });
   };
+
 
   const handleCheckoutOpen = (summary) => {
     setCheckoutSummary(summary);
