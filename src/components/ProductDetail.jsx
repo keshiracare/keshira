@@ -177,6 +177,8 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
     const currentProductName = isBundle ? currentBundle.name : (currentProduct?.name || 'Keshira Herbal Shampoo');
     const currentProdId = isBundle ? 'bundle' : currentProduct?.id;
 
+    const savedCustomerEmail = (localStorage.getItem('keshira_customer_email') || '').toLowerCase();
+
     const reviewObj = {
       author: newReview.name.trim(),
       name: newReview.name.trim(),
@@ -187,13 +189,15 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
       scalp_type: newReview.scalpType,
       productId: currentProdId,
       productUsed: currentProductName,
-      verifiedBuyer: true
+      verifiedBuyer: true,
+      userEmail: savedCustomerEmail
     };
 
     const packedText = serializeReviewText(reviewObj.text, {
       productUsed: reviewObj.productUsed,
       productId: reviewObj.productId,
-      verifiedBuyer: true
+      verifiedBuyer: true,
+      userEmail: savedCustomerEmail
     });
 
     try {

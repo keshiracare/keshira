@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import beforeHairImg from '../assets/before-hair.png';
-import afterHairImg from '../assets/after-hair.png';
+import beforeHairImg from '../assets/before-hair.webp';
+import afterHairImg from '../assets/after-hair.webp';
 
 export default function BeforeAfterSlider() {
   const [sliderPosition, setSliderPosition] = useState(50); // percentage (0 - 100)

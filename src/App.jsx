@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { seo } from './seo.js';
 import Header from './components/Header';
 import Hero from './components/Hero';
-import HairQuiz from './components/HairQuiz';
 import ProductCatalog from './components/ProductCatalog';
 import ProductDetail from './components/ProductDetail';
 import IngredientsSection from './components/IngredientsSection';
@@ -13,30 +12,32 @@ import OffersZone from './components/OffersZone';
 import FAQAccordion from './components/FAQAccordion';
 import SocialCollage from './components/SocialCollage';
 import CartDrawer from './components/CartDrawer';
-import CheckoutModal from './components/CheckoutModal';
-import AdminPage from './components/AdminPage';
-import SubscriptionPortal from './components/SubscriptionPortal';
 import ScrollReveal from './components/ScrollReveal';
 import QuickBuyBar from './components/QuickBuyBar';
 import BeforeAfterSlider from './components/BeforeAfterSlider';
 import PolicyModal from './components/PolicyModal';
-import AboutUs from './components/AboutUs';
-import ContactUs from './components/ContactUs';
-import PrivacyPolicy from './components/PrivacyPolicy';
-import TermsAndConditions from './components/TermsAndConditions';
-import RefundPolicy from './components/RefundPolicy';
 import TestimonialsSection from './components/TestimonialsSection';
-import SearchModal from './components/SearchModal';
-import PromoPopup from './components/PromoPopup';
-import CollectionsShop from './components/CollectionsShop';
-import BestSellersPage from './components/BestSellersPage';
-import HairCarePage from './components/HairCarePage';
-import CustomerPortalPage from './components/CustomerPortalPage';
-import AyurvedicTransitionGuide from './components/AyurvedicTransitionGuide';
 import ShampooComparisonTable from './components/ShampooComparisonTable';
-import WhatsAppFloatingButton from './components/WhatsAppFloatingButton';
 import MinimalistPillars from './components/MinimalistPillars';
 import MinimalistConcernSlider from './components/MinimalistConcernSlider';
+
+// Code-Split Heavy Subpages & Modals for Fast Initial Page Load
+const AdminPage = lazy(() => import('./components/AdminPage'));
+const CustomerPortalPage = lazy(() => import('./components/CustomerPortalPage'));
+const AyurvedicTransitionGuide = lazy(() => import('./components/AyurvedicTransitionGuide'));
+const BestSellersPage = lazy(() => import('./components/BestSellersPage'));
+const CollectionsShop = lazy(() => import('./components/CollectionsShop'));
+const HairCarePage = lazy(() => import('./components/HairCarePage'));
+const HairQuiz = lazy(() => import('./components/HairQuiz'));
+const CheckoutModal = lazy(() => import('./components/CheckoutModal'));
+const SearchModal = lazy(() => import('./components/SearchModal'));
+const PromoPopup = lazy(() => import('./components/PromoPopup'));
+const SubscriptionPortal = lazy(() => import('./components/SubscriptionPortal'));
+const AboutUs = lazy(() => import('./components/AboutUs'));
+const ContactUs = lazy(() => import('./components/ContactUs'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
+const TermsAndConditions = lazy(() => import('./components/TermsAndConditions'));
+const RefundPolicy = lazy(() => import('./components/RefundPolicy'));
 
 import Footer from './components/Footer';
 import { getActiveOffers } from './data/products';
@@ -393,20 +394,20 @@ export default function App() {
   // Dedicated Full-Page Admin Portal
   if (isAdminPage) {
     return (
-      <>
+      <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FDFBF7' }}>Loading Admin Portal...</div>}>
         <Helmet>
           <title>Operations & Orders Portal | Keshira Apothecary Admin</title>
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
         <AdminPage onNavigateHome={() => navigateTo('/')} />
-      </>
+      </Suspense>
     );
   }
 
   // Dedicated Full-Page Customer Orders & Account Portal
   if (isAccountPage) {
     return (
-      <>
+      <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FDFBF7' }}>Loading Account...</div>}>
         <CustomerPortalPage 
           onNavigateHome={(path = '/') => navigateTo(path)} 
           onNavigateShop={(path = '/shop') => navigateTo(path)} 
@@ -424,16 +425,18 @@ export default function App() {
           isFirstTime={isFirstTime}
           setIsFirstTime={setIsFirstTime}
         />
-        <CheckoutModal 
-          isOpen={isCheckoutOpen}
-          onClose={() => setIsCheckoutOpen(false)}
-          orderSummary={checkoutSummary}
-          cart={cart}
-          onClearCart={handleClearCart}
-          prefilledEmail={userEmail}
-          setIsFirstTime={setIsFirstTime}
-        />
-      </>
+        {isCheckoutOpen && (
+          <CheckoutModal 
+            isOpen={isCheckoutOpen}
+            onClose={() => setIsCheckoutOpen(false)}
+            orderSummary={checkoutSummary}
+            cart={cart}
+            onClearCart={handleClearCart}
+            prefilledEmail={userEmail}
+            setIsFirstTime={setIsFirstTime}
+          />
+        )}
+      </Suspense>
     );
   }
 
@@ -567,77 +570,80 @@ export default function App() {
       />
       
       {/* Route Switcher: Multi-Page Architecture (Minimalist Style) */}
-      {isGuidePage ? (
-        <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', backgroundColor: 'var(--color-bg-parchment-light, #FAF7F2)', outline: 'none' }}>
-          <AyurvedicTransitionGuide 
-            onNavigateHome={() => navigateTo('/')}
-            onNavigateShop={() => navigateTo('/collections')}
-          />
-        </main>
-      ) : isBestSellersPage ? (
-        <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', outline: 'none' }}>
-          <BestSellersPage 
-            onAddToCart={handleAddToCart}
-            onNavigateHome={(path = '/') => navigateTo(path)}
-          />
-        </main>
-      ) : isHairCarePage ? (
-        <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', outline: 'none' }}>
-          <HairCarePage 
-            onAddToCart={handleAddToCart}
-            onNavigateHome={(path = '/') => navigateTo(path)}
-          />
-        </main>
-      ) : isCollectionsPage ? (
-        <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', outline: 'none' }}>
-          <CollectionsShop 
-            onAddToCart={handleAddToCart}
-            onNavigateHome={(target = 'purchase-section', productType) => {
-              navigateTo('/', target === 'top' ? null : target);
-              if (productType) {
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('keshira:select-product', { detail: productType }));
-                }, 200);
-              }
-            }}
-          />
-        </main>
-      ) : (
-        <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, outline: 'none' }}>
-          <Hero storeOffers={storeOffers} />
+      <Suspense fallback={<div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>}>
+        {isGuidePage ? (
+          <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', backgroundColor: 'var(--color-bg-parchment-light, #FAF7F2)', outline: 'none' }}>
+            <AyurvedicTransitionGuide 
+              onNavigateHome={() => navigateTo('/')}
+              onNavigateShop={() => navigateTo('/collections')}
+            />
+          </main>
+        ) : isBestSellersPage ? (
+          <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', outline: 'none' }}>
+            <BestSellersPage 
+              onAddToCart={handleAddToCart}
+              onNavigateHome={(path = '/') => navigateTo(path)}
+            />
+          </main>
+        ) : isHairCarePage ? (
+          <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', outline: 'none' }}>
+            <HairCarePage 
+              onAddToCart={handleAddToCart}
+              onNavigateHome={(path = '/') => navigateTo(path)}
+            />
+          </main>
+        ) : isCollectionsPage ? (
+          <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', outline: 'none' }}>
+            <CollectionsShop 
+              onAddToCart={handleAddToCart}
+              onNavigateHome={(target = 'purchase-section', productType) => {
+                navigateTo('/', target === 'top' ? null : target);
+                if (productType) {
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('keshira:select-product', { detail: productType }));
+                  }, 200);
+                }
+              }}
+            />
+          </main>
+        ) : (
+          <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, outline: 'none' }}>
+            <Hero storeOffers={storeOffers} />
 
-          {/* 1. Our Best Sellers / Product Catalog with 1-Click Buy (Minimalist Section 1) */}
-          <ScrollReveal>
-            <ProductCatalog onAddToCart={handleAddToCart} storeOffers={storeOffers} />
-          </ScrollReveal>
+            {/* 1. Our Best Sellers / Product Catalog with 1-Click Buy (Minimalist Section 1) */}
+            <ScrollReveal>
+              <ProductCatalog onAddToCart={handleAddToCart} storeOffers={storeOffers} />
+            </ScrollReveal>
 
-          {/* 2. Minimalist "Shop by Concern" Component (Minimalist Section 2) */}
-          <ScrollReveal>
-            <MinimalistConcernSlider onSelectConcern={(targetId) => {
-              const el = document.getElementById('catalog');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-              window.dispatchEvent(new CustomEvent('keshira:filter-concern', { detail: targetId }));
-            }} />
-          </ScrollReveal>
+            {/* 2. Minimalist "Shop by Concern" Component (Minimalist Section 2) */}
+            <ScrollReveal>
+              <MinimalistConcernSlider onSelectConcern={(targetId) => {
+                const el = document.getElementById('catalog');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                window.dispatchEvent(new CustomEvent('keshira:filter-concern', { detail: targetId }));
+              }} />
+            </ScrollReveal>
 
-          {/* 3. Minimalist Core Brand Pillars: Transparency, Efficacy, Affordable, Only the Best */}
-          <ScrollReveal>
-            <MinimalistPillars />
-          </ScrollReveal>
+            {/* 3. Minimalist Core Brand Pillars: Transparency, Efficacy, Affordable, Only the Best */}
+            <ScrollReveal>
+              <MinimalistPillars />
+            </ScrollReveal>
 
-          {/* 4. "Which Shampoo is Right For Me?" Interactive Matrix */}
-          <ScrollReveal>
-            <ShampooComparisonTable onSelectProduct={(prodId) => {
-              const el = document.getElementById('purchase-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-              window.dispatchEvent(new CustomEvent('keshira:select-product', { detail: prodId }));
-            }} storeOffers={storeOffers} />
-          </ScrollReveal>
+            {/* 4. "Which Shampoo is Right For Me?" Interactive Matrix */}
+            <ScrollReveal>
+              <ShampooComparisonTable onSelectProduct={(prodId) => {
+                const el = document.getElementById('purchase-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                window.dispatchEvent(new CustomEvent('keshira:select-product', { detail: prodId }));
+              }} storeOffers={storeOffers} />
+            </ScrollReveal>
 
-          {/* 5. Interactive Hair & Scalp Diagnostic */}
-          <ScrollReveal>
-            <HairQuiz onAddToCart={handleAddToCart} storeOffers={storeOffers} />
-          </ScrollReveal>
+            {/* 5. Interactive Hair & Scalp Diagnostic */}
+            <ScrollReveal>
+              <Suspense fallback={null}>
+                <HairQuiz onAddToCart={handleAddToCart} storeOffers={storeOffers} />
+              </Suspense>
+            </ScrollReveal>
 
           {/* 4. Clean Science Botanical Ingredients */}
           <ScrollReveal>
@@ -685,6 +691,7 @@ export default function App() {
           </ScrollReveal>
         </main>
       )}
+      </Suspense>
 
       {/* Floating WhatsApp Consultation Button (temporarily disabled) */}
       {/* <WhatsAppFloatingButton /> */}
@@ -697,76 +704,85 @@ export default function App() {
       />
 
       {/* Modals & Drawers */}
-      {/* Cart Side Drawer */}
-      <CartDrawer 
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cart={cart}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-        onCheckout={handleCheckoutOpen}
-        userEmail={userEmail}
-        setUserEmail={setUserEmail}
-        isFirstTime={isFirstTime}
-        setIsFirstTime={setIsFirstTime}
-      />
+      <Suspense fallback={null}>
+        {/* Cart Side Drawer */}
+        <CartDrawer 
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          cart={cart}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemoveItem={handleRemoveItem}
+          onCheckout={handleCheckoutOpen}
+          userEmail={userEmail}
+          setUserEmail={setUserEmail}
+          isFirstTime={isFirstTime}
+          setIsFirstTime={setIsFirstTime}
+        />
 
-      {/* Checkout Modal Wizard */}
-      <CheckoutModal 
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        orderSummary={checkoutSummary}
-        cart={cart}
-        onClearCart={handleClearCart}
-        prefilledEmail={userEmail}
-        setIsFirstTime={setIsFirstTime}
-      />
+        {/* Checkout Modal Wizard */}
+        {isCheckoutOpen && (
+          <CheckoutModal 
+            isOpen={isCheckoutOpen}
+            onClose={() => setIsCheckoutOpen(false)}
+            orderSummary={checkoutSummary}
+            cart={cart}
+            onClearCart={handleClearCart}
+            prefilledEmail={userEmail}
+            setIsFirstTime={setIsFirstTime}
+          />
+        )}
 
+        {/* Customer Subscription Portal */}
+        {isPortalOpen && (
+          <SubscriptionPortal 
+            isOpen={isPortalOpen}
+            onClose={() => setIsPortalOpen(false)}
+          />
+        )}
 
-      {/* Customer Subscription Portal */}
-      <SubscriptionPortal 
-        isOpen={isPortalOpen}
-        onClose={() => setIsPortalOpen(false)}
-      />
+        {/* Floating Sticky Quick Buy Bar (Only on Homepage) */}
+        {!isCollectionsPage && !isAdminPage && (
+          <QuickBuyBar onAddToCart={handleAddToCart} />
+        )}
 
-      {/* Floating Sticky Quick Buy Bar (Only on Homepage) */}
-      {!isCollectionsPage && !isAdminPage && (
-        <QuickBuyBar onAddToCart={handleAddToCart} />
-      )}
+        {/* Policy & Info Page Modals */}
+        <PolicyModal 
+          isOpen={policyModal.isOpen} 
+          onClose={handleClosePolicy} 
+          title={
+            policyModal.type === 'about' ? 'About Keshira' :
+            policyModal.type === 'contact' ? 'Contact Us' :
+            policyModal.type === 'privacy' ? 'Privacy Policy' :
+            policyModal.type === 'terms' ? 'Terms & Conditions' :
+            policyModal.type === 'refund' ? 'Refund & Return Policy' : 'Information'
+          }
+        >
+          {policyModal.type === 'about' && <AboutUs />}
+          {policyModal.type === 'contact' && <ContactUs />}
+          {policyModal.type === 'privacy' && <PrivacyPolicy />}
+          {policyModal.type === 'terms' && <TermsAndConditions />}
+          {policyModal.type === 'refund' && <RefundPolicy />}
+        </PolicyModal>
 
-      {/* Policy & Info Page Modals */}
-      <PolicyModal 
-        isOpen={policyModal.isOpen} 
-        onClose={handleClosePolicy} 
-        title={
-          policyModal.type === 'about' ? 'About Keshira' :
-          policyModal.type === 'contact' ? 'Contact Us' :
-          policyModal.type === 'privacy' ? 'Privacy Policy' :
-          policyModal.type === 'terms' ? 'Terms & Conditions' :
-          policyModal.type === 'refund' ? 'Refund & Return Policy' : 'Information'
-        }
-      >
-        {policyModal.type === 'about' && <AboutUs />}
-        {policyModal.type === 'contact' && <ContactUs />}
-        {policyModal.type === 'privacy' && <PrivacyPolicy />}
-        {policyModal.type === 'terms' && <TermsAndConditions />}
-        {policyModal.type === 'refund' && <RefundPolicy />}
-      </PolicyModal>
+        {/* Promotional Advertisement Popup */}
+        {isPromoOpen && (
+          <PromoPopup 
+            isOpen={isPromoOpen}
+            onClose={handleClosePromo}
+            onClaimOffer={handleClaimPromoOffer}
+          />
+        )}
 
-      {/* Promotional Advertisement Popup */}
-      <PromoPopup 
-        isOpen={isPromoOpen}
-        onClose={handleClosePromo}
-        onClaimOffer={handleClaimPromoOffer}
-      />
-
-      {/* Global Predictive Search Modal */}
-      <SearchModal 
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onAddToCart={handleAddToCart}
-        onNavigate={navigateTo}
-      />
+        {/* Global Predictive Search Modal */}
+        {isSearchOpen && (
+          <SearchModal 
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+            onAddToCart={handleAddToCart}
+            onNavigate={navigateTo}
+          />
+        )}
+      </Suspense>
     </>
   );
 }

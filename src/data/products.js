@@ -22,9 +22,9 @@ export const KESHIRA_PRODUCTS = {
     rating: 4.8,
     reviewCount: 312,
     images: {
-      primary: '/assets/Keshira Neem Herbal Shampoo.jpeg',
-      lather: '/assets/shampoo-texture-lather.jpg',
-      ingredients: '/assets/herbs-flatlay-art.jpg'
+      primary: '/assets/Keshira Neem Herbal Shampoo.webp',
+      lather: '/assets/shampoo-texture-lather.webp',
+      ingredients: '/assets/herbs-flatlay-art.webp'
     },
     prices: {
       '100ml': { 
@@ -77,9 +77,9 @@ export const KESHIRA_PRODUCTS = {
     rating: 4.9,
     reviewCount: 520,
     images: {
-      primary: '/assets/Keshira Hibiscus Herbal Shampoo.jpeg',
-      lather: '/assets/shampoo-texture-lather.jpg',
-      ingredients: '/assets/herbs-flatlay-art.jpg'
+      primary: '/assets/Keshira Hibiscus Herbal Shampoo.webp',
+      lather: '/assets/shampoo-texture-lather.webp',
+      ingredients: '/assets/herbs-flatlay-art.webp'
     },
     prices: {
       '100ml': { 
@@ -132,9 +132,9 @@ export const KESHIRA_PRODUCTS = {
     rating: 4.8,
     reviewCount: 240,
     images: {
-      primary: '/assets/Keshira Gentle Herbal Shampoo.jpeg',
-      lather: '/assets/shampoo-texture-lather.jpg',
-      ingredients: '/assets/herbs-flatlay-art.jpg'
+      primary: '/assets/Keshira Gentle Herbal Shampoo.webp',
+      lather: '/assets/shampoo-texture-lather.webp',
+      ingredients: '/assets/herbs-flatlay-art.webp'
     },
     prices: {
       '100ml': { 
@@ -187,9 +187,9 @@ export const KESHIRA_PRODUCTS = {
     rating: 4.9,
     reviewCount: 680,
     images: {
-      primary: '/assets/Keshira Herbal Oil.jpeg',
-      texture: '/assets/hair-oil-texture-dropper.jpg',
-      ingredients: '/assets/herbs-flatlay-art.jpg'
+      primary: '/assets/Keshira Herbal Oil.webp',
+      texture: '/assets/hair-oil-texture-dropper.webp',
+      ingredients: '/assets/herbs-flatlay-art.webp'
     },
     prices: {
       '100ml': { 
@@ -241,9 +241,9 @@ export const KESHIRA_BUNDLES = [
     savingsPercent: '40% OFF',
     size: '200ml + 200ml',
     badge: '⭐ MOST POPULAR • DUO DEAL',
-    image: '/assets/combo-luxury.jpg',
-    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.jpeg',
-    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    image: '/assets/combo-luxury.webp',
+    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.webp',
+    oilImage: '/assets/Keshira Herbal Oil.webp',
     category: 'oil-shampoo-duo',
     includes: [
       '1x Keshira Hibiscus Herbal Shampoo (200ml)',
@@ -263,9 +263,9 @@ export const KESHIRA_BUNDLES = [
     savingsPercent: '40% OFF',
     size: '200ml + 200ml',
     badge: '🌿 FLAKE RESET • DUO DEAL',
-    image: '/assets/combo-luxury.jpg',
-    shampooImage: '/assets/Keshira Neem Herbal Shampoo.jpeg',
-    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    image: '/assets/combo-luxury.webp',
+    shampooImage: '/assets/Keshira Neem Herbal Shampoo.webp',
+    oilImage: '/assets/Keshira Herbal Oil.webp',
     category: 'oil-shampoo-duo',
     includes: [
       '1x Keshira Neem Herbal Shampoo (200ml)',
@@ -285,9 +285,9 @@ export const KESHIRA_BUNDLES = [
     savingsPercent: '40% OFF',
     size: '200ml + 200ml',
     badge: '✨ GENTLE CARE • DUO DEAL',
-    image: '/assets/combo-luxury.jpg',
-    shampooImage: '/assets/Keshira Gentle Herbal Shampoo.jpeg',
-    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    image: '/assets/combo-luxury.webp',
+    shampooImage: '/assets/Keshira Gentle Herbal Shampoo.webp',
+    oilImage: '/assets/Keshira Herbal Oil.webp',
     category: 'oil-shampoo-duo',
     includes: [
       '1x Keshira Gentle Herbal Shampoo (200ml)',
@@ -307,9 +307,9 @@ export const KESHIRA_BUNDLES = [
     savingsPercent: '10% OFF',
     size: '200ml + 200ml (400ml)',
     badge: '🔥 TWIN PACK • BEST VALUE',
-    image: '/assets/hero-shampoo.jpg',
-    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.jpeg',
-    oilImage: '/assets/Keshira Neem Herbal Shampoo.jpeg',
+    image: '/assets/hero-shampoo.webp',
+    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.webp',
+    oilImage: '/assets/Keshira Neem Herbal Shampoo.webp',
     category: 'multi-pack',
     includes: [
       '2x Keshira Herbal Shampoo (200ml each = 400ml total)',
@@ -328,9 +328,9 @@ export const KESHIRA_BUNDLES = [
     savingsPercent: '8% OFF',
     size: '200ml + 200ml (400ml)',
     badge: '🌿 OIL TWIN • 14 SACRED HERBS',
-    image: '/assets/Keshira Herbal Oil.jpeg',
-    shampooImage: '/assets/Keshira Herbal Oil.jpeg',
-    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    image: '/assets/Keshira Herbal Oil.webp',
+    shampooImage: '/assets/Keshira Herbal Oil.webp',
+    oilImage: '/assets/Keshira Herbal Oil.webp',
     category: 'multi-pack',
     includes: [
       '2x Keshira Herbal Hair Oil (200ml each = 400ml total)',
@@ -350,9 +350,9 @@ export const KESHIRA_BUNDLES = [
     savingsPercent: '12% OFF',
     size: '100ml + 100ml',
     badge: '🌱 STARTER KIT • SAVE ₹29',
-    image: '/assets/collage-details.jpg',
-    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.jpeg',
-    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    image: '/assets/collage-details.webp',
+    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.webp',
+    oilImage: '/assets/Keshira Herbal Oil.webp',
     category: 'oil-shampoo-duo',
     includes: [
       '1x Keshira Herbal Shampoo (100ml)',
@@ -371,9 +371,9 @@ export const KESHIRA_BUNDLES = [
     savingsPercent: '13% OFF',
     size: '3x Shampoo + 2x Oil (1000ml Total)',
     badge: '👑 MAX SAVINGS • SAVE ₹146',
-    image: '/assets/combo-luxury.jpg',
-    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.jpeg',
-    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    image: '/assets/combo-luxury.webp',
+    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.webp',
+    oilImage: '/assets/Keshira Herbal Oil.webp',
     category: 'multi-pack',
     includes: [
       '3x Keshira Herbal Shampoo (200ml each = 600ml)',

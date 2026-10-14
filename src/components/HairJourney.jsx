@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import hairTimelineImg from '../assets/hair-timeline.png';
+import hairTimelineImg from '../assets/hair-timeline.webp';
 
 const JOURNEY_STEPS = [
   {

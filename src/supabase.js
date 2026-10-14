@@ -44,6 +44,8 @@ export const serializeReviewText = (cleanText, meta = {}) => {
   if (meta.productUsed) metaObj.productUsed = meta.productUsed;
   if (meta.productId) metaObj.productId = meta.productId;
   if (meta.location) metaObj.location = meta.location;
+  if (meta.userEmail) metaObj.userEmail = meta.userEmail;
+  if (meta.orderId) metaObj.orderId = meta.orderId;
   if (typeof meta.verifiedBuyer === 'boolean') metaObj.verifiedBuyer = meta.verifiedBuyer;
 
   if (Object.keys(metaObj).length === 0) return text;
@@ -79,6 +81,8 @@ export const deserializeReviewRow = (row) => {
     productUsed: meta.productUsed || row.product_used || '',
     productId: meta.productId || row.product_id || '',
     location: meta.location || row.location || '',
+    userEmail: meta.userEmail || row.user_email || row.email || '',
+    orderId: meta.orderId || row.order_id || '',
     verifiedBuyer: meta.verifiedBuyer !== undefined ? meta.verifiedBuyer : (row.verified_buyer !== false)
   };
 };

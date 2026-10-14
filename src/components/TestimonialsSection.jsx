@@ -287,6 +287,11 @@ export default function TestimonialsSection() {
 
     const isVerifiedCustomer = verificationStatus === 'verified' || !!form.orderIdOrEmail.trim();
 
+    const savedCustomerEmail = localStorage.getItem('keshira_customer_email') || '';
+    const isEmailInput = form.orderIdOrEmail.includes('@');
+    const userEmailToSave = (isEmailInput ? form.orderIdOrEmail.trim() : (savedCustomerEmail || '')).toLowerCase();
+    const orderIdToSave = !isEmailInput ? form.orderIdOrEmail.trim() : '';
+
     const newEntry = {
       author: form.name.trim(),
       name: form.name.trim(),
@@ -298,14 +303,18 @@ export default function TestimonialsSection() {
       productUsed: form.productUsed,
       text: form.text.trim(),
       photo: form.photo || '',
-      verifiedBuyer: isVerifiedCustomer
+      verifiedBuyer: isVerifiedCustomer,
+      userEmail: userEmailToSave,
+      orderId: orderIdToSave
     };
 
     const packedText = serializeReviewText(newEntry.text, {
       photo: newEntry.photo,
       productUsed: newEntry.productUsed,
       location: newEntry.location,
-      verifiedBuyer: newEntry.verifiedBuyer
+      verifiedBuyer: newEntry.verifiedBuyer,
+      userEmail: userEmailToSave,
+      orderId: orderIdToSave
     });
 
     try {

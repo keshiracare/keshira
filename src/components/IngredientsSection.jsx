@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 
 // Macro Botanical Studio Photography Assets
-import dewyAmlaImg from '../assets/Dewy Amla and Rustic Herbal Pods.png';
-import rosemaryOilFlatlayImg from '../assets/Rosemary, Cloves, and Golden Oil Flat Lay.png';
-import rusticBotanicalsImg from '../assets/Rustic Botanical Hair Care Ingredients.png';
+import dewyAmlaImg from '../assets/Dewy Amla and Rustic Herbal Pods.webp';
+import rosemaryOilFlatlayImg from '../assets/Rosemary, Cloves, and Golden Oil Flat Lay.webp';
+import rusticBotanicalsImg from '../assets/Rustic Botanical Hair Care Ingredients.webp';
 
 const INGREDIENTS_BY_TARGET = {
   all: [

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { supabase, normalizeEmail } from '../supabase';
+import { supabase, normalizeEmail, deserializeReviewRow } from '../supabase';
 
 export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
   const [orders, setOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'track', 'address'
+  const [customerReviews, setCustomerReviews] = useState([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'track', 'address', 'reviews'
   const [emailSearch, setEmailSearch] = useState(() => {
     return localStorage.getItem('keshira_customer_email') || '';
   });
@@ -139,11 +141,99 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
     setIsLoading(false);
   }, [emailSearch]);
 
+  // Load reviews matching this customer's email, name, or their placed orders
+  const loadReviews = useCallback(async (targetEmail = '', currentOrders = []) => {
+    const emailToUse = (targetEmail || emailSearch).trim().toLowerCase();
+    if (!emailToUse) {
+      setCustomerReviews([]);
+      return;
+    }
+
+    setIsLoadingReviews(true);
+
+    // 1. Gather any local reviews cache
+    let allReviews = [];
+    const localSaved = localStorage.getItem('keshira_reviews');
+    if (localSaved) {
+      try {
+        const parsed = JSON.parse(localSaved);
+        if (Array.isArray(parsed)) allReviews = parsed;
+      } catch {
+        allReviews = [];
+      }
+    }
+
+    // 2. Fetch fresh from Supabase reviews table
+    try {
+      const { data: dbReviews, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && dbReviews && Array.isArray(dbReviews)) {
+        const formatted = dbReviews.map(deserializeReviewRow);
+        // Merge without duplicates
+        const revMap = new Map();
+        formatted.forEach(r => { if (r && r.id) revMap.set(r.id, r); });
+        allReviews.forEach(r => { if (r && r.id && !revMap.has(r.id)) revMap.set(r.id, r); });
+        allReviews = Array.from(revMap.values());
+      }
+    } catch (err) {
+      console.warn('Customer reviews query warning:', err);
+    }
+
+    // 3. Match reviews belonging to this customer
+    const userNormEmail = normalizeEmail(emailToUse);
+    const orderIds = new Set((currentOrders.length > 0 ? currentOrders : orders).map(o => (o.id || '').toLowerCase()));
+    
+    // Customer names from orders to match against review author if email wasn't recorded
+    const customerNames = new Set(
+      (currentOrders.length > 0 ? currentOrders : orders)
+        .map(o => (o.shippingAddress?.fullName || '').trim().toLowerCase())
+        .filter(Boolean)
+    );
+
+    const userMatchedReviews = allReviews.filter(rev => {
+      if (!rev) return false;
+      const revEmail = (rev.userEmail || '').trim().toLowerCase();
+      if (revEmail && (revEmail === emailToUse || normalizeEmail(revEmail) === userNormEmail)) {
+        return true;
+      }
+      const revOrderId = (rev.orderId || '').trim().toLowerCase();
+      if (revOrderId && orderIds.has(revOrderId)) {
+        return true;
+      }
+      const revAuthor = (rev.author || rev.name || '').trim().toLowerCase();
+      if (revAuthor && customerNames.has(revAuthor) && customerNames.size > 0) {
+        return true;
+      }
+      return false;
+    });
+
+    setCustomerReviews(userMatchedReviews);
+    setIsLoadingReviews(false);
+  }, [emailSearch, orders]);
+
   useEffect(() => {
     if (isLoggedIn && emailSearch) {
       loadOrders(emailSearch);
+      loadReviews(emailSearch, orders);
     }
-  }, [isLoggedIn, emailSearch, loadOrders]);
+  }, [isLoggedIn, emailSearch, loadOrders, loadReviews]);
+
+  useEffect(() => {
+    const handleSync = () => {
+      if (isLoggedIn && emailSearch) {
+        loadReviews(emailSearch, orders);
+      }
+    };
+    window.addEventListener('keshira:reviews-synced', handleSync);
+    window.addEventListener('keshira:review-added', handleSync);
+    return () => {
+      window.removeEventListener('keshira:reviews-synced', handleSync);
+      window.removeEventListener('keshira:review-added', handleSync);
+    };
+  }, [isLoggedIn, emailSearch, orders, loadReviews]);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -156,6 +246,7 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
     setIsLoggedIn(true);
     localStorage.setItem('keshira_customer_email', clean);
     loadOrders(clean);
+    loadReviews(clean);
   };
 
   const handleLogout = () => {
@@ -163,6 +254,7 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
     setEmailSearch('');
     setEmailInput('');
     setOrders([]);
+    setCustomerReviews([]);
     localStorage.removeItem('keshira_customer_email');
     showToast('Signed out of customer account.');
   };
@@ -550,7 +642,8 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
                 {[
                   { id: 'orders', label: `📦 All Orders (${orders.length})` },
                   { id: 'track', label: '🔍 Track Specific Order' },
-                  { id: 'address', label: '📍 Saved Delivery Address' }
+                  { id: 'address', label: '📍 Saved Delivery Address' },
+                  { id: 'reviews', label: `⭐ My Reviews (${customerReviews.length})` }
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -1082,6 +1175,289 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
                       {isSavingAddress ? 'Saving...' : 'Save Default Address'}
                     </button>
                   </form>
+                </div>
+              )}
+
+              {/* TAB 4: MY POSTED REVIEWS (READ-ONLY) */}
+              {activeTab === 'reviews' && (
+                <div>
+                  <div style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: '16px',
+                    border: '1px solid #E8DFD0',
+                    padding: '24px 28px',
+                    marginBottom: '24px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    boxShadow: '0 2px 8px rgba(19, 46, 27, 0.03)'
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', color: '#132E1B', margin: 0, fontWeight: 700 }}>
+                          My Posted Reviews
+                        </h3>
+                        <span style={{
+                          backgroundColor: '#F3F4F6',
+                          color: '#4B5563',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em'
+                        }}>
+                          👁️ Read Only
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, color: '#6B7280', fontSize: '0.84rem' }}>
+                        A verified record of customer reviews & testimonials you have shared on Keshira.
+                      </p>
+                    </div>
+
+                    <div style={{
+                      backgroundColor: '#FAF7F2',
+                      border: '1px solid #E8DFD0',
+                      borderRadius: '10px',
+                      padding: '8px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#132E1B' }}>
+                          {customerReviews.length}
+                        </div>
+                        <div style={{ fontSize: '0.66rem', color: '#7A6B5C', textTransform: 'uppercase', fontWeight: 700 }}>
+                          Published
+                        </div>
+                      </div>
+                      <div style={{ width: '1px', height: '24px', backgroundColor: '#E0D7C6' }} />
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#C8A261' }}>
+                          ★ {customerReviews.length > 0 ? (customerReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / customerReviews.length).toFixed(1) : '5.0'}
+                        </div>
+                        <div style={{ fontSize: '0.66rem', color: '#7A6B5C', textTransform: 'uppercase', fontWeight: 700 }}>
+                          Avg Rating
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {isLoadingReviews ? (
+                    <div style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '16px',
+                      border: '1px solid #E8DFD0',
+                      padding: '50px 20px',
+                      textAlign: 'center',
+                      color: '#6B7280'
+                    }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        border: '3px solid #E8DFD0',
+                        borderTop: '3px solid #132E1B',
+                        borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite',
+                        margin: '0 auto 12px'
+                      }} />
+                      <p style={{ margin: 0, fontSize: '0.88rem' }}>Loading your posted reviews...</p>
+                    </div>
+                  ) : customerReviews.length === 0 ? (
+                    <div style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '16px',
+                      border: '1px solid #E8DFD0',
+                      padding: '50px 24px',
+                      textAlign: 'center',
+                      boxShadow: '0 2px 8px rgba(19, 46, 27, 0.03)'
+                    }}>
+                      <div style={{
+                        width: '56px',
+                        height: '56px',
+                        backgroundColor: '#FAF7F2',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.8rem',
+                        margin: '0 auto 16px',
+                        border: '1px solid #E8DFD0'
+                      }}>
+                        ✍️
+                      </div>
+                      <h4 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: '#132E1B', margin: '0 0 6px 0' }}>
+                        No Reviews Posted Yet
+                      </h4>
+                      <p style={{ color: '#6B7280', fontSize: '0.85rem', maxWidth: '440px', margin: '0 auto 20px', lineHeight: 1.5 }}>
+                        You haven't submitted any feedback under <strong>{emailSearch}</strong> yet. You can submit your testimonial directly on our product pages or via the testimonials section after using your order.
+                      </p>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: '#F9FAFB',
+                        padding: '8px 14px',
+                        borderRadius: '20px',
+                        border: '1px solid #E5E7EB',
+                        fontSize: '0.74rem',
+                        color: '#6B7280'
+                      }}>
+                        ℹ️ Once published, your reviews are archived here for your read-only records.
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                      gap: '20px'
+                    }}>
+                      {customerReviews.map((rev, idx) => (
+                        <div
+                          key={rev.id || idx}
+                          style={{
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: '16px',
+                            border: '1px solid #E8DFD0',
+                            padding: '24px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            boxShadow: '0 2px 8px rgba(19, 46, 27, 0.03)',
+                            position: 'relative'
+                          }}
+                        >
+                          <div>
+                            {/* Card Header: Rating and Date */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                              <div>
+                                <div style={{ color: '#C8A261', fontSize: '1.1rem', letterSpacing: '2px', marginBottom: '2px' }}>
+                                  {'★'.repeat(rev.rating || 5)}{'☆'.repeat(5 - (rev.rating || 5))}
+                                </div>
+                                <h4 style={{ margin: 0, fontSize: '1.02rem', color: '#132E1B', fontWeight: 700 }}>
+                                  {rev.author || rev.name || 'Verified Customer'}
+                                </h4>
+                              </div>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '0.76rem', color: '#9CA3AF' }}>
+                                  {rev.date || 'Recent'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Badges */}
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                              {rev.scalpType && (
+                                <span style={{
+                                  fontSize: '0.68rem',
+                                  backgroundColor: 'rgba(200, 162, 97, 0.12)',
+                                  color: '#132E1B',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontWeight: 600
+                                }}>
+                                  Scalp: {rev.scalpType}
+                                </span>
+                              )}
+                              {rev.productUsed && (
+                                <span style={{
+                                  fontSize: '0.68rem',
+                                  backgroundColor: 'rgba(19, 46, 27, 0.06)',
+                                  color: '#132E1B',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontWeight: 600
+                                }}>
+                                  {rev.productUsed}
+                                </span>
+                              )}
+                              {rev.verifiedBuyer !== false && (
+                                <span style={{
+                                  fontSize: '0.68rem',
+                                  backgroundColor: '#E8F5E9',
+                                  color: '#2E7D32',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontWeight: 700,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px'
+                                }}>
+                                  <span>✓</span> Verified Buyer
+                                </span>
+                              )}
+                              {rev.location && (
+                                <span style={{
+                                  fontSize: '0.68rem',
+                                  backgroundColor: '#F3F4F6',
+                                  color: '#4B5563',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px'
+                                }}>
+                                  📍 {rev.location}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Review Content */}
+                            <p style={{
+                              margin: '0 0 14px 0',
+                              fontSize: '0.9rem',
+                              color: '#374151',
+                              lineHeight: '1.6',
+                              fontStyle: 'italic',
+                              backgroundColor: '#FAF7F2',
+                              padding: '14px',
+                              borderRadius: '8px',
+                              borderLeft: '3px solid #C8A261'
+                            }}>
+                              "{rev.text}"
+                            </p>
+
+                            {/* Attached Photo if available */}
+                            {rev.photo && (
+                              <div style={{ marginTop: '10px', marginBottom: '14px' }}>
+                                <div style={{
+                                  borderRadius: '8px',
+                                  overflow: 'hidden',
+                                  border: '1px solid #E5E7EB',
+                                  maxHeight: '160px',
+                                  backgroundColor: '#F9FAFB'
+                                }}>
+                                  <img
+                                    src={rev.photo}
+                                    alt="Attached hair result"
+                                    style={{ width: '100%', height: '160px', objectFit: 'cover', display: 'block' }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Card Footer: Read-only locked status notice */}
+                          <div style={{
+                            borderTop: '1px solid #F0ECE4',
+                            paddingTop: '12px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            fontSize: '0.72rem',
+                            color: '#9CA3AF'
+                          }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              🔒 Read-only view
+                            </span>
+                            <span>
+                              {rev.orderId ? `Order #${rev.orderId}` : 'Published Review'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

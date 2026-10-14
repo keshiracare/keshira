@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import heroLuxuryImg from '../assets/Keshira Herbal homepage banner1.png';
-import comboLuxuryImg from '../assets/Keshira Herbal Haircare banner 2.png';
+import heroLuxuryImg from '../assets/Keshira Herbal homepage banner1.webp';
+import comboLuxuryImg from '../assets/Keshira Herbal Haircare banner 2.webp';
 import { supabase } from '../supabase';
 
 import { getActiveOffers } from '../data/products';
@@ -216,6 +216,10 @@ export default function Hero({ storeOffers: propStoreOffers }) {
               alt={active.title} 
               className="hero-product-img"
               loading="eager"
+              fetchpriority="high"
+              decoding="async"
+              width="600"
+              height="600"
             />
             
             <div className="hero-product-overlay-tag">
