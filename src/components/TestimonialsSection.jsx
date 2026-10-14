@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase, serializeReviewText, deserializeReviewRow } from '../supabase';
 
 const INITIAL_TESTIMONIALS = [
@@ -570,39 +571,39 @@ export default function TestimonialsSection() {
         </div>
       </div>
 
-      {/* Review Submission Modal */}
-      {isModalOpen && (
+      {/* Review Submission Modal (Mounted cleanly via Portal directly onto document.body) */}
+      {isModalOpen && typeof document !== 'undefined' && createPortal(
         <div 
-          className="modal-overlay" 
+          className="testimonial-modal-overlay" 
           onClick={() => setIsModalOpen(false)}
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(19, 46, 27, 0.45)',
-            backdropFilter: 'blur(4px)',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(19, 46, 27, 0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            zIndex: 9999,
-            padding: '20px'
+            zIndex: 99999,
+            padding: '16px'
           }}
         >
           <div 
-            className="modal-content"
+            className="testimonial-modal-content"
             onClick={(e) => e.stopPropagation()}
             style={{
               backgroundColor: '#FFFDF9',
               borderRadius: '20px',
-              padding: '32px',
+              padding: '32px 28px',
               maxWidth: '560px',
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
               border: '1px solid var(--color-border)',
-              boxShadow: 'var(--shadow-lg)',
+              boxShadow: '0 24px 60px -12px rgba(18, 43, 25, 0.35)',
               position: 'relative'
             }}
           >
@@ -612,13 +613,20 @@ export default function TestimonialsSection() {
               aria-label="Close"
               style={{
                 position: 'absolute',
-                top: '20px',
-                right: '20px',
-                background: 'none',
+                top: '18px',
+                right: '18px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: '#F3EFE6',
                 border: 'none',
-                fontSize: '1.4rem',
+                fontSize: '1.1rem',
                 color: 'var(--color-primary)',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease'
               }}
             >
               ✕
@@ -901,7 +909,8 @@ export default function TestimonialsSection() {
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );

@@ -13,7 +13,7 @@ export default function PolicyModal({ isOpen, onClose, title, children }) {
         bottom: 0,
         backgroundColor: 'rgba(19, 46, 27, 0.65)',
         backdropFilter: 'blur(8px)',
-        zIndex: 1000,
+        zIndex: 99999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

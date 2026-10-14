@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase, normalizeEmail } from '../supabase';
 
 export default function SubscriptionPortal({ isOpen, onClose }) {
@@ -302,8 +303,8 @@ export default function SubscriptionPortal({ isOpen, onClose }) {
     setAddressForm({ ...addressForm, [e.target.name]: e.target.value });
   };
 
-  return (
-    <div className="modal-overlay" style={{ zIndex: 350 }}>
+  return typeof document !== 'undefined' ? createPortal(
+    <div className="modal-overlay" style={{ zIndex: 99999 }}>
       <div className="modal-content portal-modal-dialog">
         {/* Close Button */}
         <button className="modal-close" onClick={onClose} aria-label="Close Portal">
@@ -660,6 +661,7 @@ export default function SubscriptionPortal({ isOpen, onClose }) {
           )}
         </div>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 }

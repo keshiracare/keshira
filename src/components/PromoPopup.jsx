@@ -129,8 +129,8 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
         {/* Visual Header Image Banner */}
         <div style={{
           position: 'relative',
-          height: 'clamp(140px, 25vh, 180px)',
-          backgroundColor: '#1E4629',
+          height: 'clamp(170px, 30vh, 215px)',
+          backgroundColor: '#E6DDD4',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
@@ -138,19 +138,19 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
           flexShrink: 0
         }}>
           <img 
-            src="/assets/combo-luxury.jpg" 
+            src="/assets/keshira-duo-offer.jpg" 
             alt="Keshira Herbal Shampoo and Free Hair Oil" 
             style={{
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              filter: 'brightness(0.85)'
+              objectPosition: 'center 45%'
             }}
           />
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(to top, rgba(18,43,25,0.85) 0%, rgba(18,43,25,0.2) 60%, rgba(18,43,25,0.4) 100%)'
+            background: 'linear-gradient(to top, rgba(18,43,25,0.7) 0%, rgba(18,43,25,0.05) 55%, rgba(18,43,25,0.2) 100%)'
           }}></div>
 
           {/* Floating Highlight Badge */}
