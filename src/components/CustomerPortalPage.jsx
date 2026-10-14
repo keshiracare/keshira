@@ -44,15 +44,6 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
     setTimeout(() => setToastMsg(''), 3500);
   };
 
-  // Helper function to calculate next refill ship date
-  const calculateNextShipDate = (orderDate, frequency) => {
-    const days = parseInt(frequency) || 30;
-    const base = new Date(orderDate);
-    if (isNaN(base.getTime())) return 'In 30 Days';
-    base.setDate(base.getDate() + days);
-    return base.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
   // Load orders from Supabase + localStorage
   const loadOrders = useCallback(async (targetEmail = '') => {
     const emailToUse = (targetEmail || emailSearch).trim().toLowerCase();
@@ -219,7 +210,7 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
       loadOrders(emailSearch);
       loadReviews(emailSearch, orders);
     }
-  }, [isLoggedIn, emailSearch, loadOrders, loadReviews]);
+  }, [isLoggedIn, emailSearch, loadOrders, loadReviews, orders]);
 
   useEffect(() => {
     const handleSync = () => {
@@ -359,7 +350,6 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
   // Calculations for customer stats
   const totalSpend = orders.reduce((sum, o) => sum + (o.status !== 'Cancelled' ? Number(o.total || 0) : 0), 0);
   const activeOrdersCount = orders.filter(o => o.status !== 'Cancelled' && o.status !== 'Delivered').length;
-  const completedOrdersCount = orders.filter(o => o.status === 'Delivered').length;
 
   return (
     <div style={{ backgroundColor: '#FAF7F2', minHeight: '100vh', display: 'flex', flexDirection: 'column', color: '#132E1B' }}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { KESHIRA_PRODUCTS, KESHIRA_BUNDLES } from '../data/products';
 
-export default function SearchModal({ isOpen, onClose, onAddToCart, onNavigate }) {
+export default function SearchModal({ isOpen, onClose, onNavigate }) {
   const [query, setQuery] = useState('');
   const inputRef = useRef(null);
 
@@ -61,7 +61,7 @@ export default function SearchModal({ isOpen, onClose, onAddToCart, onNavigate }
     'Full Routine'
   ];
 
-  const handleSelectProduct = (prod) => {
+  const handleSelectProduct = () => {
     onClose();
     if (window.navigateTo) {
       window.navigateTo('/shop', 'catalog');
@@ -73,7 +73,7 @@ export default function SearchModal({ isOpen, onClose, onAddToCart, onNavigate }
     }
   };
 
-  const handleSelectBundle = (bundle) => {
+  const handleSelectBundle = () => {
     onClose();
     if (window.navigateTo) {
       window.navigateTo('/collections');

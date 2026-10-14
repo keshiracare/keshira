@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { KESHIRA_BUNDLES } from '../data/products';
 
-export default function CollectionsShop({ onAddToCart, onNavigateHome }) {
+export default function CollectionsShop({ onAddToCart }) {
   const [activeTab, setActiveTab] = useState('all');
   const [addedBundleId, setAddedBundleId] = useState(null);
 

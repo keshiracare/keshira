@@ -49,10 +49,10 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
   ];
 
   const products = [
-    catalogMap.hairfall || catalogMap['hairfall'],
-    catalogMap.dandruff || catalogMap['dandruff'],
-    catalogMap.gentle || catalogMap['gentle'],
-    catalogMap.oil || catalogMap['oil']
+    catalogMap.hairfall,
+    catalogMap.dandruff,
+    catalogMap.gentle,
+    catalogMap.oil
   ].filter(Boolean);
 
   const displayedProducts = selectedConcern === 'all'

@@ -267,8 +267,6 @@ export default function CartDrawer({
   const discountAmount = Math.round((subtotal * appliedDiscount) / 100);
   const total = subtotal - discountAmount + shippingCost;
 
-  const [showPackDetails, setShowPackDetails] = useState(false);
-
   return (
     <div className={`cart-overlay ${isOpen ? 'open' : ''}`} onClick={onClose} style={{ zIndex: 1000 }}>
       <div 

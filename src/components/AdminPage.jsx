@@ -22,7 +22,6 @@ export default function AdminPage({ onNavigateHome }) {
   const [productsCatalog, setProductsCatalog] = useState(getActiveProducts());
   const [editingProductId, setEditingProductId] = useState(null);
   const [productForm, setProductForm] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [storeOffers, setStoreOffers] = useState(getActiveOffers());
   const [newCouponForm, setNewCouponForm] = useState({
     code: '',

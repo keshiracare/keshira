@@ -201,7 +201,7 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
     });
 
     try {
-      const { data: inserted, error } = await supabase.from('reviews').insert([{
+      const { data: inserted } = await supabase.from('reviews').insert([{
         name: reviewObj.name,
         rating: reviewObj.rating,
         scalp_type: reviewObj.scalpType,
