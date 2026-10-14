@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabase';
+import { supabase, serializeReviewText, deserializeReviewRow } from '../supabase';
 
 const INITIAL_TESTIMONIALS = [
   {
@@ -199,11 +199,13 @@ export default function TestimonialsSection() {
             name: t.author,
             rating: t.rating,
             scalp_type: t.scalpType,
-            text: t.text,
-            date: t.date,
-            photo: t.photo || '',
-            product_used: t.productUsed || 'Keshira Herbal Shampoo',
-            verified_buyer: true
+            text: serializeReviewText(t.text, {
+              photo: t.photo || '',
+              productUsed: t.productUsed || 'Keshira Herbal Shampoo',
+              location: t.location || '',
+              verifiedBuyer: true
+            }),
+            date: t.date
           }));
 
           const { data: inserted, error: seedErr } = await supabase
@@ -212,54 +214,49 @@ export default function TestimonialsSection() {
             .select();
 
           if (!seedErr && inserted) {
-            const formatted = inserted.map(r => ({
-              id: r.id,
-              author: r.name,
-              rating: r.rating,
-              scalpType: r.scalp_type,
-              text: r.text,
-              date: r.date,
-              photo: r.photo || '',
-              productUsed: r.product_used || 'Keshira Herbal Shampoo',
-              verifiedBuyer: r.verified_buyer !== false
-            }));
+            const formatted = inserted.map(deserializeReviewRow);
             setReviews(formatted);
             localStorage.setItem('keshira_reviews', JSON.stringify(formatted));
+            window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: formatted }));
           } else {
             setReviews(INITIAL_TESTIMONIALS);
+            window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: INITIAL_TESTIMONIALS }));
           }
         } else {
-          const formatted = dbReviews.map(r => ({
-            id: r.id,
-            author: r.name,
-            rating: r.rating,
-            scalpType: r.scalp_type,
-            text: r.text,
-            date: r.date,
-            photo: r.photo || '',
-            productUsed: r.product_used || 'Keshira Herbal Shampoo',
-            verifiedBuyer: r.verified_buyer !== false
-          }));
+          const formatted = dbReviews.map(deserializeReviewRow);
           setReviews(formatted);
           localStorage.setItem('keshira_reviews', JSON.stringify(formatted));
+          window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: formatted }));
         }
       } catch (err) {
         console.error('Error loading testimonials from Supabase:', err);
         const cached = localStorage.getItem('keshira_reviews');
         if (cached) {
           try {
-            setReviews(JSON.parse(cached));
+            const parsed = JSON.parse(cached);
+            setReviews(parsed);
+            window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: parsed }));
           } catch {
             setReviews(INITIAL_TESTIMONIALS);
+            window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: INITIAL_TESTIMONIALS }));
           }
         } else {
           setReviews(INITIAL_TESTIMONIALS);
           localStorage.setItem('keshira_reviews', JSON.stringify(INITIAL_TESTIMONIALS));
+          window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: INITIAL_TESTIMONIALS }));
         }
       }
     };
 
     fetchReviews();
+
+    const handleExternalReviewsUpdated = (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setReviews(e.detail);
+      }
+    };
+    window.addEventListener('keshira:reviews-synced', handleExternalReviewsUpdated);
+    return () => window.removeEventListener('keshira:reviews-synced', handleExternalReviewsUpdated);
   }, []);
 
   const handleSubmit = async (e) => {
@@ -275,28 +272,34 @@ export default function TestimonialsSection() {
 
     const newEntry = {
       author: form.name.trim(),
+      name: form.name.trim(),
       location: form.location.trim() || 'Verified Customer',
       rating: parseInt(form.rating, 10),
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       scalpType: form.scalpType,
+      scalp_type: form.scalpType,
       productUsed: form.productUsed,
       text: form.text.trim(),
       photo: form.photo || '',
       verifiedBuyer: isVerifiedCustomer
     };
 
+    const packedText = serializeReviewText(newEntry.text, {
+      photo: newEntry.photo,
+      productUsed: newEntry.productUsed,
+      location: newEntry.location,
+      verifiedBuyer: newEntry.verifiedBuyer
+    });
+
     try {
       const { data: insertedData, error } = await supabase
         .from('reviews')
         .insert([{
-          name: newEntry.author,
+          name: newEntry.name,
           rating: newEntry.rating,
           scalp_type: newEntry.scalpType,
-          text: newEntry.text,
-          date: newEntry.date,
-          photo: newEntry.photo,
-          product_used: newEntry.productUsed,
-          verified_buyer: newEntry.verifiedBuyer
+          text: packedText,
+          date: newEntry.date
         }])
         .select()
         .single();
@@ -306,12 +309,13 @@ export default function TestimonialsSection() {
       }
 
       const saved = insertedData 
-        ? { id: insertedData.id, ...newEntry }
+        ? deserializeReviewRow(insertedData)
         : { id: `local-${Date.now()}`, ...newEntry };
 
       const updated = [saved, ...reviews];
       setReviews(updated);
       localStorage.setItem('keshira_reviews', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
       window.dispatchEvent(new CustomEvent('keshira:review-added'));
     } catch (err) {
       console.error('Failed to save review to Supabase, falling back to local storage cache:', err);
@@ -319,6 +323,7 @@ export default function TestimonialsSection() {
       const updated = [saved, ...reviews];
       setReviews(updated);
       localStorage.setItem('keshira_reviews', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
       window.dispatchEvent(new CustomEvent('keshira:review-added'));
     } finally {
       setIsSubmitting(false);

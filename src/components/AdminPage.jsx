@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabase';
+import { supabase, deserializeReviewRow } from '../supabase';
 import { 
   getActiveProducts, 
   saveActiveProducts, 
@@ -94,23 +94,21 @@ export default function AdminPage({ onNavigateHome }) {
 
       if (reviewsError) throw reviewsError;
 
-      const reviewsList = (dbReviews || []).map(row => ({
-        id: row.id,
-        author: row.name,
-        rating: row.rating,
-        scalpType: row.scalp_type,
-        text: row.text,
-        date: row.date,
-        photo: row.photo || '',
-        verifiedBuyer: row.verified_buyer !== false
-      }));
+      const reviewsList = (dbReviews || []).map(deserializeReviewRow);
 
       setReviews(reviewsList);
       localStorage.setItem('keshira_reviews', JSON.stringify(reviewsList));
+      window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: reviewsList }));
     } catch (err) {
       console.error('Error fetching reviews from Supabase:', err);
       const savedReviews = localStorage.getItem('keshira_reviews');
-      if (savedReviews) setReviews(JSON.parse(savedReviews));
+      if (savedReviews) {
+        try {
+          const parsed = JSON.parse(savedReviews);
+          setReviews(parsed);
+          window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: parsed }));
+        } catch {}
+      }
     } finally {
       setIsLoading(false);
     }
@@ -371,7 +369,7 @@ export default function AdminPage({ onNavigateHome }) {
     };
     setStoreOffers(updated);
     saveActiveOffers(updated);
-    const label = key === 'isBogoEnabled' ? 'Buy 1 Get 1 Free (B1G1)' : key === 'isFreeShippingOfferEnabled' ? 'Free Shipping' : 'Free Neem Comb Gift';
+    const label = key === 'isBogoEnabled' ? 'Buy 1 Get 1 Free (B1G1)' : 'Free Shipping';
     showToast(`🔔 ${label} is now ${updated[key] ? 'ENABLED' : 'PAUSED'}`);
   };
 
@@ -491,7 +489,7 @@ export default function AdminPage({ onNavigateHome }) {
   const handleResetOffers = () => {
     setConfirmModal({
       title: 'Reset Offers & Coupons?',
-      message: 'This will reset all store promotions (B1G1, Free Shipping, Free Gift Comb) and default coupons back to factory defaults.',
+      message: 'This will reset all store promotions (B1G1, Free Shipping) and default coupons back to factory defaults.',
       confirmText: 'Reset Offers',
       danger: true,
       onConfirm: () => {
@@ -625,6 +623,8 @@ export default function AdminPage({ onNavigateHome }) {
         const updatedReviews = reviews.filter((_, idx) => idx !== indexToDelete);
         setReviews(updatedReviews);
         localStorage.setItem('keshira_reviews', JSON.stringify(updatedReviews));
+        window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updatedReviews }));
+        window.dispatchEvent(new CustomEvent('keshira:review-added'));
 
         if (reviewId) {
           try {
@@ -3186,95 +3186,6 @@ export default function AdminPage({ onNavigateHome }) {
                     }}
                   >
                     {storeOffers.isFreeShippingOfferEnabled ? '⏸️ Click to Pause Free Shipping' : '▶️ Click to Activate Free Shipping'}
-                  </button>
-                </div>
-              </div>
-
-              {/* 3. Free Neem Comb Milestone Gift Card */}
-              <div style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: '16px',
-                border: storeOffers.isFreeGiftOfferEnabled ? '2px solid #86EFAC' : '1px solid #E5E7EB',
-                padding: '22px',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
-              }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '1.4rem' }}>🪮</span>
-                      <span style={{
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        backgroundColor: storeOffers.isFreeGiftOfferEnabled ? '#DCFCE7' : '#FEE2E2',
-                        color: storeOffers.isFreeGiftOfferEnabled ? '#15803D' : '#991B1B'
-                      }}>
-                        {storeOffers.isFreeGiftOfferEnabled ? 'LIVE & ACTIVE' : 'PAUSED'}
-                      </span>
-                    </div>
-
-                    {/* Switch Toggle */}
-                    <button
-                      type="button"
-                      onClick={() => handleToggleOffer('isFreeGiftOfferEnabled')}
-                      style={{
-                        width: '46px',
-                        height: '26px',
-                        borderRadius: '13px',
-                        backgroundColor: storeOffers.isFreeGiftOfferEnabled ? '#10B981' : '#D1D5DB',
-                        border: 'none',
-                        cursor: 'pointer',
-                        position: 'relative',
-                        transition: 'background-color 0.2s ease',
-                        padding: 0,
-                        outline: 'none'
-                      }}
-                      title="Toggle Free Neem Comb Gift"
-                    >
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        backgroundColor: '#FFFFFF',
-                        position: 'absolute',
-                        top: '3px',
-                        left: storeOffers.isFreeGiftOfferEnabled ? '23px' : '3px',
-                        transition: 'left 0.2s ease',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                      }} />
-                    </button>
-                  </div>
-
-                  <h4 style={{ margin: '0 0 6px', fontSize: '1.05rem', color: '#111827', fontWeight: 700 }}>
-                    Free Neem Wood Comb Gift (Above ₹{storeOffers.freeGiftCombAbove || 699})
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#6B7280', lineHeight: 1.45 }}>
-                    Complimentary anti-static handcrafted neem wood comb automatically unlocked on orders crossing ₹{storeOffers.freeGiftCombAbove || 699}.
-                  </p>
-                </div>
-
-                <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #F3F4F6' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleOffer('isFreeGiftOfferEnabled')}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      backgroundColor: storeOffers.isFreeGiftOfferEnabled ? '#FEE2E2' : '#122B19',
-                      color: storeOffers.isFreeGiftOfferEnabled ? '#991B1B' : '#FAF7F2',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    {storeOffers.isFreeGiftOfferEnabled ? '⏸️ Click to Pause Gift Comb' : '▶️ Click to Activate Gift Comb'}
                   </button>
                 </div>
               </div>

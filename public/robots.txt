@@ -1,6 +1,55 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/
 
-# Host & Sitemap Location
+# Major Search Engine Crawlers
+# Googlebot (Google Search)
+User-agent: Googlebot
+Allow: /
+
+# Bingbot (Microsoft Bing, Yahoo Search, DuckDuckGo web results)
+User-agent: Bingbot
+Allow: /
+
+# DuckDuckBot (DuckDuckGo crawler)
+User-agent: DuckDuckBot
+Allow: /
+
+# Brave Web Crawler (Brave Search Index)
+User-agent: Bravebot
+Allow: /
+
+# Applebot (Siri, Spotlight & Apple Search)
+User-agent: Applebot
+Allow: /
+
+# Yandex (Yandex Search)
+User-agent: Yandex
+Allow: /
+
+# AI Search & LLM Retrieval Crawlers (Generative Engine Optimization)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Host & LLM Manifests
 Host: https://keshira.vercel.app
 Sitemap: https://keshira.vercel.app/sitemap.xml

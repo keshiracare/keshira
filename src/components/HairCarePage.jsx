@@ -1,8 +1,28 @@
-import React, { useState } from 'react';
-import { KESHIRA_PRODUCTS } from '../data/products';
+import React, { useState, useEffect } from 'react';
+import { getActiveProducts, getProductsWithLiveRatings } from '../data/products';
 
 export default function HairCarePage({ onAddToCart, onNavigateHome, initialConcern = 'all' }) {
   const [selectedConcern, setSelectedConcern] = useState(initialConcern);
+  const [catalogMap, setCatalogMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem('keshira_reviews');
+      const reviewsList = saved ? JSON.parse(saved) : [];
+      return getProductsWithLiveRatings(getActiveProducts(), reviewsList);
+    } catch {
+      return getActiveProducts();
+    }
+  });
+
+  useEffect(() => {
+    const handleReviewsSynced = (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setCatalogMap(prev => getProductsWithLiveRatings(prev, e.detail));
+      }
+    };
+    window.addEventListener('keshira:reviews-synced', handleReviewsSynced);
+    return () => window.removeEventListener('keshira:reviews-synced', handleReviewsSynced);
+  }, []);
+
   const [selectedSizes, setSelectedSizes] = useState({
     hairfall: '200ml',
     dandruff: '200ml',
@@ -29,11 +49,11 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
   ];
 
   const products = [
-    KESHIRA_PRODUCTS.hairfall,
-    KESHIRA_PRODUCTS.dandruff,
-    KESHIRA_PRODUCTS.gentle,
-    KESHIRA_PRODUCTS.oil
-  ];
+    catalogMap.hairfall || catalogMap['hairfall'],
+    catalogMap.dandruff || catalogMap['dandruff'],
+    catalogMap.gentle || catalogMap['gentle'],
+    catalogMap.oil || catalogMap['oil']
+  ].filter(Boolean);
 
   const displayedProducts = selectedConcern === 'all'
     ? products

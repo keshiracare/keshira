@@ -4938,3 +4938,98 @@ textarea:focus-visible {
   }
 }
 
+/* ==========================================================================
+   MOBILE-FIRST 100% RESPONSIVE HARDENING & PROFESSIONAL SPACING
+   Calibrated for mobile devices (320px - 480px, 90%+ traffic)
+   ========================================================================== */
+
+/* Universal mobile layout safety */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Global comfortable typography reading lines */
+p, li, .prose {
+  text-wrap: pretty;
+}
+
+h1, h2, h3, h4, .section-title {
+  text-wrap: balance;
+}
+
+@media (max-width: 640px) {
+  /* Dynamic font scaling to prevent title clipping */
+  h1 {
+    font-size: clamp(1.8rem, 6.5vw, 2.4rem) !important;
+    line-height: 1.2 !important;
+  }
+
+  h2, .section-title {
+    font-size: clamp(1.45rem, 5.2vw, 1.85rem) !important;
+    line-height: 1.25 !important;
+  }
+
+  .section-subtitle {
+    font-size: 0.9rem !important;
+    line-height: 1.55 !important;
+    margin-bottom: 24px !important;
+  }
+
+  /* Professional section padding on mobile screens */
+  .section-padding {
+    padding: 44px 0 !important;
+  }
+
+  .container {
+    padding: 0 16px !important;
+  }
+
+  /* Safe tap target sizes for high mobile conversion */
+  button, a.btn, input[type="button"], input[type="submit"] {
+    min-height: 44px;
+  }
+
+  /* Header compact mobile optimization */
+  .header-container {
+    height: 56px !important;
+    padding: 0 14px !important;
+  }
+
+  .brand-logo-text {
+    font-size: 1.25rem !important;
+    letter-spacing: 0.1em !important;
+  }
+
+  .minimalist-action-btn {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 7px !important;
+  }
+
+  /* Product Cards & Catalogs on mobile */
+  .product-card {
+    margin-bottom: 16px;
+    border-radius: 16px;
+  }
+
+  .product-image-container {
+    height: 230px !important;
+  }
+
+  /* Bottom quick buy bar padding fix so it never blocks content */
+  body {
+    padding-bottom: 74px;
+  }
+
+  /* Table horizontally scrollable without breaking parent containers */
+  table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+

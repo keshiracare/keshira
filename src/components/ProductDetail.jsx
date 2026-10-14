@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabase';
-import { getActiveProducts, getActiveOffers, KESHIRA_BUNDLES } from '../data/products';
+import { supabase, serializeReviewText, deserializeReviewRow } from '../supabase';
+import { getActiveProducts, getActiveOffers, KESHIRA_BUNDLES, computeReviewsStats } from '../data/products';
 import PincodeDeliveryChecker from './PincodeDeliveryChecker';
 
 const INGREDIENTS_LIST = [
@@ -92,18 +92,12 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
           .order('created_at', { ascending: false });
 
         if (!error && dbReviews && dbReviews.length > 0) {
-          const formatted = dbReviews.map(r => ({
-            id: r.id,
-            author: r.name,
-            rating: r.rating,
-            scalpType: r.scalp_type,
-            text: r.text,
-            date: r.date
-          }));
+          const formatted = dbReviews.map(deserializeReviewRow);
           setReviews(formatted);
           localStorage.setItem('keshira_reviews', JSON.stringify(formatted));
         } else {
-          setReviews(INITIAL_REVIEWS);
+          const saved = localStorage.getItem('keshira_reviews');
+          setReviews(saved ? JSON.parse(saved) : INITIAL_REVIEWS);
         }
       } catch {
         const saved = localStorage.getItem('keshira_reviews');
@@ -111,11 +105,25 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
       }
     };
     fetchReviews();
+
+    const handleReviewsSynced = (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setReviews(e.detail);
+      }
+    };
+    window.addEventListener('keshira:reviews-synced', handleReviewsSynced);
+    return () => window.removeEventListener('keshira:reviews-synced', handleReviewsSynced);
   }, []);
 
   const isBundle = activeProductId === 'bundle';
   const currentBundle = KESHIRA_BUNDLES[0]; // Hairfall Regimen Duo
   const currentProduct = isBundle ? null : (catalogMap[activeProductId] || Object.values(catalogMap)[0]);
+
+  // Dynamically compute live rating and review count from published reviews
+  const reviewsStats = computeReviewsStats(reviews);
+  const currentSpecificStats = currentProduct ? (reviewsStats.productStats[currentProduct.id] || reviewsStats.productStats[currentProduct.name?.toLowerCase()] || reviewsStats.productStats[currentProduct.shortName?.toLowerCase()]) : null;
+  const liveRating = currentSpecificStats?.count > 0 ? (currentSpecificStats.sum / currentSpecificStats.count).toFixed(1) : reviewsStats.averageRatingFormatted;
+  const liveCount = currentSpecificStats?.count > 0 ? currentSpecificStats.count : reviewsStats.totalCount;
 
   const price = isBundle 
     ? currentBundle.price 
@@ -166,29 +174,55 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
     e.preventDefault();
     if (!newReview.name || !newReview.text) return;
 
+    const currentProductName = isBundle ? currentBundle.name : (currentProduct?.name || 'Keshira Herbal Shampoo');
+    const currentProdId = isBundle ? 'bundle' : currentProduct?.id;
+
     const reviewObj = {
-      author: newReview.name,
-      rating: parseInt(newReview.rating),
+      author: newReview.name.trim(),
+      name: newReview.name.trim(),
+      rating: parseInt(newReview.rating, 10),
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      text: newReview.text,
-      scalpType: newReview.scalpType
+      text: newReview.text.trim(),
+      scalpType: newReview.scalpType,
+      scalp_type: newReview.scalpType,
+      productId: currentProdId,
+      productUsed: currentProductName,
+      verifiedBuyer: true
     };
 
+    const packedText = serializeReviewText(reviewObj.text, {
+      productUsed: reviewObj.productUsed,
+      productId: reviewObj.productId,
+      verifiedBuyer: true
+    });
+
     try {
-      await supabase.from('reviews').insert([{
-        name: reviewObj.author,
+      const { data: inserted, error } = await supabase.from('reviews').insert([{
+        name: reviewObj.name,
         rating: reviewObj.rating,
         scalp_type: reviewObj.scalpType,
-        text: reviewObj.text,
+        text: packedText,
         date: reviewObj.date
-      }]);
-    } catch {}
+      }]).select().single();
 
-    const updated = [reviewObj, ...reviews];
-    setReviews(updated);
-    localStorage.setItem('keshira_reviews', JSON.stringify(updated));
+      const saved = inserted ? deserializeReviewRow(inserted) : { id: `local-${Date.now()}`, ...reviewObj };
+      const updated = [saved, ...reviews];
+      setReviews(updated);
+      localStorage.setItem('keshira_reviews', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
+      window.dispatchEvent(new CustomEvent('keshira:review-added'));
+    } catch {
+      const saved = { id: `local-${Date.now()}`, ...reviewObj };
+      const updated = [saved, ...reviews];
+      setReviews(updated);
+      localStorage.setItem('keshira_reviews', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
+      window.dispatchEvent(new CustomEvent('keshira:review-added'));
+    }
+
     setNewReview({ name: '', rating: 5, scalpType: 'Normal & Balanced', text: '' });
   };
+
 
   return (
     <section id="purchase-section" className="purchase-section section-padding" style={{ backgroundColor: 'var(--color-bg-parchment-light)' }}>
@@ -264,9 +298,14 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
               {isBundle ? currentBundle.name : currentProduct.name}
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: 'var(--color-accent-gold)', fontSize: '1rem' }}>★★★★★</span>
+              <span style={{ color: 'var(--color-accent-gold)', fontSize: '1rem' }}>
+                {'★'.repeat(Math.round(Number(liveRating)))}{'☆'.repeat(5 - Math.round(Number(liveRating)))}
+              </span>
+              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                {liveRating}
+              </span>
               <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-                ({reviews.length} Verified Reviews • Scalp pH 5.5 Balanced)
+                ({liveCount} Verified Review{liveCount === 1 ? '' : 's'} • Scalp pH 5.5 Balanced)
               </span>
             </div>
           </div>
@@ -448,10 +487,13 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
                       <select 
                         value={newReview.rating} 
                         onChange={e => setNewReview({ ...newReview, rating: Number(e.target.value) })}
-                        style={{ height: '32px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '0.8rem' }}
+                        style={{ height: '32px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '0.8rem', fontWeight: 600 }}
                       >
-                        <option value="5">5 Stars ★</option>
-                        <option value="4">4 Stars ★</option>
+                        <option value="5">5 Stars ★★★★★</option>
+                        <option value="4">4 Stars ★★★★☆</option>
+                        <option value="3">3 Stars ★★★☆☆</option>
+                        <option value="2">2 Stars ★★☆☆☆</option>
+                        <option value="1">1 Star ★☆☆☆☆</option>
                       </select>
                     </div>
                     <textarea 

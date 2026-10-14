@@ -23,39 +23,61 @@ export default function Hero({ storeOffers: propStoreOffers }) {
     return () => window.removeEventListener('keshira_offers_updated', handleOffersUpdated);
   }, []);
 
-  // Social proof stats
-  const [stats, setStats] = useState(() => ({
-    avgRating: '4.9',
-    totalStories: '1,250+'
-  }));
+  // Social proof stats calculated from actual published reviews
+  const [stats, setStats] = useState(() => {
+    try {
+      const saved = localStorage.getItem('keshira_reviews');
+      const list = saved ? JSON.parse(saved) : [];
+      if (list.length > 0) {
+        const sum = list.reduce((a, b) => a + (Number(b.rating) || 5), 0);
+        return {
+          avgRating: (sum / list.length).toFixed(1),
+          totalStories: `${list.length} verified`
+        };
+      }
+    } catch {}
+    return {
+      avgRating: '5.0',
+      totalStories: 'Verified'
+    };
+  });
 
   useEffect(() => {
     let isMounted = true;
     const fetchStats = async () => {
       try {
         const { data: dbReviews } = await supabase.from('reviews').select('rating');
-        const { count: dbOrdersCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
         if (!isMounted) return;
 
-        const seedReviewsCount = 186;
-        const seedOrdersCount = 1064;
-        const seedAvgRating = 4.9;
-
         const liveReviews = Array.isArray(dbReviews) ? dbReviews : [];
-        const liveOrders = typeof dbOrdersCount === 'number' ? dbOrdersCount : 0;
-        const totalReviews = seedReviewsCount + liveReviews.length;
-        const liveRatingSum = liveReviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0);
-        const avg = ((seedReviewsCount * seedAvgRating + liveRatingSum) / totalReviews).toFixed(1);
-        const totalStories = totalReviews + seedOrdersCount + liveOrders;
-
-        setStats({
-          avgRating: avg,
-          totalStories: `${totalStories.toLocaleString('en-IN')}+`
-        });
+        if (liveReviews.length > 0) {
+          const liveRatingSum = liveReviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0);
+          const avg = (liveRatingSum / liveReviews.length).toFixed(1);
+          setStats({
+            avgRating: avg,
+            totalStories: `${liveReviews.length} verified`
+          });
+        }
       } catch {}
     };
     fetchStats();
-    return () => { isMounted = false; };
+
+    const handleReviewsSynced = (e) => {
+      if (e.detail && Array.isArray(e.detail) && e.detail.length > 0) {
+        const list = e.detail;
+        const sum = list.reduce((a, b) => a + (Number(b.rating) || 5), 0);
+        setStats({
+          avgRating: (sum / list.length).toFixed(1),
+          totalStories: `${list.length} verified`
+        });
+      }
+    };
+
+    window.addEventListener('keshira:reviews-synced', handleReviewsSynced);
+    return () => { 
+      isMounted = false; 
+      window.removeEventListener('keshira:reviews-synced', handleReviewsSynced);
+    };
   }, []);
 
   const isBogoActive = Boolean(storeOffers?.isBogoEnabled);

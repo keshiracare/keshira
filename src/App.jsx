@@ -26,6 +26,7 @@ import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsAndConditions from './components/TermsAndConditions';
 import RefundPolicy from './components/RefundPolicy';
 import TestimonialsSection from './components/TestimonialsSection';
+import SearchModal from './components/SearchModal';
 import PromoPopup from './components/PromoPopup';
 import CollectionsShop from './components/CollectionsShop';
 import BestSellersPage from './components/BestSellersPage';
@@ -46,6 +47,7 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isPortalOpen, setIsPortalOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [policyModal, setPolicyModal] = useState({ isOpen: false, type: '' });
   const [isPromoOpen, setIsPromoOpen] = useState(false);
   const [clickCount, setClickCount] = useState(0);
@@ -244,27 +246,39 @@ export default function App() {
   const handleClaimPromoOffer = () => {
     setIsPromoOpen(false);
 
+    const shampooId = 'keshira-shampoo-hairfall-200ml-one-time-0';
+    const freeOilId = 'keshira-oil-30ml-free-promo';
+
     const shampooItem = {
-      id: 'keshira-shampoo-hairfall-200ml-one-time-0',
-      title: 'Keshira Herbal Shampoo (Hair Fall Control) - 200ml',
+      id: shampooId,
+      productId: 'hairfall',
+      productType: 'shampoo',
+      title: 'Keshira Hibiscus Herbal Shampoo (Hair Fall Control) - 200ml',
       variant: '200ml',
       subVariant: 'Hair Fall Control',
-      price: 199,
+      price: 499,
+      originalPrice: 599,
       quantity: 1,
-      image: '/assets/hero-shampoo.jpg',
+      image: '/assets/Keshira Hibiscus Herbal Shampoo.jpeg',
       purchaseType: 'one-time',
-      frequency: null
+      frequency: null,
+      hasFreeGiftOil: true
     };
 
     const freeOilItem = {
-      id: 'keshira-oil-30ml-free-promo',
-      title: '🎁 Keshira Herbal Hair Oil (Complimentary Gift)',
+      id: freeOilId,
+      productId: 'oil',
+      productType: 'oil',
+      title: '🎁 Keshira Herbal Hair Oil - 30ml (Complimentary Gift)',
       variant: '30ml',
-      subVariant: 'Pure Herbal Botanical Infusion',
+      subVariant: 'Deep Scalp Therapy',
       price: 0,
+      originalPrice: 199,
       quantity: 1,
-      image: '/assets/hairoil-luxury.jpg',
+      image: '/assets/Keshira Herbal Oil.jpeg',
       purchaseType: 'one-time',
+      isFreeGiftItem: true,
+      parentGiftShampooId: shampooId,
       frequency: null
     };
 
@@ -274,7 +288,11 @@ export default function App() {
       // Add Shampoo 200ml
       const shampooIdx = updatedCart.findIndex((item) => item.id === shampooItem.id);
       if (shampooIdx > -1) {
-        updatedCart[shampooIdx].quantity += 1;
+        updatedCart[shampooIdx] = {
+          ...updatedCart[shampooIdx],
+          quantity: updatedCart[shampooIdx].quantity + 1,
+          hasFreeGiftOil: true
+        };
       } else {
         updatedCart.push(shampooItem);
       }
@@ -282,7 +300,10 @@ export default function App() {
       // Add Free 30ml Oil
       const freeOilIdx = updatedCart.findIndex((item) => item.id === freeOilItem.id);
       if (freeOilIdx > -1) {
-        updatedCart[freeOilIdx].quantity += 1;
+        updatedCart[freeOilIdx] = {
+          ...updatedCart[freeOilIdx],
+          quantity: updatedCart[freeOilIdx].quantity + 1
+        };
       } else {
         updatedCart.push(freeOilItem);
       }
@@ -303,6 +324,11 @@ export default function App() {
       const parentId = targetItem.isFreeBogoItem ? targetItem.parentBogoId : id;
       const freeItemId = `${parentId}-free-bogo`;
 
+      // Check if target item or parent has a free 30ml oil gift linked
+      const hasFreeGift = targetItem.hasFreeGiftOil || targetItem.parentGiftShampooId;
+      const shampooGiftId = targetItem.hasFreeGiftOil ? targetItem.id : targetItem.parentGiftShampooId;
+      const freeGiftOilId = 'keshira-oil-30ml-free-promo';
+
       let updated = prevCart.map((item) => {
         if (item.id === parentId) {
           return { ...item, quantity: item.quantity + delta };
@@ -310,7 +336,10 @@ export default function App() {
         if (item.id === freeItemId) {
           return { ...item, quantity: item.quantity + delta };
         }
-        if (item.id === id && item.id !== parentId && item.id !== freeItemId) {
+        if (hasFreeGift && item.id === freeGiftOilId && shampooGiftId) {
+          return { ...item, quantity: item.quantity + delta };
+        }
+        if (item.id === id && item.id !== parentId && item.id !== freeItemId && item.id !== freeGiftOilId) {
           return { ...item, quantity: item.quantity + delta };
         }
         return item;
@@ -328,7 +357,17 @@ export default function App() {
       const parentId = targetItem.isFreeBogoItem ? targetItem.parentBogoId : id;
       const freeItemId = `${parentId}-free-bogo`;
 
-      return prevCart.filter((item) => item.id !== parentId && item.id !== freeItemId);
+      // If removing the promo shampoo, also clean up the complimentary free oil gift
+      const isPromoShampoo = targetItem.hasFreeGiftOil || targetItem.id === 'keshira-shampoo-hairfall-200ml-one-time-0';
+      const isPromoFreeOil = targetItem.isFreeGiftItem || targetItem.id === 'keshira-oil-30ml-free-promo';
+      const freeOilId = 'keshira-oil-30ml-free-promo';
+
+      return prevCart.filter((item) => {
+        if (item.id === parentId || item.id === freeItemId) return false;
+        if (isPromoShampoo && item.id === freeOilId) return false;
+        if (isPromoFreeOil && item.id === freeOilId) return false;
+        return true;
+      });
     });
   };
 
@@ -402,7 +441,11 @@ export default function App() {
     ? seo.guide 
     : isCollectionsPage 
       ? seo.collections 
-      : seo;
+      : isBestSellersPage
+        ? seo.bestSellers
+        : isHairCarePage
+          ? seo.hairCare
+          : seo;
 
   return (
     <>
@@ -422,7 +465,9 @@ export default function App() {
   <meta property="og:image:height" content={seo.ogImageHeight} />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content={seo.twitterHandle} />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <meta name="theme-color" content="#122B19" />
   <script type="application/ld+json">{JSON.stringify(seo.jsonLd)}</script>
 </Helmet>
@@ -518,6 +563,7 @@ export default function App() {
         onOpenPolicy={handleOpenPolicy}
         currentPath={currentPath}
         onNavigate={navigateTo}
+        onSearchOpen={() => setIsSearchOpen(true)}
       />
       
       {/* Route Switcher: Multi-Page Architecture (Minimalist Style) */}
@@ -712,6 +758,14 @@ export default function App() {
         isOpen={isPromoOpen}
         onClose={handleClosePromo}
         onClaimOffer={handleClaimPromoOffer}
+      />
+
+      {/* Global Predictive Search Modal */}
+      <SearchModal 
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onAddToCart={handleAddToCart}
+        onNavigate={navigateTo}
       />
     </>
   );

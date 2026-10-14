@@ -1,10 +1,10 @@
 // src/seo.js
-// Centralized SEO configuration for the Keshira website.
-// Grounded in all 4 products: Dandruff Shampoo, Hairfall Shampoo, Gentle Care Shampoo, and Herbal Hair Oil.
+// Centralized SEO and GEO (Generative Engine Optimization) configuration for Keshira.
+// Aligned precisely with Keshira's 4 core SKUs and botanical active ingredients.
 
 export const seo = {
-  title: "Keshira | Ayurvedic Herbal Dandruff & Hairfall Shampoos & Hair Oil",
-  description: "Targeted Ayurvedic haircare hand-poured in micro batches. Formulated with 14 active botanicals for dandruff reduction, hairfall control, daily gentle care, and root nourishment. Scalp pH 5.5 balanced, 100% sulfate-free.",
+  title: "Keshira | Hand-Poured Ayurvedic Herbal Shampoos & Hair Oil (pH 5.5)",
+  description: "Targeted Ayurvedic haircare hand-poured in micro batches. Formulated with 14 active botanicals for dandruff reduction, hair fall control, gentle daily care, and root nourishment. Scalp pH 5.5 balanced, 100% sulfate-free.",
   canonical: "https://keshira.vercel.app/",
   ogImage: "https://keshira.vercel.app/assets/hero-shampoo.jpg",
   ogImageWidth: "1200",
@@ -35,44 +35,20 @@ export const seo = {
         "@id": "https://keshira.vercel.app/#website",
         "url": "https://keshira.vercel.app/",
         "name": "Keshira",
-        "description": "Targeted Ayurvedic Herbal Hair Shampoos & Oil",
+        "description": "Targeted Ayurvedic Herbal Shampoos & Cold-Cooked Hair Oil",
         "publisher": {
           "@id": "https://keshira.vercel.app/#organization"
         }
       },
-      {
-        "@type": "Product",
-        "@id": "https://keshira.vercel.app/#hairfall-shampoo",
-        "name": "Keshira Herbal Hairfall Reduction Shampoo",
-        "image": "https://keshira.vercel.app/assets/hero-shampoo.jpg",
-        "description": "Targeted follicle-strengthening Ayurvedic shampoo infused with Bhringraj, Amla, Clove, and Curry Leaves to reduce shower shedding and reinforce roots. pH 5.5 balanced.",
-        "brand": { "@type": "Brand", "name": "Keshira" },
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": "4.9",
-          "bestRating": "5",
-          "worstRating": "1",
-          "ratingCount": "520",
-          "reviewCount": "520"
-        },
-        "offers": {
-          "@type": "AggregateOffer",
-          "url": "https://keshira.vercel.app/#catalog",
-          "priceCurrency": "INR",
-          "lowPrice": "238",
-          "highPrice": "398",
-          "itemCondition": "https://schema.org/NewCondition",
-          "availability": "https://schema.org/InStock",
-          "seller": { "@id": "https://keshira.vercel.app/#organization" }
-        }
-      },
+      // 1. Keshira Neem Herbal Shampoo (Dandruff)
       {
         "@type": "Product",
         "@id": "https://keshira.vercel.app/#dandruff-shampoo",
-        "name": "Keshira Herbal Dandruff Reduction Shampoo (BUY 1 GET 1 FREE)",
-        "image": "https://keshira.vercel.app/assets/shampoo-luxury.jpg",
-        "description": "Anti-microbial Ayurvedic shampoo formulated with Neem, Rosemary, Shikakai, and Fenugreek to dissolve stubborn flakes and soothe itchy scalp without stripping moisture. Buy 1 Get 1 Free offer.",
+        "name": "Keshira Neem Herbal Shampoo",
+        "image": "https://keshira.vercel.app/assets/Keshira%20Neem%20Herbal%20Shampoo.jpeg",
+        "description": "Anti-microbial Ayurvedic shampoo formulated with Neem, Rosemary Oil, Shikakai, and Fenugreek to eliminate stubborn flakes and soothe itchy scalp at scalp barrier pH 5.5. 100% sulfate-free.",
         "brand": { "@type": "Brand", "name": "Keshira" },
+        "category": "Hair Care > Shampoos > Dandruff Care",
         "aggregateRating": {
           "@type": "AggregateRating",
           "ratingValue": "4.8",
@@ -83,22 +59,143 @@ export const seo = {
         },
         "offers": {
           "@type": "AggregateOffer",
-          "url": "https://keshira.vercel.app/#catalog",
+          "url": "https://keshira.vercel.app/hair-care",
           "priceCurrency": "INR",
-          "lowPrice": "238",
-          "highPrice": "398",
+          "lowPrice": "299",
+          "highPrice": "499",
+          "offerCount": "2",
           "itemCondition": "https://schema.org/NewCondition",
           "availability": "https://schema.org/InStock",
-          "seller": { "@id": "https://keshira.vercel.app/#organization" }
+          "seller": { "@id": "https://keshira.vercel.app/#organization" },
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": {
+              "@type": "MonetaryAmount",
+              "value": "0",
+              "currency": "INR"
+            },
+            "shippingDestination": {
+              "@type": "DefinedRegion",
+              "addressCountry": "IN"
+            }
+          },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "IN",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays": 7,
+            "returnMethod": "https://schema.org/ReturnByMail",
+            "returnFees": "https://schema.org/FreeReturn"
+          }
         }
       },
+      // 2. Keshira Hibiscus Herbal Shampoo (Hair Fall)
+      {
+        "@type": "Product",
+        "@id": "https://keshira.vercel.app/#hairfall-shampoo",
+        "name": "Keshira Hibiscus Herbal Shampoo",
+        "image": "https://keshira.vercel.app/assets/Keshira%20Hibiscus%20Herbal%20Shampoo.jpeg",
+        "description": "Targeted follicle-strengthening Ayurvedic shampoo infused with Hibiscus petals, Bhringraj, Amla, and Curry Leaves to reduce shower shedding and reinforce roots. pH 5.5 balanced.",
+        "brand": { "@type": "Brand", "name": "Keshira" },
+        "category": "Hair Care > Shampoos > Hair Fall Control",
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "bestRating": "5",
+          "worstRating": "1",
+          "ratingCount": "520",
+          "reviewCount": "520"
+        },
+        "offers": {
+          "@type": "AggregateOffer",
+          "url": "https://keshira.vercel.app/hair-care",
+          "priceCurrency": "INR",
+          "lowPrice": "299",
+          "highPrice": "499",
+          "offerCount": "2",
+          "itemCondition": "https://schema.org/NewCondition",
+          "availability": "https://schema.org/InStock",
+          "seller": { "@id": "https://keshira.vercel.app/#organization" },
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": {
+              "@type": "MonetaryAmount",
+              "value": "0",
+              "currency": "INR"
+            },
+            "shippingDestination": {
+              "@type": "DefinedRegion",
+              "addressCountry": "IN"
+            }
+          },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "IN",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays": 7,
+            "returnMethod": "https://schema.org/ReturnByMail",
+            "returnFees": "https://schema.org/FreeReturn"
+          }
+        }
+      },
+      // 3. Keshira Gentle Herbal Shampoo (Gentle Daily Care)
+      {
+        "@type": "Product",
+        "@id": "https://keshira.vercel.app/#gentle-shampoo",
+        "name": "Keshira Gentle Herbal Shampoo",
+        "image": "https://keshira.vercel.app/assets/Keshira%20Gentle%20Herbal%20Shampoo.jpeg",
+        "description": "Ultra-mild daily botanical cleanser with pure Aritha (soapnut saponins), Aloe Vera, Flaxseed gel, and Rose Water. Color-safe, non-stripping, and tear-free scalp mildness at pH 5.5.",
+        "brand": { "@type": "Brand", "name": "Keshira" },
+        "category": "Hair Care > Shampoos > Gentle Care",
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "bestRating": "5",
+          "worstRating": "1",
+          "ratingCount": "240",
+          "reviewCount": "240"
+        },
+        "offers": {
+          "@type": "AggregateOffer",
+          "url": "https://keshira.vercel.app/hair-care",
+          "priceCurrency": "INR",
+          "lowPrice": "299",
+          "highPrice": "499",
+          "offerCount": "2",
+          "itemCondition": "https://schema.org/NewCondition",
+          "availability": "https://schema.org/InStock",
+          "seller": { "@id": "https://keshira.vercel.app/#organization" },
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": {
+              "@type": "MonetaryAmount",
+              "value": "0",
+              "currency": "INR"
+            },
+            "shippingDestination": {
+              "@type": "DefinedRegion",
+              "addressCountry": "IN"
+            }
+          },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "IN",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays": 7,
+            "returnMethod": "https://schema.org/ReturnByMail",
+            "returnFees": "https://schema.org/FreeReturn"
+          }
+        }
+      },
+      // 4. Keshira Herbal Oil
       {
         "@type": "Product",
         "@id": "https://keshira.vercel.app/#herbal-hair-oil",
-        "name": "Keshira Herbal Hair Oil",
-        "image": "https://keshira.vercel.app/assets/hairoil-luxury.jpg",
-        "description": "Traditional 14-herb Ayurvedic pre-wash oil slow-cooked in pure sesame oil. Enriched with Bhringraj, Brahmi, Rosemary, and Kalonji for root stimulation and deep champi scalp nourishment.",
+        "name": "Keshira Herbal Oil",
+        "image": "https://keshira.vercel.app/assets/Keshira%20Herbal%20Oil.jpeg",
+        "description": "Traditional 14-herb Ayurvedic pre-wash oil slow-infused in pure unrefined sesame oil. Enriched with Bhringraj, Brahmi, Rosemary, and Kalonji (Black Seed) for root stimulation and scalp therapy.",
         "brand": { "@type": "Brand", "name": "Keshira" },
+        "category": "Hair Care > Hair Oils",
         "aggregateRating": {
           "@type": "AggregateRating",
           "ratingValue": "4.9",
@@ -109,15 +206,37 @@ export const seo = {
         },
         "offers": {
           "@type": "AggregateOffer",
-          "url": "https://keshira.vercel.app/#catalog",
+          "url": "https://keshira.vercel.app/hair-care",
           "priceCurrency": "INR",
-          "lowPrice": "129",
-          "highPrice": "249",
+          "lowPrice": "399",
+          "highPrice": "599",
+          "offerCount": "2",
           "itemCondition": "https://schema.org/NewCondition",
           "availability": "https://schema.org/InStock",
-          "seller": { "@id": "https://keshira.vercel.app/#organization" }
+          "seller": { "@id": "https://keshira.vercel.app/#organization" },
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": {
+              "@type": "MonetaryAmount",
+              "value": "0",
+              "currency": "INR"
+            },
+            "shippingDestination": {
+              "@type": "DefinedRegion",
+              "addressCountry": "IN"
+            }
+          },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "IN",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays": 7,
+            "returnMethod": "https://schema.org/ReturnByMail",
+            "returnFees": "https://schema.org/FreeReturn"
+          }
         }
       },
+      // FAQ Page Schema
       {
         "@type": "FAQPage",
         "@id": "https://keshira.vercel.app/#faqs",
@@ -127,7 +246,7 @@ export const seo = {
             "name": "Which Keshira shampoo should I choose if I have both dandruff and hair fall?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "In Ayurveda, an inflamed or flaky scalp prevents follicle anchorage. We recommend using the Dandruff Reduction Shampoo for 2–3 weeks to clear fungal buildup and calm the scalp, paired with Keshira Herbal Hair Oil. Once flakes subside, transition to the Hairfall Reduction Shampoo."
+              "text": "In Ayurveda, an inflamed or flaky scalp prevents follicle anchorage. We recommend using the Neem Herbal Shampoo for 2–3 weeks to clear fungal buildup and calm the scalp, paired with Keshira Herbal Oil. Once flakes subside, transition to the Hibiscus Herbal Shampoo."
             }
           },
           {
@@ -156,6 +275,7 @@ export const seo = {
           }
         ]
       },
+      // Breadcrumb Schema
       {
         "@type": "BreadcrumbList",
         "@id": "https://keshira.vercel.app/#breadcrumb",
@@ -169,12 +289,24 @@ export const seo = {
           {
             "@type": "ListItem",
             "position": 2,
+            "name": "Best Sellers",
+            "item": "https://keshira.vercel.app/best-sellers"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Hair Care",
+            "item": "https://keshira.vercel.app/hair-care"
+          },
+          {
+            "@type": "ListItem",
+            "position": 4,
             "name": "Formulations & Bundles",
             "item": "https://keshira.vercel.app/collections"
           },
           {
             "@type": "ListItem",
-            "position": 3,
+            "position": 5,
             "name": "Ayurvedic Hair Transition Guide",
             "item": "https://keshira.vercel.app/ayurvedic-hair-transition-guide"
           }
@@ -183,15 +315,34 @@ export const seo = {
     ]
   },
 
+  // Per-route dedicated SEO metadata
   collections: {
-    title: "Ayurvedic Shampoos & Regimen Bundles | Keshira Collections",
-    description: "Shop targeted Ayurvedic hair recovery bundles: Dandruff Reset Duo, Hairfall Rescue Regimen, and Gentle Care Duo. Save up to 15% with Free Express Delivery.",
+    title: "Ayurvedic Regimen Bundles & Duos | Keshira Collections",
+    description: "Shop targeted Ayurvedic hair recovery bundles: Dryness & Hair Fall Regimen, Dandruff Reset Duo, and Hair Growth Kit. Save up to 40% with Free Express Delivery across India.",
     canonical: "https://keshira.vercel.app/collections"
   },
 
+  bestSellers: {
+    title: "Best-Selling Ayurvedic Shampoos & Oils | Keshira Haircare",
+    description: "Explore Keshira's top-rated herbal hair solutions. Tested by 5,000+ happy customers across India for dandruff control, hair fall reduction, and scalp vitality.",
+    canonical: "https://keshira.vercel.app/best-sellers"
+  },
+
+  hairCare: {
+    title: "Botanical Hair Care Shampoos & Oils (pH 5.5) | Keshira",
+    description: "Discover the full range of 100% sulfate-free shampoos and cold-cooked sesame hair oil. Handcrafted with Neem, Hibiscus, Bhringraj, and Rosemary for healthy scalp balance.",
+    canonical: "https://keshira.vercel.app/hair-care"
+  },
+
   guide: {
-    title: "Ayurvedic Hair Transition Guide | Keshira Botanical Care",
-    description: "Read the 21-day Ayurvedic Hair Transition Guide. Learn how to transition away from synthetic sulfates, master the pre-wash Champi scalp ritual, and rebuild healthy hair density naturally.",
+    title: "21-Day Ayurvedic Hair Transition Guide | Keshira Botanical Care",
+    description: "Read our comprehensive guide to transitioning from chemical sulfates to pure Ayurvedic botanicals. Learn the champi massage ritual and scalp pH balance secrets.",
     canonical: "https://keshira.vercel.app/ayurvedic-hair-transition-guide"
+  },
+
+  account: {
+    title: "Customer Account & Order Tracking | Keshira",
+    description: "Track your Keshira orders, view live shipping updates, or manage your recurring deliveries.",
+    canonical: "https://keshira.vercel.app/account"
   }
 };

@@ -324,7 +324,7 @@ export default function CartDrawer({
           {subtotal >= 300 ? '✓ Free Express Shipping Applied' : 'Free Shipping on Orders Above ₹300'}
         </div>
 
-        {/* Deconstruct-style Tiered Milestone Progress with Gift Icons */}
+        {/* Deconstruct-style Tiered Milestone Progress */}
         {subtotal > 0 && (
           <div style={{
             backgroundColor: '#FAFAFA',
@@ -332,12 +332,10 @@ export default function CartDrawer({
             padding: '14px 20px 16px'
           }}>
             <div style={{ textAlign: 'center', fontSize: '0.78rem', fontWeight: 600, color: '#111827', marginBottom: '12px' }}>
-              {subtotal >= 699 ? (
-                <span style={{ color: '#166534', fontWeight: 700 }}>🎉 You have unlocked all gifts & free delivery!</span>
-              ) : subtotal >= 300 ? (
-                <span>Add ₹{699 - subtotal} more for a <strong>Free Neem Wood Comb</strong>!</span>
+              {(hasBundle || isFirstOrder || subtotal >= 300) ? (
+                <span style={{ color: '#166534', fontWeight: 700 }}>🎉 You have unlocked FREE Pan-India Delivery!</span>
               ) : (
-                <span>Add ₹{300 - subtotal} more for <strong>FREE Shipping</strong>!</span>
+                <span>Add ₹{300 - subtotal} more for <strong>FREE Pan-India Delivery</strong>!</span>
               )}
             </div>
 
@@ -349,7 +347,7 @@ export default function CartDrawer({
                   style={{ 
                     height: '100%', 
                     backgroundColor: '#111827', 
-                    width: `${Math.min(100, (subtotal / 699) * 100)}%`,
+                    width: `${Math.min(100, (subtotal / 300) * 100)}%`,
                     transition: 'width 0.3s ease' 
                   }} 
                 />
@@ -357,50 +355,28 @@ export default function CartDrawer({
 
               {/* Milestones */}
               <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', zIndex: 2 }}>
-                {/* Milestone 1: ₹149 (B1G1) when enabled, or ₹300 milestone */}
-                {storeOffers?.isBogoEnabled ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{
-                      width: '22px',
-                      height: '22px',
-                      borderRadius: '50%',
-                      backgroundColor: subtotal >= 149 ? '#111827' : '#FFFFFF',
-                      border: `2px solid ${subtotal >= 149 ? '#111827' : '#D1D5DB'}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '10px',
-                      color: subtotal >= 149 ? '#FFF' : '#9CA3AF',
-                      marginBottom: '4px'
-                    }}>
-                      🎁
-                    </div>
-                    <span style={{ fontSize: '0.66rem', fontWeight: 600, color: '#374151' }}>B1G1 Free</span>
-                    <span style={{ fontSize: '0.62rem', color: '#6B7280' }}>₹149</span>
+                {/* Milestone 1: Pure Herb */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{
+                    width: '22px',
+                    height: '22px',
+                    borderRadius: '50%',
+                    backgroundColor: subtotal > 0 ? '#111827' : '#FFFFFF',
+                    border: `2px solid ${subtotal > 0 ? '#111827' : '#D1D5DB'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '10px',
+                    color: subtotal > 0 ? '#FFF' : '#9CA3AF',
+                    marginBottom: '4px'
+                  }}>
+                    🌿
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{
-                      width: '22px',
-                      height: '22px',
-                      borderRadius: '50%',
-                      backgroundColor: subtotal > 0 ? '#111827' : '#FFFFFF',
-                      border: `2px solid ${subtotal > 0 ? '#111827' : '#D1D5DB'}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '10px',
-                      color: subtotal > 0 ? '#FFF' : '#9CA3AF',
-                      marginBottom: '4px'
-                    }}>
-                      🌿
-                    </div>
-                    <span style={{ fontSize: '0.66rem', fontWeight: 600, color: '#374151' }}>Pure Herb</span>
-                    <span style={{ fontSize: '0.62rem', color: '#6B7280' }}>pH 5.5</span>
-                  </div>
-                )}
+                  <span style={{ fontSize: '0.66rem', fontWeight: 600, color: '#374151' }}>Pure Herb</span>
+                  <span style={{ fontSize: '0.62rem', color: '#6B7280' }}>pH 5.5</span>
+                </div>
 
-                {/* Milestone 2: ₹300 (Free Delivery) */}
+                {/* Milestone 2: Free Delivery */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div style={{
                     width: '22px',
@@ -419,27 +395,6 @@ export default function CartDrawer({
                   </div>
                   <span style={{ fontSize: '0.66rem', fontWeight: 600, color: '#374151' }}>Free Delivery</span>
                   <span style={{ fontSize: '0.62rem', color: '#6B7280' }}>₹300</span>
-                </div>
-
-                {/* Milestone 3: ₹699 (Free Neem Comb) */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{
-                    width: '22px',
-                    height: '22px',
-                    borderRadius: '50%',
-                    backgroundColor: subtotal >= 699 ? '#111827' : '#FFFFFF',
-                    border: `2px solid ${subtotal >= 699 ? '#111827' : '#D1D5DB'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '10px',
-                    color: subtotal >= 699 ? '#FFF' : '#9CA3AF',
-                    marginBottom: '4px'
-                  }}>
-                    🌿
-                  </div>
-                  <span style={{ fontSize: '0.66rem', fontWeight: 600, color: '#374151' }}>Neem Comb</span>
-                  <span style={{ fontSize: '0.62rem', color: '#6B7280' }}>₹699</span>
                 </div>
               </div>
             </div>
@@ -558,14 +513,15 @@ export default function CartDrawer({
 
                         {item.price === 0 && (
                           <span style={{
-                            backgroundColor: '#DCFCE7',
-                            color: '#166534',
-                            padding: '2px 6px',
+                            backgroundColor: item.isFreeGiftItem ? '#FEF3C7' : '#DCFCE7',
+                            color: item.isFreeGiftItem ? '#92400E' : '#166534',
+                            padding: '2px 8px',
                             borderRadius: '4px',
                             fontSize: '0.68rem',
-                            fontWeight: 700
+                            fontWeight: 700,
+                            letterSpacing: '0.02em'
                           }}>
-                            🎁 FREE B1G1
+                            {item.isFreeGiftItem ? '🎁 COMPLIMENTARY GIFT' : '🎁 FREE B1G1'}
                           </span>
                         )}
                       </div>

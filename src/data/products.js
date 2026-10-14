@@ -394,8 +394,6 @@ export const DEFAULT_STORE_OFFERS = {
   isBogoEnabled: true,
   freeShippingAbove: 300,
   isFreeShippingOfferEnabled: true,
-  freeGiftCombAbove: 699,
-  isFreeGiftOfferEnabled: true,
   promoPopupOfferEnabled: true,
   coupons: [
     {
@@ -504,4 +502,68 @@ export const resetProductsToDefault = () => {
     console.error('Failed to reset products:', err);
     return false;
   }
+};
+
+// Helper to compute actual published ratings and counts across products
+export const computeReviewsStats = (reviewsList = []) => {
+
+  const list = Array.isArray(reviewsList) ? reviewsList : [];
+  const totalCount = list.length;
+  if (totalCount === 0) {
+    return {
+      averageRating: 5.0,
+      averageRatingFormatted: '5.0',
+      totalCount: 0,
+      productStats: {}
+    };
+  }
+
+  const sum = list.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+  const avg = Number((sum / totalCount).toFixed(1));
+
+  // Also group by product if reviews have product mapping
+  const productStats = {};
+  list.forEach(r => {
+    const pId = r.productId || (r.productUsed ? r.productUsed.toLowerCase() : null);
+    if (!pId) return;
+    if (!productStats[pId]) {
+      productStats[pId] = { sum: 0, count: 0 };
+    }
+    productStats[pId].sum += Number(r.rating) || 5;
+    productStats[pId].count += 1;
+  });
+
+  return {
+    averageRating: avg,
+    averageRatingFormatted: avg.toFixed(1),
+    totalCount,
+    productStats
+  };
+};
+
+// Returns product catalog with rating and reviewCount synchronized to actual published reviews
+export const getProductsWithLiveRatings = (baseProducts, reviewsList = []) => {
+  const list = Array.isArray(reviewsList) ? reviewsList : [];
+  const stats = computeReviewsStats(list);
+  const products = { ...(baseProducts || getActiveProducts()) };
+
+  Object.keys(products).forEach(key => {
+    const prod = { ...products[key] };
+    const pSpecific = stats.productStats[key] || stats.productStats[prod.name?.toLowerCase()] || stats.productStats[prod.shortName?.toLowerCase()];
+
+    if (pSpecific && pSpecific.count > 0) {
+      prod.rating = Number((pSpecific.sum / pSpecific.count).toFixed(1));
+      prod.reviewCount = pSpecific.count;
+    } else if (stats.totalCount > 0) {
+      // Store-wide published reviews baseline
+      prod.rating = stats.averageRating;
+      prod.reviewCount = stats.totalCount;
+    } else {
+      prod.rating = 5.0;
+      prod.reviewCount = 0;
+    }
+    products[key] = prod;
+  });
+
+  return products;
 };

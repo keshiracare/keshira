@@ -824,6 +824,9 @@ ${order.items ? order.items.map(item => `• ${item.title} (${item.variant}) x $
                             {item.isFreeBogoItem && (
                               <span style={{ marginLeft: '6px', color: '#16a34a', fontWeight: 700 }}>[B1G1 Free]</span>
                             )}
+                            {item.isFreeGiftItem && (
+                              <span style={{ marginLeft: '6px', color: '#b45309', fontWeight: 700 }}>[Free Gift]</span>
+                            )}
                           </div>
                         </div>
                       </div>

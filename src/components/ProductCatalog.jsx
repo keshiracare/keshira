@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { getActiveProducts, getActiveOffers } from '../data/products';
+import { getActiveProducts, getActiveOffers, getProductsWithLiveRatings } from '../data/products';
 
 export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffers }) {
-  const [catalogMap, setCatalogMap] = useState(getActiveProducts());
+  const [catalogMap, setCatalogMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem('keshira_reviews');
+      const reviewsList = saved ? JSON.parse(saved) : [];
+      return getProductsWithLiveRatings(getActiveProducts(), reviewsList);
+    } catch {
+      return getActiveProducts();
+    }
+  });
   const [storeOffers, setStoreOffers] = useState(propStoreOffers || getActiveOffers());
   const [selectedSizes, setSelectedSizes] = useState({
     hairfall: '200ml',
@@ -30,14 +38,27 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
 
   useEffect(() => {
     const handleProductsUpdated = (e) => {
-      if (e.detail) {
-        setCatalogMap(e.detail);
-      } else {
-        setCatalogMap(getActiveProducts());
+      const base = e.detail || getActiveProducts();
+      try {
+        const saved = localStorage.getItem('keshira_reviews');
+        const reviewsList = saved ? JSON.parse(saved) : [];
+        setCatalogMap(getProductsWithLiveRatings(base, reviewsList));
+      } catch {
+        setCatalogMap(base);
       }
     };
     window.addEventListener('keshira_products_updated', handleProductsUpdated);
     return () => window.removeEventListener('keshira_products_updated', handleProductsUpdated);
+  }, []);
+
+  useEffect(() => {
+    const handleReviewsSynced = (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setCatalogMap(prev => getProductsWithLiveRatings(prev, e.detail));
+      }
+    };
+    window.addEventListener('keshira:reviews-synced', handleReviewsSynced);
+    return () => window.removeEventListener('keshira:reviews-synced', handleReviewsSynced);
   }, []);
 
   useEffect(() => {
@@ -188,9 +209,11 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
                   </p>
 
                   <div className="product-rating-row">
-                    <span className="product-stars">★★★★★</span>
+                    <span className="product-stars">
+                      {'★'.repeat(Math.round(Number(product.rating || 5)))}{'☆'.repeat(5 - Math.round(Number(product.rating || 5)))}
+                    </span>
                     <span className="product-rating-score">{product.rating}</span>
-                    <span className="product-reviews-count">({product.reviewCount} reviews)</span>
+                    <span className="product-reviews-count">({product.reviewCount} review{product.reviewCount === 1 ? '' : 's'})</span>
                   </div>
 
                   {/* Active Botanicals Tag Pills */}

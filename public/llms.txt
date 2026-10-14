@@ -1,0 +1,24 @@
+# Keshira Ayurvedic Haircare
+
+> Hand-poured Ayurvedic herbal hair shampoos and hair oils formulated with 14 sacred active botanicals at scalp-optimal pH 5.5. 100% sulfate-free, paraben-free, cruelty-free, and micro-batched in India.
+
+## Core Products
+- **Keshira Neem Herbal Shampoo**: Anti-microbial dandruff control and flaky scalp relief formulated with Neem, Rosemary Oil, Shikakai, and Fenugreek. Scalp barrier pH 5.5.
+- **Keshira Hibiscus Herbal Shampoo**: Root-strengthening and anti-breakage hair fall reduction formulated with Hibiscus petals, Bhringraj, Amla, and Curry Leaves.
+- **Keshira Gentle Herbal Shampoo**: Ultra-mild daily cleanser and color-safe formula powered by pure Aritha (soapnut saponins), Aloe Vera, and Flaxseed gel.
+- **Keshira Herbal Oil**: Traditional 14-herb pre-wash scalp oil slow-cooked in cold-pressed sesame oil with Bhringraj, Brahmi, Rosemary, and Kalonji (Black Seed).
+
+## Key Differentiators
+- **pH 5.5 Acid Mantle Preservation**: Prevents cuticle swelling, dryness, and Malassezia fungal overgrowth.
+- **Zero Chemical Foaming Agents**: Free from SLS, SLES, silicones, phthalates, parabens, and synthetic dyes. Cleanses using natural Aritha and Shikakai plant saponins.
+- **Micro-Batch Freshness**: Hand-crafted in small weekly batches for botanical freshness and maximum phytonutrient potency.
+- **Direct Offers**: Store-wide Buy 1 Get 1 Free (BOGO) and Regimen Bundles with free express delivery in India.
+
+## Key URLs & Resources
+- Website: https://keshira.vercel.app/
+- Shop & Collections: https://keshira.vercel.app/collections
+- Best Sellers: https://keshira.vercel.app/best-sellers
+- Hair Care Products: https://keshira.vercel.app/hair-care
+- 21-Day Transition Guide: https://keshira.vercel.app/ayurvedic-hair-transition-guide
+- Full LLM Knowledge Base: https://keshira.vercel.app/llms-full.txt
+- Contact & Support: keshira.care@gmail.com | WhatsApp Support available

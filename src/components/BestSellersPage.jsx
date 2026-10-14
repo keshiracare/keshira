@@ -1,7 +1,27 @@
-import React, { useState } from 'react';
-import { KESHIRA_PRODUCTS, KESHIRA_BUNDLES } from '../data/products';
+import React, { useState, useEffect } from 'react';
+import { getActiveProducts, getProductsWithLiveRatings, KESHIRA_BUNDLES } from '../data/products';
 
 export default function BestSellersPage({ onAddToCart, onNavigateHome }) {
+  const [catalogMap, setCatalogMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem('keshira_reviews');
+      const reviewsList = saved ? JSON.parse(saved) : [];
+      return getProductsWithLiveRatings(getActiveProducts(), reviewsList);
+    } catch {
+      return getActiveProducts();
+    }
+  });
+
+  useEffect(() => {
+    const handleReviewsSynced = (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setCatalogMap(prev => getProductsWithLiveRatings(prev, e.detail));
+      }
+    };
+    window.addEventListener('keshira:reviews-synced', handleReviewsSynced);
+    return () => window.removeEventListener('keshira:reviews-synced', handleReviewsSynced);
+  }, []);
+
   const [selectedSizes, setSelectedSizes] = useState({
     hairfall: '200ml',
     dandruff: '200ml',
@@ -20,21 +40,21 @@ export default function BestSellersPage({ onAddToCart, onNavigateHome }) {
 
   const bestSellers = [
     {
-      ...KESHIRA_PRODUCTS.hairfall,
+      ...(catalogMap.hairfall || {}),
       rank: '#1 Best Seller',
       badgeText: 'Highest Repeat Purchase Rate (84%)'
     },
     {
-      ...KESHIRA_PRODUCTS.dandruff,
+      ...(catalogMap.dandruff || {}),
       rank: '#2 Best Seller',
       badgeText: 'Instant Flake & Itch Relief at pH 5.5'
     },
     {
-      ...KESHIRA_PRODUCTS.oil,
+      ...(catalogMap.oil || {}),
       rank: '#3 Best Seller',
       badgeText: '14 Sacred Herbs Cold-Pressed Infusion'
     }
-  ];
+  ].filter(p => p && p.id);
 
   const handleAdd = (prod) => {
     const size = selectedSizes[prod.id] || '200ml';
@@ -167,8 +187,8 @@ export default function BestSellersPage({ onAddToCart, onNavigateHome }) {
                   {/* Body */}
                   <div style={{ padding: '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                      <span style={{ color: '#D97706', fontSize: '0.82rem', fontWeight: 700 }}>★ 4.9</span>
-                      <span style={{ color: '#6B7280', fontSize: '0.78rem' }}>({product.reviewCount}+ verified reviews)</span>
+                      <span style={{ color: '#D97706', fontSize: '0.82rem', fontWeight: 700 }}>★ {product.rating}</span>
+                      <span style={{ color: '#6B7280', fontSize: '0.78rem' }}>({product.reviewCount} verified review{product.reviewCount === 1 ? '' : 's'})</span>
                     </div>
 
                     <h2 style={{ fontSize: '1.18rem', fontWeight: 800, color: '#111827', margin: '0 0 6px 0', lineHeight: 1.3 }}>

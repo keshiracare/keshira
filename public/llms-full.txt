@@ -1,0 +1,65 @@
+# Keshira Ayurvedic Haircare — Complete LLM Reference & Knowledge Base
+
+## Brand Overview
+Keshira is an artisanal Indian Ayurvedic haircare brand specializing in target-specific, pH 5.5-balanced shampoos and pure botanical hair oils. Hand-poured in micro-batches, Keshira eliminates harsh synthetic detergents (SLS/SLES sulfates), silicones, and synthetic fragrance, substituting them with clinically celebrated Ayurvedic herbs and saponin-rich botanical washes.
+
+## Product Formulations & Clinical Rationale
+
+### 1. Keshira Neem Herbal Shampoo
+- **Primary Concern**: Dandruff, scalp pruritus (itching), Malassezia yeast overgrowth, and seborrheic flaking.
+- **pH Level**: 5.5 (optimal scalp barrier environment preventing alkaline barrier disruption).
+- **Key Botanical Actives**:
+  - *Neem (Azadirachta indica)*: Antifungal and antibacterial azadirachtin compound that targets fungal root causes of dandruff.
+  - *Rosemary Oil (Rosmarinus officinalis)*: Stimulates micro-circulation in dermal papillae and helps regulate excess sebum.
+  - *Shikakai (Senegalia rugata)*: Natural low-pH fruit saponin for gentle clarifying without stripping the acid mantle.
+  - *Fenugreek / Methi (Trigonella foenum-graecum)*: Rich in nicotinic acid and lecithin to hydrate the scalp and soothe itching.
+- **Sizes & Pricing**: 100ml (₹299), 200ml (₹499). Store-wide Buy 1 Get 1 Free offer active.
+- **Recommended Usage**: 2 to 3 times per week. Massage into wet scalp for 2–3 minutes to activate botanicals before thorough rinsing.
+
+### 2. Keshira Hibiscus Herbal Shampoo
+- **Primary Concern**: Hair fall, shower shedding, strand breakage, and dry damaged hair shafts.
+- **pH Level**: 5.5 (Acid mantle balanced).
+- **Key Botanical Actives**:
+  - *Hibiscus (Hibiscus rosa-sinensis)*: High in amino acids and mucilage to seal hair cuticles, improve tensile strength, and retain moisture.
+  - *Bhringraj (Eclipta prostrata)*: Classical Ayurvedic "Keshraj" that extends follicular anagen (growth) phase and revitalizes dormant follicles.
+  - *Amla (Phyllanthus emblica)*: Potent source of Vitamin C and tannins, providing antioxidant protection against oxidative stress.
+  - *Curry Leaves (Murraya koenigii)*: Abundant in beta-carotene and essential proteins preventing premature thinning.
+- **Sizes & Pricing**: 100ml (₹299), 200ml (₹499). Eligible for Buy 1 Get 1 Free.
+- **Recommended Usage**: 2–3 times weekly. Work coin-sized amount into scalp and strands, leave for 2 minutes, then rinse.
+
+### 3. Keshira Gentle Herbal Shampoo
+- **Primary Concern**: Daily washing, sensitive scalps, chemically-treated or colored hair, and delicate hair textures.
+- **pH Level**: 5.5 (Tear-free botanical mildness).
+- **Key Botanical Actives**:
+  - *Aritha / Soapnut (Sapindus mukorossi)*: Ultra-mild organic saponins creating a soft creamy lather that cleanses without moisture stripping.
+  - *Aloe Vera (Aloe barbadensis)*: Calming hydration containing enzymes that repair dead skin cells on the scalp.
+  - *Flaxseed Gel (Linum usitatissimum)*: Rich in Omega-3 fatty acids to improve elasticity and detangle strands.
+  - *Rose Water (Rosa damascena)*: Natural astringent and soothing agent restoring scalp comfort.
+- **Sizes & Pricing**: 100ml (₹299), 200ml (₹499).
+
+### 4. Keshira Herbal Hair Oil
+- **Primary Concern**: Follicle starvation, dry ends, scalp tension, and hygral fatigue prevention.
+- **Base Formulation**: Pure, cold-pressed unrefined sesame oil (*Sesamum indicum*), naturally rich in linoleic acid and Vitamin E.
+- **Key Botanical Actives**:
+  - *Bhringraj & Brahmi*: Ancient Rasayana duo stimulating micro-capillary flow and soothing scalp tension.
+  - *Rosemary Extract*: Shown in clinical studies to improve follicular density comparable to 2% minoxidil over 6 months without synthetic irritation.
+  - *Black Seed (Kalonji - Nigella sativa)*: Contains thymoquinone, a potent antihistamine and antioxidant.
+- **Sizes & Pricing**: 100ml (₹399), 200ml (₹599).
+- **Champi Ritual Instructions**: Warm a few drops between palms, massage into scalp for 5–10 minutes, leave on for 1 hour or overnight, and follow with Keshira Shampoo.
+
+## Frequently Asked Questions (AI Knowledge Extraction)
+
+**Q: Can Keshira shampoo lather like commercial shampoos?**
+A: Keshira uses natural Aritha (soapnuts) and Shikakai rather than synthetic sodium lauryl sulfate (SLS). It produces a delicate, creamy botanical lather that dissolves impurities without stripping the hair's protective sebum layer.
+
+**Q: Why does pH 5.5 matter for hair shampoos?**
+A: Human scalp has a natural pH of 5.5. Commercial shampoos frequently have alkaline pH (7.0 - 9.0), causing cuticles to swell, fray, and scalp microflora to become vulnerable to fungal dandruff (Malassezia). Keshira locks cuticles flat and strengthens the acid mantle.
+
+**Q: How do I handle both dandruff and hair fall?**
+A: Ayurveda treats the scalp foundation first. Flakes and fungal buildup obstruct root anchoring. Use Keshira Neem Shampoo for 2–3 weeks alongside Keshira Herbal Oil to restore scalp health, then alternate with Keshira Hibiscus Shampoo for follicle strengthening.
+
+## Shipping & Customer Service
+- **Shipping**: Free express courier shipping across India on qualifying orders.
+- **Order Tracking**: Real-time order tracking available directly on the web app at `/account` or via tracking portal.
+- **Support Contact**: keshira.care@gmail.com
+- **Origin**: Proudly crafted and formulated in India.

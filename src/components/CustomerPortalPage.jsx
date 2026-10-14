@@ -4,7 +4,7 @@ import { supabase, normalizeEmail } from '../supabase';
 
 export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
   const [orders, setOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'track', 'subscriptions', 'address'
+  const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'track', 'address'
   const [emailSearch, setEmailSearch] = useState(() => {
     return localStorage.getItem('keshira_customer_email') || '';
   });
@@ -229,37 +229,6 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
     }
   };
 
-  // Subscriptions management
-  const customerSubscriptions = orders.flatMap(order => {
-    if (!order.items) return [];
-    return order.items
-      .filter(item => item.purchaseType === 'subscribe')
-      .map(item => ({
-        ...item,
-        orderId: order.id,
-        itemId: item.id,
-        orderDate: order.date,
-        status: order.subscriptionStatus || 'Active',
-        frequency: item.frequency || '30 Days',
-        nextShipment: order.nextShipment || calculateNextShipDate(order.date, item.frequency || '30 Days'),
-        shippingAddress: order.shippingAddress
-      }));
-  });
-
-  const handleToggleSubscription = async (orderId, currentStatus) => {
-    const nextStatus = currentStatus === 'Active' ? 'Paused' : 'Active';
-    try {
-      await supabase.from('orders').update({
-        subscription_status: nextStatus
-      }).eq('id', orderId);
-
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, subscriptionStatus: nextStatus } : o));
-      showToast(`Auto-delivery refill has been ${nextStatus === 'Active' ? 'resumed' : 'paused'}.`);
-    } catch (err) {
-      console.error('Error toggling subscription:', err);
-    }
-  };
-
   const handleSaveAddress = (e) => {
     e.preventDefault();
     setIsSavingAddress(true);
@@ -463,7 +432,7 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
                 Customer Account & Orders
               </h1>
               <p style={{ color: '#6B7280', fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 28px 0' }}>
-                Enter the email address used during your order checkout to access live dispatch tracking, cancellation options, auto-refill subscriptions, and saved addresses.
+                Enter the email address used during your order checkout to access live dispatch tracking, cancellation requests, order receipts, and saved delivery addresses.
               </p>
 
               <form onSubmit={handleLogin} style={{ textAlign: 'left' }}>
@@ -581,7 +550,6 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
                 {[
                   { id: 'orders', label: `📦 All Orders (${orders.length})` },
                   { id: 'track', label: '🔍 Track Specific Order' },
-                  { id: 'subscriptions', label: `🔄 Subscriptions (${customerSubscriptions.length})` },
                   { id: 'address', label: '📍 Saved Delivery Address' }
                 ].map(tab => (
                   <button
@@ -1010,118 +978,7 @@ export default function CustomerPortalPage({ onNavigateHome, onNavigateShop }) {
                 </div>
               )}
 
-              {/* TAB 3: AUTO-REFILL SUBSCRIPTIONS */}
-              {activeTab === 'subscriptions' && (
-                <div style={{
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: '16px',
-                  border: '1px solid #E8DFD0',
-                  padding: '32px',
-                  boxShadow: '0 2px 8px rgba(19, 46, 27, 0.03)'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
-                    <div>
-                      <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: '#132E1B', margin: '0 0 4px 0' }}>
-                        Auto-Delivery Subscriptions
-                      </h3>
-                      <p style={{ color: '#6B7280', fontSize: '0.86rem', margin: 0 }}>
-                        Fresh botanical batches dispatched automatically so your routine is never interrupted.
-                      </p>
-                    </div>
-
-                    <span style={{ fontSize: '0.78rem', backgroundColor: '#E8F5E9', color: '#2E7D32', padding: '4px 12px', borderRadius: '20px', fontWeight: 700 }}>
-                      ⚡ 10% Extra Savings On All Refills
-                    </span>
-                  </div>
-
-                  {customerSubscriptions.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px 20px', backgroundColor: '#FAF7F2', borderRadius: '12px', border: '1px solid #E8DFD0' }}>
-                      <div style={{ fontSize: '2rem', marginBottom: '10px' }}>🔄</div>
-                      <h4 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: '#132E1B', margin: '0 0 6px 0' }}>
-                        No Active Recurring Subscriptions
-                      </h4>
-                      <p style={{ color: '#6B7280', fontSize: '0.84rem', maxWidth: '440px', margin: '0 auto 20px', lineHeight: 1.5 }}>
-                        You currently do not have any auto-delivery refill plans. Your past single purchases are available in the <strong>All Orders</strong> tab.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => onNavigateShop ? onNavigateShop('/shop') : onNavigateHome('/shop')}
-                        style={{
-                          backgroundColor: '#132E1B',
-                          color: '#FAF7F2',
-                          border: 'none',
-                          padding: '10px 20px',
-                          borderRadius: '6px',
-                          fontSize: '0.84rem',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Subscribe & Save 10% on Shampoos
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      {customerSubscriptions.map((sub, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            backgroundColor: '#FAF7F2',
-                            border: '1px solid #E8DFD0',
-                            borderRadius: '12px',
-                            padding: '20px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            flexWrap: 'wrap',
-                            gap: '16px'
-                          }}
-                        >
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                              <strong style={{ fontSize: '1.05rem', color: '#132E1B' }}>{sub.title}</strong>
-                              <span style={{
-                                fontSize: '0.7rem',
-                                padding: '2px 8px',
-                                borderRadius: '10px',
-                                backgroundColor: sub.status === 'Active' ? '#E8F5E9' : '#FEF3C7',
-                                color: sub.status === 'Active' ? '#2E7D32' : '#92400E',
-                                fontWeight: 700
-                              }}>
-                                {sub.status}
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>
-                              Frequency: <strong>Every {sub.frequency}</strong> • Next Refill Dispatch: <strong>{sub.nextShipment}</strong>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleSubscription(sub.orderId, sub.status)}
-                              style={{
-                                padding: '8px 16px',
-                                borderRadius: '6px',
-                                fontSize: '0.8rem',
-                                fontWeight: 700,
-                                backgroundColor: sub.status === 'Active' ? '#FFF' : '#132E1B',
-                                color: sub.status === 'Active' ? '#132E1B' : '#FFF',
-                                border: '1px solid #132E1B',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {sub.status === 'Active' ? 'Pause Refills' : 'Resume Refills'}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* TAB 4: SAVED DELIVERY ADDRESS */}
+              {/* TAB 3: SAVED DELIVERY ADDRESS */}
               {activeTab === 'address' && (
                 <div style={{
                   backgroundColor: '#FFFFFF',

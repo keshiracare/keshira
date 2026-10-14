@@ -41,13 +41,14 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(18, 43, 25, 0.72)',
+        backgroundColor: 'rgba(18, 43, 25, 0.78)',
         backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         zIndex: 1100,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '16px',
+        padding: '12px',
         animation: 'fadeIn 0.3s ease-out'
       }}
       onClick={onClose}
@@ -57,12 +58,16 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
           position: 'relative',
           backgroundColor: '#FFFDF9',
           borderRadius: '24px',
-          maxWidth: '520px',
+          maxWidth: '500px',
           width: '100%',
-          overflow: 'hidden',
-          boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflowY: 'auto',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
           border: '1.5px solid rgba(200, 162, 97, 0.45)',
-          animation: 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          animation: 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          WebkitOverflowScrolling: 'touch'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -72,30 +77,30 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
           aria-label="Close offer popup"
           style={{
             position: 'absolute',
-            top: '16px',
-            right: '16px',
+            top: '12px',
+            right: '12px',
             zIndex: 10,
-            width: '36px',
-            height: '36px',
+            width: '34px',
+            height: '34px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
             border: '1px solid rgba(18, 43, 25, 0.15)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.2rem',
-            color: 'var(--color-primary)',
+            fontSize: '1.1rem',
+            color: 'var(--color-primary, #122B19)',
             cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             transition: 'all 0.2s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--color-primary)';
+            e.currentTarget.style.backgroundColor = 'var(--color-primary, #122B19)';
             e.currentTarget.style.color = '#FFF';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-            e.currentTarget.style.color = 'var(--color-primary)';
+            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+            e.currentTarget.style.color = 'var(--color-primary, #122B19)';
           }}
         >
           ✕
@@ -103,11 +108,11 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
 
         {/* Top Banner Tag */}
         <div style={{
-          backgroundColor: 'var(--color-primary)',
-          color: 'var(--color-accent-gold)',
-          padding: '12px 20px',
+          backgroundColor: 'var(--color-primary, #122B19)',
+          color: 'var(--color-accent-gold, #C8A261)',
+          padding: '10px 16px',
           textAlign: 'center',
-          fontSize: '0.82rem',
+          fontSize: '0.78rem',
           fontWeight: 700,
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
@@ -117,19 +122,20 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
           gap: '8px'
         }}>
           <span>✨</span>
-          <span>Exclusive Limited Time Flash Offer</span>
+          <span>Limited Time Flash Gift Offer</span>
           <span>✨</span>
         </div>
 
         {/* Visual Header Image Banner */}
         <div style={{
           position: 'relative',
-          height: '180px',
+          height: 'clamp(140px, 25vh, 180px)',
           backgroundColor: '#1E4629',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          flexShrink: 0
         }}>
           <img 
             src="/assets/combo-luxury.jpg" 
@@ -150,119 +156,119 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
           {/* Floating Highlight Badge */}
           <div style={{
             position: 'absolute',
-            bottom: '16px',
-            backgroundColor: 'var(--color-accent-gold)',
-            color: 'var(--color-primary)',
-            padding: '6px 16px',
+            bottom: '12px',
+            backgroundColor: 'var(--color-accent-gold, #C8A261)',
+            color: 'var(--color-primary, #122B19)',
+            padding: '5px 14px',
             borderRadius: '20px',
             fontWeight: 800,
-            fontSize: '0.85rem',
+            fontSize: '0.8rem',
             letterSpacing: '0.04em',
             boxShadow: '0 4px 15px rgba(0,0,0,0.25)',
             textTransform: 'uppercase'
           }}>
-            🎁 100% Free Gift Included
+            🎁 100% Free 30ml Oil Gift Included
           </div>
         </div>
 
         {/* Main Content Area */}
-        <div style={{ padding: '24px 28px 28px' }}>
+        <div style={{ padding: '20px 20px 24px' }}>
           <div style={{ textAlign: 'center' }}>
             <h3 style={{
               fontFamily: 'var(--font-serif)',
-              fontSize: '1.95rem',
+              fontSize: 'clamp(1.35rem, 4.5vw, 1.85rem)',
               lineHeight: '1.25',
-              color: 'var(--color-primary)',
-              margin: '0 0 10px',
+              color: 'var(--color-primary, #122B19)',
+              margin: '0 0 8px',
               fontWeight: 600
             }}>
               Buy Herbal Shampoo 200ml, <br />
-              <span style={{ color: 'var(--color-accent-gold-dark)', fontStyle: 'italic', fontWeight: 700 }}>
+              <span style={{ color: 'var(--color-accent-gold-dark, #A07830)', fontStyle: 'italic', fontWeight: 700 }}>
                 Get 30ml Herbal Oil FREE!
               </span>
             </h3>
 
             <p style={{
-              color: 'var(--color-text-muted)',
-              fontSize: '0.92rem',
-              lineHeight: '1.55',
-              margin: '0 0 20px'
+              color: 'var(--color-text-muted, #7A6B5C)',
+              fontSize: '0.88rem',
+              lineHeight: '1.5',
+              margin: '0 0 16px'
             }}>
-              Accelerate your root stimulation ritual. Order the 200ml Keshira Herbal Shampoo and unlock a complimentary <strong>30ml Herbal Hair Oil</strong> for deep scalp nourishment.
+              Order the 200ml Keshira Herbal Shampoo (₹499) and receive a complimentary <strong>30ml Herbal Hair Oil</strong> (worth ₹199) for deep scalp nourishment and hair-fall defense.
             </p>
           </div>
 
           {/* Daily 24-Hour Countdown Timer */}
           <div style={{
             backgroundColor: 'rgba(200, 162, 97, 0.1)',
-            border: '1.5px dashed var(--color-accent-gold)',
-            borderRadius: '16px',
-            padding: '16px 20px',
-            marginBottom: '22px',
+            border: '1.5px dashed var(--color-accent-gold, #C8A261)',
+            borderRadius: '14px',
+            padding: '12px 16px',
+            marginBottom: '18px',
             textAlign: 'center'
           }}>
             <div style={{
-              fontSize: '0.78rem',
+              fontSize: '0.74rem',
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
-              color: 'var(--color-primary)',
-              marginBottom: '10px',
+              color: 'var(--color-primary, #122B19)',
+              marginBottom: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px'
             }}>
               <span>⏳</span>
-              <span>Offer Ends In:</span>
+              <span>Offer Expires Tonight In:</span>
             </div>
 
             {/* Digits row */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}>
               <div style={{
-                backgroundColor: 'var(--color-primary)',
-                color: 'var(--color-accent-gold)',
-                padding: '8px 12px',
-                borderRadius: '10px',
-                minWidth: '58px',
+                backgroundColor: 'var(--color-primary, #122B19)',
+                color: 'var(--color-accent-gold, #C8A261)',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                minWidth: '50px',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
               }}>
-                <span style={{ fontSize: '1.45rem', fontWeight: 800, fontFamily: 'monospace', display: 'block', lineHeight: 1 }}>
+                <span style={{ fontSize: '1.3rem', fontWeight: 800, fontFamily: 'monospace', display: 'block', lineHeight: 1 }}>
                   {timeLeft.hours}
                 </span>
-                <span style={{ fontSize: '0.62rem', color: '#FFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hours</span>
+                <span style={{ fontSize: '0.6rem', color: '#FFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hours</span>
               </div>
 
-              <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-accent-gold-dark)' }}>:</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--color-accent-gold-dark, #A07830)' }}>:</span>
 
               <div style={{
-                backgroundColor: 'var(--color-primary)',
-                color: 'var(--color-accent-gold)',
-                padding: '8px 12px',
-                borderRadius: '10px',
-                minWidth: '58px',
+                backgroundColor: 'var(--color-primary, #122B19)',
+                color: 'var(--color-accent-gold, #C8A261)',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                minWidth: '50px',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
               }}>
-                <span style={{ fontSize: '1.45rem', fontWeight: 800, fontFamily: 'monospace', display: 'block', lineHeight: 1 }}>
+                <span style={{ fontSize: '1.3rem', fontWeight: 800, fontFamily: 'monospace', display: 'block', lineHeight: 1 }}>
                   {timeLeft.minutes}
                 </span>
-                <span style={{ fontSize: '0.62rem', color: '#FFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mins</span>
+                <span style={{ fontSize: '0.6rem', color: '#FFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mins</span>
               </div>
 
-              <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-accent-gold-dark)' }}>:</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--color-accent-gold-dark, #A07830)' }}>:</span>
 
               <div style={{
-                backgroundColor: 'var(--color-primary)',
-                color: 'var(--color-accent-gold)',
-                padding: '8px 12px',
-                borderRadius: '10px',
-                minWidth: '58px',
+                backgroundColor: 'var(--color-primary, #122B19)',
+                color: 'var(--color-accent-gold, #C8A261)',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                minWidth: '50px',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
               }}>
-                <span style={{ fontSize: '1.45rem', fontWeight: 800, fontFamily: 'monospace', display: 'block', lineHeight: 1 }}>
+                <span style={{ fontSize: '1.3rem', fontWeight: 800, fontFamily: 'monospace', display: 'block', lineHeight: 1 }}>
                   {timeLeft.seconds}
                 </span>
-                <span style={{ fontSize: '0.62rem', color: '#FFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Secs</span>
+                <span style={{ fontSize: '0.6rem', color: '#FFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Secs</span>
               </div>
             </div>
           </div>
@@ -272,31 +278,31 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
             onClick={onClaimOffer}
             style={{
               width: '100%',
-              backgroundColor: 'var(--color-primary)',
-              color: 'var(--color-text-light)',
-              padding: '15px 24px',
+              backgroundColor: 'var(--color-primary, #122B19)',
+              color: 'var(--color-text-light, #FAF7F2)',
+              padding: '14px 20px',
               borderRadius: '30px',
               fontWeight: 700,
-              fontSize: '1.02rem',
+              fontSize: 'clamp(0.88rem, 2.5vw, 0.98rem)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '10px',
+              gap: '8px',
               boxShadow: '0 8px 24px rgba(18, 43, 25, 0.3)',
               cursor: 'pointer',
               border: 'none',
               transition: 'all 0.25s ease'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--color-accent-gold-dark)';
+              e.currentTarget.style.backgroundColor = 'var(--color-accent-gold-dark, #A07830)';
               e.currentTarget.style.transform = 'translateY(-2px)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--color-primary)';
+              e.currentTarget.style.backgroundColor = 'var(--color-primary, #122B19)';
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <span>Claim Free 30ml Oil with Shampoo 200ml • ₹199</span>
+            <span>Claim Free 30ml Oil with Shampoo 200ml • ₹499</span>
             <span>→</span>
           </button>
 
@@ -305,15 +311,16 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
             textAlign: 'center',
             marginTop: '12px',
             fontSize: '0.74rem',
-            color: 'var(--color-text-muted)',
+            color: 'var(--color-text-muted, #7A6B5C)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '12px'
+            gap: '8px',
+            flexWrap: 'wrap'
           }}>
-            <span>✓ Automatically applies to cart</span>
+            <span>✓ Automatically applies free gift to cart</span>
             <span>•</span>
-            <span>✓ No promo code required</span>
+            <span>✓ Zero promo code needed</span>
           </div>
         </div>
       </div>
