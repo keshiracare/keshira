@@ -218,8 +218,8 @@ export default function Hero({ storeOffers: propStoreOffers }) {
               loading="eager"
               fetchpriority="high"
               decoding="async"
-              width="600"
-              height="600"
+              width="520"
+              height="442"
             />
             
             <div className="hero-product-overlay-tag">
