@@ -12,6 +12,7 @@ export default function OrderTracker() {
   const [orderIdInput, setOrderIdInput] = useState('');
   const [activeOrder, setActiveOrder] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelSuccessMsg, setCancelSuccessMsg] = useState('');
 
