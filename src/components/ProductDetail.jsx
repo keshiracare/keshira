@@ -1,34 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase';
-import { collection, addDoc, getDocs, query } from 'firebase/firestore';
+import { supabase } from '../supabase';
+import { getActiveProducts, getActiveOffers, KESHIRA_BUNDLES } from '../data/products';
+import PincodeDeliveryChecker from './PincodeDeliveryChecker';
 
 const INGREDIENTS_LIST = [
-  { name: 'Neem', desc: 'Soothes scalp irritation, fights dandruff, and keeps roots healthy with antibacterial properties.' },
-  { name: 'Amla', desc: 'Rich in Vitamin C, it strengthens hair follicles, prevents premature graying, and promotes growth.' },
-  { name: 'Shikakai', desc: 'A natural cleanser that removes dirt and excess oil without stripping away natural moisture.' },
-  { name: 'Hibiscus', desc: 'Conditions hair deeply, prevents split ends, and adds a gorgeous natural shine.' },
-  { name: 'Clove', desc: 'Improves blood circulation in the scalp, promoting stronger and thicker hair growth.' },
-  { name: 'Rosemary', desc: 'Stimulates follicles, prevents hair loss, and clears dandruff from the scalp.' },
-  { name: 'Flax Seeds', desc: 'Packed with Omega-3 fatty acids, they nourish hair strands and improve elasticity.' },
-  { name: 'Aritha', desc: 'Natural soapnuts that create a mild, chemical-free lather to cleanse hair gently.' },
-  { name: 'Curry Leaves', desc: 'Rich in beta-carotene and proteins, they reduce hair fall and strengthen thin hair.' },
-  { name: 'Fenugreek', desc: 'Contains nicotinic acid and lecithin which treat scalp issues and hydrate dry strands.' }
+  { name: 'Bhringraj', desc: 'The King of Hair; awakens resting follicles and noticeably reduces hair fall.' },
+  { name: 'Amla', desc: 'Rich in Vitamin C and iron; strengthens hair shafts and prevents premature graying.' },
+  { name: 'Neem', desc: 'Powerful natural antifungal that soothes scalp irritation and dissolves persistent dandruff.' },
+  { name: 'Rosemary Leaves', desc: 'Micro-circulatory stimulant that clarifies follicle buildup and promotes dense growth.' },
+  { name: 'Shikakai', desc: 'Ayurvedic fruit cleanser with gentle saponins that detangles and cleanses without stripping.' },
+  { name: 'Aritha (Soapnut)', desc: 'Organic soapnut producing rich botanical foam without synthetic sulfates.' },
+  { name: 'Clove', desc: 'Improves blood circulation in the scalp and fortifies hair roots.' },
+  { name: 'Curry Leaves', desc: 'Packed with plant antioxidants and beta-carotene that prevent follicular thinning.' },
+  { name: 'Flax Seeds', desc: 'Omega-3 fatty acids and natural gel that deeply hydrate strands and restore elasticity.' },
+  { name: 'Fenugreek (Methi)', desc: 'Reconstructs damaged fibers and calms dry, itchy scalp conditions.' },
+  { name: 'Hibiscus', desc: 'Natural botanical conditioner rich in amino acids that seals split ends and boosts shine.' },
+  { name: 'Aloe Vera', desc: 'Deeply cools and hydrates the scalp, preserving its natural moisture barrier.' },
+  { name: 'Brahmi', desc: 'Relieves scalp stress and strengthens follicle anchorage.' },
+  { name: 'Kalonji (Black Seed)', desc: 'Contains thymoquinone to restore root vitality and support healthy hair density.' }
 ];
 
 const INITIAL_REVIEWS = [
-  { author: 'Ananya S.', rating: 5, date: 'Jun 18, 2026', text: 'This shampoo has completely transformed my hair texture! The hair fall has significantly reduced in just 3 weeks.', scalpType: 'Dry & Flaky' },
-  { author: 'Rahul K.', rating: 5, date: 'May 29, 2026', text: 'Amazing smell of real herbs. It doesn’t lather like normal chemical shampoos, but it cleanses perfectly. Highly recommended!', scalpType: 'Oily & Greasy' },
-  { author: 'Meera Patel', rating: 4, date: 'May 12, 2026', text: 'Bought the 200ml bottle. Scalp feels very clean and healthy. Adding the 100ml to my travel kit.', scalpType: 'Normal & Balanced' }
+  { author: 'Ananya S.', rating: 5, date: 'Jun 18, 2026', text: 'The Hairfall Reduction shampoo and Herbal Oil completely transformed my shower hair loss! Down by 75% in 3 weeks.', scalpType: 'Dry & Flaky' },
+  { author: 'Dr. Rahul K.', rating: 5, date: 'May 29, 2026', text: 'Authentic smell of real herbs. The Dandruff shampoo cleared my itchy flakes in 10 days without drying my hair like ketoconazole shampoos.', scalpType: 'Oily & Greasy' },
+  { author: 'Meera Patel', rating: 5, date: 'May 12, 2026', text: 'Gentle Care Shampoo is the best sulfate-free cleanser I have ever tried. My color-treated hair feels soft and glossy.', scalpType: 'Normal & Balanced' }
 ];
 
-export default function ProductDetail({ onAddToCart }) {
-  const [activeVariant, setActiveVariant] = useState('200ml'); // 100ml, 200ml
-  const [purchaseType, setPurchaseType] = useState('one-time'); // one-time, subscribe
-  const [frequency, setFrequency] = useState('30'); // 30, 45
+export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffers }) {
+  const [catalogMap, setCatalogMap] = useState(getActiveProducts());
+  const [storeOffers, setStoreOffers] = useState(propStoreOffers || getActiveOffers());
+  // Current active product: 'hairfall', 'dandruff', 'gentle', 'oil', or 'bundle'
+  const [activeProductId, setActiveProductId] = useState('hairfall');
+  const [activeVariant, setActiveVariant] = useState('200ml');
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('benefits');
-  
-  // Reviews state with localStorage persistence
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState({
     name: '',
@@ -38,93 +43,130 @@ export default function ProductDetail({ onAddToCart }) {
   });
 
   useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        const reviewsRef = collection(db, 'reviews');
-        const q = query(reviewsRef);
-        const querySnapshot = await getDocs(q);
-        const reviewsList = [];
-        querySnapshot.forEach((doc) => {
-          reviewsList.push({ id: doc.id, ...doc.data() });
-        });
+    if (propStoreOffers) {
+      setStoreOffers(propStoreOffers);
+    }
+  }, [propStoreOffers]);
 
-        if (reviewsList.length === 0) {
-          // No reviews in Firestore yet, seed with INITIAL_REVIEWS
-          console.log('Seeding initial reviews to Firestore...');
-          const promises = INITIAL_REVIEWS.map(rev => addDoc(reviewsRef, rev));
-          await Promise.all(promises);
-          
-          // Re-fetch to get the reviews with their Firestore document IDs
-          const freshSnapshot = await getDocs(q);
-          const freshList = [];
-          freshSnapshot.forEach((doc) => {
-            freshList.push({ id: doc.id, ...doc.data() });
-          });
-          freshList.sort((a, b) => new Date(b.date) - new Date(a.date));
-          setReviews(freshList);
-          localStorage.setItem('keshira_reviews', JSON.stringify(freshList));
-        } else {
-          // Sort newest first
-          reviewsList.sort((a, b) => new Date(b.date) - new Date(a.date));
-          setReviews(reviewsList);
-          localStorage.setItem('keshira_reviews', JSON.stringify(reviewsList));
-        }
-      } catch (err) {
-        console.error('Error fetching reviews from Firestore:', err);
-        // Fallback to localStorage
-        const saved = localStorage.getItem('keshira_reviews');
-        if (saved) {
-          setReviews(JSON.parse(saved));
-        } else {
-          localStorage.setItem('keshira_reviews', JSON.stringify(INITIAL_REVIEWS));
-          setReviews(INITIAL_REVIEWS);
+  useEffect(() => {
+    const handleOffersUpdated = (e) => {
+      setStoreOffers(e.detail || getActiveOffers());
+    };
+    window.addEventListener('keshira_offers_updated', handleOffersUpdated);
+    return () => window.removeEventListener('keshira_offers_updated', handleOffersUpdated);
+  }, []);
+
+  useEffect(() => {
+    const handleProductsUpdated = (e) => {
+      if (e.detail) {
+        setCatalogMap(e.detail);
+      } else {
+        setCatalogMap(getActiveProducts());
+      }
+    };
+    window.addEventListener('keshira_products_updated', handleProductsUpdated);
+    return () => window.removeEventListener('keshira_products_updated', handleProductsUpdated);
+  }, []);
+
+  // Listen for custom navigation events
+  useEffect(() => {
+    const handleSelectProduct = (e) => {
+      if (e.detail) {
+        if (catalogMap[e.detail] || e.detail.startsWith('custom_')) {
+          setActiveProductId(e.detail);
+        } else if (e.detail === 'combo' || e.detail === 'bundle') {
+          setActiveProductId('bundle');
         }
       }
     };
+    window.addEventListener('keshira:select-product', handleSelectProduct);
+    return () => window.removeEventListener('keshira:select-product', handleSelectProduct);
+  }, [catalogMap]);
 
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const { data: dbReviews, error } = await supabase
+          .from('reviews')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && dbReviews && dbReviews.length > 0) {
+          const formatted = dbReviews.map(r => ({
+            id: r.id,
+            author: r.name,
+            rating: r.rating,
+            scalpType: r.scalp_type,
+            text: r.text,
+            date: r.date
+          }));
+          setReviews(formatted);
+          localStorage.setItem('keshira_reviews', JSON.stringify(formatted));
+        } else {
+          setReviews(INITIAL_REVIEWS);
+        }
+      } catch {
+        const saved = localStorage.getItem('keshira_reviews');
+        setReviews(saved ? JSON.parse(saved) : INITIAL_REVIEWS);
+      }
+    };
     fetchReviews();
   }, []);
 
-  const variants = {
-    '100ml': { name: '100ml Bottle', price: 119 },
-    '200ml': { name: '200ml Bottle', price: 199 }
-  };
+  const isBundle = activeProductId === 'bundle';
+  const currentBundle = KESHIRA_BUNDLES[0]; // Hairfall Regimen Duo
+  const currentProduct = isBundle ? null : (catalogMap[activeProductId] || Object.values(catalogMap)[0]);
 
-  const selectedProduct = variants[activeVariant];
-  
-  // Compute price based on purchase type
-  const unitPrice = purchaseType === 'subscribe' 
-    ? Math.round(selectedProduct.price * 0.9) // 10% off
-    : selectedProduct.price;
+  const price = isBundle 
+    ? currentBundle.price 
+    : currentProduct?.prices?.[activeVariant]?.price || 349;
 
-  const handleQuantityChange = (val) => {
-    if (quantity + val >= 1) {
-      setQuantity(quantity + val);
+  const originalPrice = isBundle
+    ? currentBundle.originalPrice
+    : currentProduct?.prices?.[activeVariant]?.originalPrice || 499;
+
+  const handleAddToCart = () => {
+    if (!onAddToCart) return;
+
+    if (isBundle) {
+      onAddToCart({
+        id: `${currentBundle.id}-combo-one-time-0`,
+        title: currentBundle.name,
+        variant: currentBundle.size,
+        subVariant: currentBundle.tagline,
+        price: currentBundle.price,
+        quantity: quantity,
+        image: currentBundle.image,
+        purchaseType: 'bundle',
+        bundleItems: currentBundle.includes,
+        frequency: null
+      });
+    } else {
+      onAddToCart({
+        id: `keshira-${currentProduct.id}-${activeVariant}-one-time-0`,
+        productId: currentProduct.id,
+        productType: currentProduct.productType || (currentProduct.id === 'oil' ? 'oil' : 'shampoo'),
+        title: `${currentProduct.name} - ${activeVariant}`,
+        variant: activeVariant,
+        subVariant: currentProduct.shortName,
+        price: price,
+        originalPrice: originalPrice,
+        bogoPairPrice: currentProduct.prices[activeVariant]?.bogoPairPrice,
+        quantity: quantity,
+        image: currentProduct.images.primary,
+        purchaseType: 'one-time',
+        isBOGO: currentProduct.isBOGO,
+        frequency: null
+      });
     }
-  };
-
-  const handleAddToCartClick = () => {
-    onAddToCart({
-      id: `keshira-shampoo-${activeVariant}-${purchaseType}-${purchaseType === 'subscribe' ? frequency : '0'}`,
-      title: 'Keshira Herbal Shampoo',
-      variant: activeVariant,
-      price: unitPrice,
-      quantity: quantity,
-      image: '/assets/hero-shampoo.jpg',
-      purchaseType: purchaseType,
-      frequency: purchaseType === 'subscribe' ? `${frequency} Days` : null
-    });
     setQuantity(1);
   };
 
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
-    if (!newReview.name || !newReview.text) {
-      alert('Please fill out all fields before submitting.');
-      return;
-    }
+    if (!newReview.name || !newReview.text) return;
 
-    const reviewObject = {
+    const reviewObj = {
       author: newReview.name,
       rating: parseInt(newReview.rating),
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -132,432 +174,313 @@ export default function ProductDetail({ onAddToCart }) {
       scalpType: newReview.scalpType
     };
 
-    // Save to Cloud Firestore
     try {
-      const reviewsRef = collection(db, 'reviews');
-      const docRef = await addDoc(reviewsRef, reviewObject);
-      const savedObject = { id: docRef.id, ...reviewObject };
-      
-      const updatedReviews = [savedObject, ...reviews];
-      setReviews(updatedReviews);
-      localStorage.setItem('keshira_reviews', JSON.stringify(updatedReviews));
-    } catch (err) {
-      console.error('Error saving review to Firestore:', err);
-      // Fallback
-      const updatedReviews = [reviewObject, ...reviews];
-      setReviews(updatedReviews);
-      localStorage.setItem('keshira_reviews', JSON.stringify(updatedReviews));
-    }
+      await supabase.from('reviews').insert([{
+        name: reviewObj.author,
+        rating: reviewObj.rating,
+        scalp_type: reviewObj.scalpType,
+        text: reviewObj.text,
+        date: reviewObj.date
+      }]);
+    } catch {}
 
-    // Reset Form
-    setNewReview({
-      name: '',
-      rating: 5,
-      scalpType: 'Normal & Balanced',
-      text: ''
-    });
+    const updated = [reviewObj, ...reviews];
+    setReviews(updated);
+    localStorage.setItem('keshira_reviews', JSON.stringify(updated));
+    setNewReview({ name: '', rating: 5, scalpType: 'Normal & Balanced', text: '' });
   };
 
   return (
     <section id="purchase-section" className="purchase-section section-padding" style={{ backgroundColor: 'var(--color-bg-parchment-light)' }}>
+      <div className="container" style={{ marginBottom: '40px', textAlign: 'center' }}>
+        <span className="section-eyebrow">
+          APOTHECARY FORMULATION INSPECTOR
+        </span>
+        <h2 className="section-title">
+          Formula Details & Bottle Specifications
+        </h2>
+        <p className="section-subtitle" style={{ margin: '0 auto' }}>
+          Explore full ingredient profiles, clinical pH calibration, and customer feedback for each individual formulation.
+        </p>
+      </div>
+
       <div className="container purchase-grid">
-        {/* Left Column: Visual Showcase */}
+        {/* Left: Product Images */}
         <div className="purchase-visuals">
-          <div 
-            className="purchase-image-main" 
-            style={{ 
-              borderRadius: '16px', 
-              overflow: 'hidden', 
-              boxShadow: 'var(--shadow-lg)',
-              border: '1px solid var(--color-border)',
-              position: 'relative'
-            }}
-          >
+          <div style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--color-border)', backgroundColor: '#FFF', position: 'relative' }}>
+            <span style={{ position: 'absolute', top: '14px', left: '14px', zIndex: 2, backgroundColor: 'rgba(255,255,255,0.92)', color: 'var(--color-primary)', fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: '14px' }}>
+              {isBundle ? '⭐ COMPLETE REGIMEN' : currentProduct.pH}
+            </span>
             <img 
-              src="/assets/sizes-comparison.jpg" 
-              alt="Keshira Shampoo Bottles - 100ml and 200ml Sizes" 
-              style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover' }}
+              src={isBundle ? currentBundle.image : currentProduct.images.primary} 
+              alt={isBundle ? currentBundle.name : currentProduct.name} 
+              style={{ display: 'block', width: '100%', height: 'auto', minHeight: '380px', objectFit: 'cover' }}
             />
           </div>
         </div>
 
-        {/* Right Column: Custom Configurator */}
-        <div className="purchase-details" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Right: Custom Configurator */}
+        <div className="purchase-details" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* Product Switcher Bar */}
           <div>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-accent-gold-dark)', textTransform: 'uppercase', letterSpacing: '0.12em', display: 'block', marginBottom: '8px' }}>
-              Organic Scalp Therapy
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-primary)', display: 'block', marginBottom: '8px' }}>
+              Choose Formulation to Inspect:
             </span>
-            <h1 style={{ fontSize: '3rem', fontFamily: 'var(--font-serif)', color: 'var(--color-primary)', fontWeight: 500, margin: 0 }}>
-              Keshira Herbal Shampoo
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {[
+                { id: 'dandruff', label: '🍃 Neem (Dandruff)' },
+                { id: 'hairfall', label: '🌺 Hibiscus (Dryness & Hair Fall)' },
+                { id: 'gentle', label: '✨ Gentle Herbal' },
+                { id: 'oil', label: '💧 Herbal Oil' }
+              ].map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveProductId(item.id)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: activeProductId === item.id ? 700 : 500,
+                    border: activeProductId === item.id ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
+                    backgroundColor: activeProductId === item.id ? 'var(--color-primary)' : '#FFF',
+                    color: activeProductId === item.id ? '#FAF7F2' : 'var(--color-primary)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Title & Ratings */}
+          <div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-accent-gold-dark)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              {isBundle ? currentBundle.tagline : currentProduct.tagline}
+            </span>
+            <h1 style={{ fontSize: '2.2rem', fontFamily: 'var(--font-serif)', color: 'var(--color-primary)', fontWeight: 600, margin: '4px 0 8px' }}>
+              {isBundle ? currentBundle.name : currentProduct.name}
             </h1>
-            
-            <div className="purchase-rating" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
-              <span className="stars" style={{ color: 'var(--color-accent-gold)', fontSize: '1.2rem' }}>★★★★★</span>
-              <span className="reviews-count" style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                ({reviews.length} Verified Reviews)
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: 'var(--color-accent-gold)', fontSize: '1rem' }}>★★★★★</span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
+                ({reviews.length} Verified Reviews • Scalp pH 5.5 Balanced)
               </span>
             </div>
           </div>
 
-          <p className="purchase-description" style={{ fontSize: '0.96rem', color: 'var(--color-text-muted)', lineHeight: '1.7', margin: 0 }}>
-            A micro-batch brew loaded with 10 traditional Ayurvedic herbs. Cleanse your hair without sulfates or silicones, calm itchy redness, and nurture follicles back to strength.
-          </p>
-
-          {/* Size Variant Picker */}
-          <div>
-            <p className="variant-picker-title" style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-primary)', marginBottom: '12px' }}>
-              Select Size
-            </p>
-            <div className="variant-cards-grid">
-              <button 
-                type="button"
-                className={`variant-card ${activeVariant === '100ml' ? 'active' : ''}`}
-                onClick={() => setActiveVariant('100ml')}
-                style={{
-                  border: activeVariant === '100ml' ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  textAlign: 'center',
-                  backgroundColor: activeVariant === '100ml' ? 'var(--color-bg-card)' : 'transparent',
-                  cursor: 'pointer',
-                  transition: 'var(--transition)'
-                }}
-              >
-                <div style={{ fontSize: '1.2rem', fontFamily: 'var(--font-serif)', color: 'var(--color-primary)', fontWeight: '600' }}>100 ml</div>
-                <div style={{ fontSize: '0.95rem', color: 'var(--color-text-muted)', marginTop: '4px', fontWeight: '600' }}>
-                  ₹{purchaseType === 'subscribe' ? Math.round(119 * 0.9) : 119}
-                </div>
-              </button>
-              
-              <button 
-                type="button"
-                className={`variant-card ${activeVariant === '200ml' ? 'active' : ''}`}
-                onClick={() => setActiveVariant('200ml')}
-                style={{
-                  border: activeVariant === '200ml' ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  textAlign: 'center',
-                  backgroundColor: activeVariant === '200ml' ? 'var(--color-bg-card)' : 'transparent',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  transition: 'var(--transition)'
-                }}
-              >
-                <span className="save-tag" style={{ position: 'absolute', top: '-10px', right: '16px', backgroundColor: 'var(--color-primary)', color: 'var(--color-text-light)', fontSize: '0.62rem', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '700' }}>
-                  Best Value
-                </span>
-                <div style={{ fontSize: '1.2rem', fontFamily: 'var(--font-serif)', color: 'var(--color-primary)', fontWeight: '600' }}>200 ml</div>
-                <div style={{ fontSize: '0.95rem', color: 'var(--color-text-muted)', marginTop: '4px', fontWeight: '600' }}>
-                  ₹{purchaseType === 'subscribe' ? Math.round(199 * 0.9) : 199}
-                </div>
-              </button>
-            </div>
+          {/* Pricing */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+            <span style={{ fontSize: '2.1rem', fontWeight: 800, color: 'var(--color-primary)', fontFamily: 'var(--font-serif)' }}>
+              ₹{price}
+            </span>
+            <span style={{ fontSize: '1.2rem', color: 'var(--color-text-muted)', textDecoration: 'line-through' }}>
+              ₹{originalPrice}
+            </span>
+            <span style={{ fontSize: '0.78rem', backgroundColor: '#E8F5E9', color: '#166534', fontWeight: 700, padding: '3px 10px', borderRadius: '12px' }}>
+              {isBundle 
+                ? `Save ₹${bundleData ? bundleData.savings : (originalPrice - price)} (Duo Deal) + Free Delivery` 
+                : (Boolean(storeOffers?.isBogoEnabled) && currentProduct.isBOGO)
+                  ? 'BOGO: Buy 1 Get 1 FREE' 
+                  : `Save ₹${originalPrice - price}`}
+            </span>
           </div>
 
-          {/* Subscribe & Save selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <p className="variant-picker-title" style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-primary)', marginBottom: '4px' }}>
-              Frequency Options
-            </p>
-            
-            {/* One-time */}
-            <div 
-              onClick={() => setPurchaseType('one-time')}
-              style={{ 
-                border: purchaseType === 'one-time' ? '2px solid var(--color-primary)' : '1px solid var(--color-border)', 
-                borderRadius: '12px', 
-                padding: '16px 20px', 
-                cursor: 'pointer',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: purchaseType === 'one-time' ? 'rgba(19, 46, 27, 0.02)' : 'transparent',
-                transition: 'var(--transition)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <input 
-                  type="radio" 
-                  checked={purchaseType === 'one-time'} 
-                  onChange={() => setPurchaseType('one-time')}
-                  style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
-                />
-                <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-primary)' }}>One-time purchase</span>
-              </div>
-              <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>₹{selectedProduct.price}</span>
+          {!isBundle && Boolean(storeOffers?.isBogoEnabled) && currentProduct.isBOGO && (
+            <div style={{ backgroundColor: '#FEF3C7', color: '#92400E', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, border: '1px solid #FCD34D', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🎁</span>
+              <span>BUY 1 GET 1 FREE: Add 2 bottles of {currentProduct.shortName} and pay only ₹{currentProduct.prices[activeVariant]?.bogoPairPrice} total!</span>
             </div>
+          )}
 
-            {/* Subscribe */}
-            <div 
-              onClick={() => setPurchaseType('subscribe')}
-              style={{ 
-                border: purchaseType === 'subscribe' ? '2px solid var(--color-primary)' : '1px solid var(--color-border)', 
-                borderRadius: '12px', 
-                padding: '16px 20px', 
-                cursor: 'pointer',
-                backgroundColor: purchaseType === 'subscribe' ? 'rgba(19, 46, 27, 0.02)' : 'transparent',
-                transition: 'var(--transition)'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input 
-                    type="radio" 
-                    checked={purchaseType === 'subscribe'} 
-                    onChange={() => setPurchaseType('subscribe')}
-                    style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
-                  />
-                  <div>
-                    <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-primary)' }}>Subscribe & Save 10%</span>
-                  </div>
-                </div>
-                <span style={{ fontWeight: 700, color: '#27ae60' }}>
-                  ₹{Math.round(selectedProduct.price * 0.9)}
-                </span>
+          {/* Who It's For & Not For Diagnostic Box */}
+          {!isBundle && (
+            <div style={{ backgroundColor: '#FAF7F2', border: '1px solid var(--color-border)', borderRadius: '10px', padding: '12px 14px' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--color-primary)', marginBottom: '4px' }}>
+                <strong style={{ color: '#166534' }}>✓ Ideal For:</strong> {currentProduct.whoItsFor}
               </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                <strong style={{ color: '#991B1B' }}>✕ Not For:</strong> {currentProduct.whoItsNotFor}
+              </div>
+            </div>
+          )}
 
-              {purchaseType === 'subscribe' && (
-                <div style={{ borderTop: '1px solid var(--color-border)', marginTop: '14px', paddingTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Frequency:</span>
-                  <select 
-                    value={frequency} 
-                    onChange={(e) => setFrequency(e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ 
-                      height: '32px', 
-                      borderRadius: '6px', 
-                      border: '1px solid var(--color-border)', 
-                      padding: '0 12px', 
-                      backgroundColor: 'var(--color-bg-parchment-light)',
-                      fontFamily: 'inherit',
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
+          {/* Size Variant Picker */}
+          {!isBundle && (
+            <div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                Select Size:
+              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {Object.keys(currentProduct.prices).map(sz => (
+                  <button
+                    key={sz}
+                    type="button"
+                    onClick={() => setActiveVariant(sz)}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '8px',
+                      fontSize: '0.82rem',
+                      fontWeight: activeVariant === sz ? 700 : 500,
+                      border: activeVariant === sz ? '2px solid var(--color-primary)' : '1px solid #D1D5DB',
+                      backgroundColor: activeVariant === sz ? 'var(--color-bg-card)' : '#FFF',
+                      color: 'var(--color-primary)',
                       cursor: 'pointer'
                     }}
                   >
-                    <option value="30">Every 30 Days</option>
-                    <option value="45">Every 45 Days</option>
-                  </select>
-                </div>
-              )}
+                    {sz} Bottle • ₹{currentProduct.prices[sz].price}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Action Buy Row */}
-          <div className="action-row" style={{ display: 'flex', gap: '16px', alignItems: 'center', marginTop: '8px' }}>
-            <div className="quantity-selector" style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--color-bg-parchment-light)' }}>
-              <button type="button" className="quantity-btn" onClick={() => handleQuantityChange(-1)} style={{ width: '48px', height: '48px', fontSize: '1.2rem', color: 'var(--color-primary)' }}>-</button>
-              <div className="quantity-value" style={{ width: '36px', textAlign: 'center', fontWeight: '700', color: 'var(--color-primary)' }}>{quantity}</div>
-              <button type="button" className="quantity-btn" onClick={() => handleQuantityChange(1)} style={{ width: '48px', height: '48px', fontSize: '1.2rem', color: 'var(--color-primary)' }}>+</button>
+          {/* Add to Cart Actions */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: '8px', backgroundColor: '#FFF' }}>
+              <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))} style={{ width: '40px', height: '44px', fontSize: '1.1rem' }}>-</button>
+              <div style={{ width: '30px', textAlign: 'center', fontWeight: 700 }}>{quantity}</div>
+              <button type="button" onClick={() => setQuantity(q => q + 1)} style={{ width: '40px', height: '44px', fontSize: '1.1rem' }}>+</button>
             </div>
-            
-            <button className="add-to-cart-btn" onClick={handleAddToCartClick} style={{ flexGrow: 1, height: '48px', borderRadius: '8px', backgroundColor: 'var(--color-primary)', color: 'var(--color-text-light)', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', boxShadow: 'var(--shadow-md)' }}>
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <path d="M16 10a4 4 0 0 1-8 0" />
-              </svg>
-              Add to Bag • ₹{unitPrice * quantity}
+
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              style={{
+                flex: 1,
+                height: '46px',
+                borderRadius: '8px',
+                backgroundColor: 'var(--color-primary)',
+                color: '#FAF7F2',
+                fontWeight: 700,
+                fontSize: '0.92rem',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(18, 43, 25, 0.2)'
+              }}
+            >
+              Add to Shopping Bag • ₹{price * quantity}
             </button>
           </div>
 
-          {/* Apothecary Freshness Promise Card */}
-          <div 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '16px', 
-              backgroundColor: 'rgba(200, 162, 97, 0.06)', 
-              border: '1px solid rgba(200, 162, 97, 0.25)', 
-              padding: '20px', 
-              borderRadius: '12px'
-            }}
-          >
-            <span style={{ fontSize: '2rem' }}>🌱</span>
-            <div>
-              <h5 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Apothecary Freshness Promise
-              </h5>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)', lineHeight: '1.5' }}>
-                Hand-prepared in small batches with raw extracts. We prepare each bottle fresh to preserve active botanical enzymes, supplying nutrient-rich, chemical-free care.
-              </p>
+          {/* Pincode Estimator */}
+          <PincodeDeliveryChecker />
+
+          {/* Informational Tabs: Benefits, Ingredients, How to Use, Reviews */}
+          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', gap: '16px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px', marginBottom: '14px', overflowX: 'auto' }}>
+              {['benefits', 'ingredients', 'instructions', 'reviews'].map(tab => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    padding: '6px 0',
+                    fontSize: '0.85rem',
+                    fontWeight: activeTab === tab ? 700 : 500,
+                    color: activeTab === tab ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                    borderBottom: activeTab === tab ? '2px solid var(--color-primary)' : 'none',
+                    cursor: 'pointer',
+                    textTransform: 'capitalize'
+                  }}
+                >
+                  {tab === 'instructions' ? 'How to Use' : tab}
+                </button>
+              ))}
             </div>
-          </div>
 
-          {/* Details Accordion Tabs */}
-          <div className="tabs-container" style={{ borderTop: '1px solid var(--color-border)', paddingTop: '24px' }}>
-            <ul className="tabs-nav" style={{ display: 'flex', gap: '20px', borderBottom: '1px solid var(--color-border)', listStyle: 'none', padding: 0, marginBottom: '20px', overflowX: 'auto' }}>
-              <li>
-                <button 
-                  className={`tab-btn ${activeTab === 'benefits' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('benefits')}
-                  style={{ paddingBottom: '12px', fontSize: '0.95rem', fontWeight: activeTab === 'benefits' ? '600' : '400', color: activeTab === 'benefits' ? 'var(--color-primary)' : 'var(--color-text-muted)', borderBottom: activeTab === 'benefits' ? '2px solid var(--color-primary)' : 'none' }}
-                >
-                  Benefits
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`tab-btn ${activeTab === 'ingredients' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('ingredients')}
-                  style={{ paddingBottom: '12px', fontSize: '0.95rem', fontWeight: activeTab === 'ingredients' ? '600' : '400', color: activeTab === 'ingredients' ? 'var(--color-primary)' : 'var(--color-text-muted)', borderBottom: activeTab === 'ingredients' ? '2px solid var(--color-primary)' : 'none' }}
-                >
-                  10 Natural Herbs
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`tab-btn ${activeTab === 'instructions' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('instructions')}
-                  style={{ paddingBottom: '12px', fontSize: '0.95rem', fontWeight: activeTab === 'instructions' ? '600' : '400', color: activeTab === 'instructions' ? 'var(--color-primary)' : 'var(--color-text-muted)', borderBottom: activeTab === 'instructions' ? '2px solid var(--color-primary)' : 'none' }}
-                >
-                  How to Use
-                </button>
-              </li>
-              <li>
-                <button 
-                  className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('reviews')}
-                  style={{ paddingBottom: '12px', fontSize: '0.95rem', fontWeight: activeTab === 'reviews' ? '600' : '400', color: activeTab === 'reviews' ? 'var(--color-primary)' : 'var(--color-text-muted)', borderBottom: activeTab === 'reviews' ? '2px solid var(--color-primary)' : 'none' }}
-                >
-                  Reviews ({reviews.length})
-                </button>
-              </li>
-            </ul>
-
-            <div className="tab-content" style={{ fontSize: '0.92rem', color: 'var(--color-text-muted)', lineHeight: '1.6', minHeight: '160px' }}>
+            <div style={{ fontSize: '0.85rem', color: '#4B5563', lineHeight: 1.6 }}>
               {activeTab === 'benefits' && (
                 <div>
-                  <p style={{ marginBottom: '12px' }}>Our hand-poured herbal formula provides comprehensive scalp and hair care:</p>
-                  <ul style={{ paddingLeft: '20px' }}>
-                    <li style={{ marginBottom: '6px' }}><strong>Reduces Hair Fall:</strong> Deeply nourishes the roots to minimize breakage and shedding.</li>
-                    <li style={{ marginBottom: '6px' }}><strong>Fights Dandruff:</strong> Naturally clarifies the scalp using anti-fungal Neem and Rosemary.</li>
-                    <li style={{ marginBottom: '6px' }}><strong>Improves Texture:</strong> Flax seed gel extracts hydrate and soften coarse hair strands.</li>
-                    <li style={{ marginBottom: '6px' }}><strong>No Harsh Lathering Agents:</strong> Cleanses gently using natural Aritha saponins.</li>
-                  </ul>
+                  <p style={{ margin: '0 0 8px' }}>
+                    {isBundle ? currentBundle.target : currentProduct.desc}
+                  </p>
+                  {!isBundle && (
+                    <div style={{ marginTop: '10px' }}>
+                      <strong style={{ color: 'var(--color-primary)' }}>Expected Results:</strong>
+                      <ul style={{ paddingLeft: '18px', marginTop: '4px' }}>
+                        <li>Week 1–2: {currentProduct.resultsTimeline.week1 || currentProduct.resultsTimeline.week2}</li>
+                        <li>Week 4–6: {currentProduct.resultsTimeline.week3 || currentProduct.resultsTimeline.week4}</li>
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
 
               {activeTab === 'ingredients' && (
-                <div style={{ maxHeight: '200px', overflowY: 'auto', paddingRight: '8px' }}>
-                  <p style={{ marginBottom: '10px' }}><strong>10 Traditional Herbal Ingredients:</strong></p>
-                  <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
-                    {INGREDIENTS_LIST.map((ing, idx) => (
-                      <li key={idx} style={{ marginBottom: '12px', borderBottom: '1px solid rgba(0,0,0,0.02)', paddingBottom: '8px' }}>
-                        <span style={{ color: 'var(--color-accent-gold-dark)', fontWeight: 700 }}>{ing.name}: </span>
-                        <span>{ing.desc}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                  <p style={{ fontWeight: 700, color: 'var(--color-primary)', marginBottom: '8px' }}>14 Active Botanicals (No Artificial Fragrance):</p>
+                  {INGREDIENTS_LIST.map((ing, iIdx) => (
+                    <div key={iIdx} style={{ marginBottom: '6px', fontSize: '0.82rem' }}>
+                      <strong style={{ color: 'var(--color-accent-gold-dark)' }}>{ing.name}:</strong> {ing.desc}
+                    </div>
+                  ))}
                 </div>
               )}
 
               {activeTab === 'instructions' && (
                 <div>
-                  <p>Follow these traditional steps for nourishing results:</p>
-                  <ol style={{ paddingLeft: '20px', marginTop: '10px' }}>
-                    <li style={{ marginBottom: '8px' }}><strong>Shake Well:</strong> Since Keshira is homemade without synthetic stabilizers, ingredients may settle naturally.</li>
-                    <li style={{ marginBottom: '8px' }}><strong>Apply:</strong> Thoroughly wet hair. Pour a small amount and massage gently into your scalp and hair roots.</li>
-                    <li style={{ marginBottom: '8px' }}><strong>Wait:</strong> Leave the herbal lather on for 2-3 minutes to allow your scalp to absorb the botanical nutrients.</li>
-                    <li style={{ marginBottom: '8px' }}><strong>Rinse:</strong> Rinse thoroughly with cool or lukewarm water. Use regularly for best results.</li>
-                  </ol>
+                  <p style={{ fontWeight: 700, color: 'var(--color-primary)' }}>Recommended Usage Method:</p>
+                  <p style={{ backgroundColor: 'var(--color-bg-card)', padding: '10px 12px', borderRadius: '8px' }}>
+                    {isBundle 
+                      ? 'Step 1: Massage Herbal Oil into dry scalp 1 hour before wash. Step 2: Wash thoroughly with Keshira Shampoo, massaging roots for 2 minutes before rinsing.' 
+                      : currentProduct.usageInstructions}
+                  </p>
                 </div>
               )}
 
               {activeTab === 'reviews' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  
-                  {/* Write review Form */}
-                  <form onSubmit={handleReviewSubmit} style={{ border: '1px solid var(--color-border)', borderRadius: '12px', padding: '24px', backgroundColor: 'var(--color-bg-parchment)' }}>
-                    <h4 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-serif)', color: 'var(--color-primary)', marginBottom: '16px', fontWeight: 600 }}>Write a Review</h4>
-                    
-                    <div className="form-row" style={{ marginBottom: '16px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>Full Name</label>
-                        <input 
-                          type="text" 
-                          placeholder="e.g. Priha N."
-                          value={newReview.name}
-                          onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
-                          required
-                          style={{ height: '38px', borderRadius: '6px', border: '1px solid var(--color-border)', padding: '0 12px', fontSize: '0.85rem', fontFamily: 'inherit', backgroundColor: 'var(--color-bg-parchment-light)' }}
-                        />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>Scalp Type</label>
-                        <select 
-                          value={newReview.scalpType}
-                          onChange={(e) => setNewReview({ ...newReview, scalpType: e.target.value })}
-                          style={{ height: '38px', borderRadius: '6px', border: '1px solid var(--color-border)', padding: '0 8px', fontSize: '0.85rem', fontFamily: 'inherit', backgroundColor: 'var(--color-bg-parchment-light)', cursor: 'pointer' }}
-                        >
-                          <option value="Dry & Flaky">Dry & Flaky</option>
-                          <option value="Oily & Greasy">Oily & Greasy</option>
-                          <option value="Normal & Balanced">Normal & Balanced</option>
-                          <option value="Sensitive & Irritated">Sensitive & Irritated</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px', marginBottom: '16px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>Star Rating</label>
-                        <select 
-                          value={newReview.rating}
-                          onChange={(e) => setNewReview({ ...newReview, rating: parseInt(e.target.value) })}
-                          style={{ height: '38px', borderRadius: '6px', border: '1px solid var(--color-border)', padding: '0 8px', fontSize: '0.85rem', fontFamily: 'inherit', backgroundColor: 'var(--color-bg-parchment-light)', width: '130px', cursor: 'pointer' }}
-                        >
-                          <option value="5">5 Stars</option>
-                          <option value="4">4 Stars</option>
-                          <option value="3">3 Stars</option>
-                          <option value="2">2 Stars</option>
-                          <option value="1">1 Star</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px' }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>Comments</label>
-                      <textarea 
-                        placeholder="Tell others how Keshira feels on your scalp..."
-                        value={newReview.text}
-                        onChange={(e) => setNewReview({ ...newReview, text: e.target.value })}
-                        required
-                        style={{ height: '90px', borderRadius: '6px', border: '1px solid var(--color-border)', padding: '10px 12px', fontSize: '0.85rem', fontFamily: 'inherit', backgroundColor: 'var(--color-bg-parchment-light)', resize: 'none' }}
+                <div>
+                  {/* Review form */}
+                  <form onSubmit={handleReviewSubmit} style={{ backgroundColor: 'var(--color-bg-card)', padding: '12px', borderRadius: '8px', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Your name" 
+                        value={newReview.name} 
+                        onChange={e => setNewReview({ ...newReview, name: e.target.value })} 
+                        required 
+                        style={{ flex: 1, height: '32px', padding: '0 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
                       />
+                      <select 
+                        value={newReview.rating} 
+                        onChange={e => setNewReview({ ...newReview, rating: Number(e.target.value) })}
+                        style={{ height: '32px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '0.8rem' }}
+                      >
+                        <option value="5">5 Stars ★</option>
+                        <option value="4">4 Stars ★</option>
+                      </select>
                     </div>
-
-                    <button type="submit" className="btn-primary" style={{ padding: '10px 20px', fontSize: '0.8rem', letterSpacing: '0.05em' }}>
-                      Submit Review
+                    <textarea 
+                      placeholder="Share your experience..." 
+                      value={newReview.text} 
+                      onChange={e => setNewReview({ ...newReview, text: e.target.value })} 
+                      required 
+                      style={{ width: '100%', height: '50px', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #D1D5DB', marginBottom: '8px' }}
+                    />
+                    <button type="submit" style={{ padding: '6px 14px', borderRadius: '6px', backgroundColor: 'var(--color-primary)', color: '#FFF', fontSize: '0.78rem', fontWeight: 600 }}>
+                      Post Review
                     </button>
                   </form>
 
-                  {/* Reviews List */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {reviews.map((rev, idx) => (
-                      <div key={idx} style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: '16px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <span style={{ fontWeight: 600, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            {rev.author}
-                            <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--color-accent-gold-dark)', backgroundColor: 'var(--color-bg-card)', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                              Scalp: {rev.scalpType}
-                            </span>
-                          </span>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{rev.date}</span>
-                        </div>
-                        <div style={{ color: 'var(--color-accent-gold)', marginBottom: '8px', fontSize: '0.9rem' }}>
-                          {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
-                        </div>
-                        <p style={{ margin: 0, fontStyle: 'italic', color: 'var(--color-text-dark)', fontSize: '0.9rem' }}>
-                          "{rev.text}"
-                        </p>
+                  {/* Reviews list */}
+                  {reviews.slice(0, 4).map((rev, rIdx) => (
+                    <div key={rIdx} style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '8px', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                        <span>{rev.author} <span style={{ color: 'var(--color-accent-gold)' }}>★ {rev.rating}/5</span></span>
+                        <span style={{ fontWeight: 400, color: '#9CA3AF' }}>{rev.date}</span>
                       </div>
-                    ))}
-                  </div>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.8rem', fontStyle: 'italic' }}>"{rev.text}"</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
+
         </div>
       </div>
     </section>

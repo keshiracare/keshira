@@ -33,11 +33,16 @@ export default function FAQAccordion() {
   return (
     <section id="faqs" className="section-padding" style={{ backgroundColor: 'var(--color-bg-parchment-light)', borderTop: '1px solid var(--color-border)' }}>
       <div className="container" style={{ maxWidth: '720px' }}>
-        <div className="section-header" style={{ marginBottom: '60px' }}>
-          <span className="badge">Got Questions?</span>
-          <h2 style={{ fontSize: '2.8rem', marginTop: '10px' }}>Frequently Asked Questions</h2>
-          <div style={{ width: '60px', height: '3px', backgroundColor: 'var(--color-accent-gold)', margin: '15px auto' }}></div>
-          <p className="section-subtitle">Learn more about Keshira Care</p>
+        <div className="section-header text-center" style={{ marginBottom: '44px' }}>
+          <span className="section-eyebrow">
+            FREQUENTLY ASKED QUESTIONS
+          </span>
+          <h2 className="section-title">
+            Everything You Need to Know
+          </h2>
+          <p className="section-subtitle" style={{ margin: '0 auto' }}>
+            Answers about our handcrafted formulation, saponin lather, shelf life, and shipping.
+          </p>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>

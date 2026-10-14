@@ -1,158 +1,447 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { KESHIRA_PRODUCTS, getActiveOffers } from '../data/products';
 
-export default function HairQuiz({ onAddToCart }) {
-  const [step, setStep] = useState(1); // 1, 2, 3, 'results'
+export default function HairQuiz({ onAddToCart, storeOffers: propStoreOffers }) {
+  const [storeOffers, setStoreOffers] = useState(propStoreOffers || getActiveOffers());
+  const [step, setStep] = useState(1);
   const [answers, setAnswers] = useState({
-    scalpType: '',
     concern: '',
-    length: ''
+    scalpType: '',
+    frequency: ''
   });
 
+  useEffect(() => {
+    if (propStoreOffers) {
+      setStoreOffers(propStoreOffers);
+    }
+  }, [propStoreOffers]);
+
+  useEffect(() => {
+    const handleOffersUpdated = (e) => {
+      setStoreOffers(e.detail || getActiveOffers());
+    };
+    window.addEventListener('keshira_offers_updated', handleOffersUpdated);
+    return () => window.removeEventListener('keshira_offers_updated', handleOffersUpdated);
+  }, []);
+
+  const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
+
   const handleSelect = (key, value) => {
-    setAnswers({ ...answers, [key]: value });
-    setStep(step + 1);
+    const updated = { ...answers, [key]: value };
+    setAnswers(updated);
+    setStep(prev => prev + 1);
   };
 
   const resetQuiz = () => {
-    setAnswers({ scalpType: '', concern: '', length: '' });
+    setAnswers({ concern: '', scalpType: '', frequency: '' });
     setStep(1);
   };
 
+  // Determine ideal product and regimen based on inputs
   const getRecommendation = () => {
-    const { scalpType, concern, length } = answers;
-    
-    let size = '100ml';
-    let price = 119;
-    let frequency = 'wash 2 times a week';
-    let herbs = [];
+    const { concern, scalpType } = answers;
 
-    // Size recommendation based on length
-    if (length === 'Long') {
-      size = '200ml';
-      price = 199;
+    if (concern === 'dandruff' || scalpType === 'oily_flaky') {
+      return {
+        shampoo: KESHIRA_PRODUCTS.dandruff,
+        concernLabel: 'Dandruff & Itchy Scalp',
+        routineReason: 'Your scalp needs antimicrobial botanical cleansing to clear stubborn flakes without stripping sebum.',
+        washFrequency: 'Wash 2–3 times weekly with cool water'
+      };
+    } else if (concern === 'hairfall') {
+      return {
+        shampoo: KESHIRA_PRODUCTS.hairfall,
+        concernLabel: 'Hair Fall & Weak Roots',
+        routineReason: 'Weak follicles require Ayurvedic root stimulation with Bhringraj, Amla, and Clove.',
+        washFrequency: 'Wash 2–3 times weekly paired with pre-wash oiling'
+      };
     } else {
-      size = '100ml';
-      price = 119;
+      return {
+        shampoo: KESHIRA_PRODUCTS.gentle,
+        concernLabel: 'Daily Care & Sensitive Scalp',
+        routineReason: 'Sensitive cuticles need ultra-mild plant saponins and Aloe Vera hydration.',
+        washFrequency: 'Gentle enough for daily use or after gym workouts'
+      };
     }
-
-    // Washing frequency and herbs based on concern
-    if (concern === 'Persistent Dandruff' || scalpType === 'Oily & Greasy') {
-      frequency = 'wash 3-4 times a week';
-      herbs = ['Neem', 'Rosemary', 'Shikakai'];
-    } else if (concern === 'Frizz & Dryness' || scalpType === 'Dry & Flaky') {
-      frequency = 'wash 2 times a week';
-      herbs = ['Flax Seeds', 'Hibiscus', 'Fenugreek'];
-    } else if (concern === 'Excessive Hair Fall') {
-      frequency = 'wash 3 times a week';
-      herbs = ['Amla', 'Curry Leaves', 'Clove'];
-    } else {
-      frequency = 'wash 2-3 times a week';
-      herbs = ['Aritha', 'Amla', 'Hibiscus'];
-    }
-
-    return { size, price, frequency, herbs };
   };
 
-  const handleAddRecommended = () => {
-    const rec = getRecommendation();
-    onAddToCart({
-      id: `keshira-shampoo-${rec.size}`,
-      title: 'Keshira Herbal Shampoo',
-      variant: rec.size,
-      price: rec.price,
-      quantity: 1,
-      image: '/assets/hero-shampoo.jpg'
-    });
+  const rec = getRecommendation();
+
+  const handleAddSingleShampoo = () => {
+    if (onAddToCart) {
+      onAddToCart({
+        id: `keshira-${rec.shampoo.id}-200ml-one-time-0`,
+        productId: rec.shampoo.id,
+        productType: 'shampoo',
+        title: `${rec.shampoo.name} - 200ml`,
+        variant: '200ml',
+        subVariant: rec.shampoo.shortName,
+        price: rec.shampoo.prices['200ml'].price,
+        originalPrice: rec.shampoo.prices['200ml'].originalPrice,
+        bogoPairPrice: rec.shampoo.prices['200ml'].bogoPairPrice,
+        quantity: 1,
+        image: rec.shampoo.images.primary,
+        purchaseType: 'one-time',
+        isBOGO: true,
+        frequency: null
+      });
+    }
+  };
+
+  const handleAddRegimenDuo = () => {
+    if (onAddToCart) {
+      onAddToCart({
+        id: `keshira-quiz-bundle-${rec.shampoo.id}-200ml-one-time-0`,
+        title: `${rec.shampoo.shortName} + Herbal Hair Oil Regimen Duo`,
+        variant: '200ml + 200ml',
+        subVariant: 'Recommended 2-Step Ayurvedic Routine',
+        price: 449,
+        quantity: 1,
+        image: '/assets/combo-luxury.jpg',
+        purchaseType: 'bundle',
+        bundleItems: [
+          `1x ${rec.shampoo.name} (200ml)`,
+          '1x Keshira Herbal Hair Oil (200ml)',
+          'Free Express Delivery'
+        ],
+        frequency: null
+      });
+    }
   };
 
   return (
-    <section id="hair-quiz" className="section-padding" style={{ backgroundColor: 'var(--color-bg-card)', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)' }}>
-      <div className="container" style={{ maxWidth: '800px' }}>
-        <div className="section-header">
-          <span className="badge">Ayurvedic Hair Quiz</span>
-          <h2>Find Your Perfect Routine</h2>
-          <p className="section-subtitle">Personalized Herbal Recommendations</p>
+    <section id="hair-quiz" className="section-padding" style={{ backgroundColor: '#FAF7F2', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)' }}>
+      <div className="container" style={{ maxWidth: '820px' }}>
+        
+        {/* Header */}
+        <div className="section-header text-center" style={{ marginBottom: '36px' }}>
+          <span className="section-eyebrow">
+            45-SECOND SCALP ASSESSMENT
+          </span>
+          <h2 className="section-title">
+            Personalized Botanical Hair Diagnostic
+          </h2>
+          <p className="section-subtitle" style={{ margin: '0 auto' }}>
+            Answer 3 targeted questions to discover your optimal shampoo formulation and custom pre-wash oil routine.
+          </p>
         </div>
 
-        <div className="quiz-card-container">
+        {/* Quiz Container */}
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '18px', padding: '36px 30px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--color-border)' }}>
           
+          {/* Progress Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '28px' }}>
+            {[1, 2, 3].map(stepNum => (
+              <div 
+                key={stepNum} 
+                style={{ 
+                  flex: 1, 
+                  height: '6px', 
+                  borderRadius: '3px', 
+                  backgroundColor: step >= stepNum ? 'var(--color-accent-gold)' : '#E5E7EB',
+                  transition: 'background-color 0.3s ease'
+                }} 
+              />
+            ))}
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', marginLeft: '6px' }}>
+              {step <= 3 ? `Step ${step}/3` : 'Your Result'}
+            </span>
+          </div>
+
+          {/* Step 1: Primary Concern */}
           {step === 1 && (
-            <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
-              <p style={{ textAlign: 'center', color: 'var(--color-accent-gold-dark)', fontWeight: 'bold', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                Question 1 of 3
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-serif)', color: 'var(--color-primary)', marginBottom: '8px', textAlign: 'center' }}>
+                1. What is your primary hair or scalp concern?
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', textAlign: 'center', marginBottom: '24px' }}>
+                Select the single most pressing challenge you want to resolve.
               </p>
-              <h3 style={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '24px' }}>Describe your scalp type:</h3>
-              <div className="quiz-grid-2col">
-                <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('scalpType', 'Dry & Flaky')}>Dry & Flaky</button>
-                <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('scalpType', 'Oily & Greasy')}>Oily & Greasy</button>
-                <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('scalpType', 'Normal & Balanced')}>Normal & Balanced</button>
-                <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('scalpType', 'Sensitive & Irritated')}>Sensitive & Irritated</button>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSelect('concern', 'hairfall')}
+                  style={{
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    backgroundColor: '#FFFDF9',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>🌿</div>
+                  <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.96rem' }}>Hair Fall & Thinning</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>Excess strands in shower, weak roots, shedding</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSelect('concern', 'dandruff')}
+                  style={{
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    backgroundColor: '#FFFDF9',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>🍃</div>
+                  <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.96rem' }}>Dandruff & Flaky Scalp</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>White flakes, itching, redness, or oily crust</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSelect('concern', 'gentle')}
+                  style={{
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    backgroundColor: '#FFFDF9',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>✨</div>
+                  <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.96rem' }}>Daily Cleanse / Sensitive</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>Frequent washes, workout sweat, color-treated</div>
+                </button>
               </div>
             </div>
           )}
 
+          {/* Step 2: Scalp Texture */}
           {step === 2 && (
-            <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
-              <p style={{ textAlign: 'center', color: 'var(--color-accent-gold-dark)', fontWeight: 'bold', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                Question 2 of 3
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-serif)', color: 'var(--color-primary)', marginBottom: '8px', textAlign: 'center' }}>
+                2. How does your scalp feel 24 hours after washing?
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', textAlign: 'center', marginBottom: '24px' }}>
+                This helps us calibrate sebum regulation and pre-wash oil duration.
               </p>
-              <h3 style={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '24px' }}>What is your primary hair concern?</h3>
-              <div className="quiz-grid-2col">
-                <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('concern', 'Excessive Hair Fall')}>Excessive Hair Fall</button>
-                <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('concern', 'Persistent Dandruff')}>Persistent Dandruff</button>
-                <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('concern', 'Frizz & Dryness')}>Frizz & Dryness</button>
-                <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('concern', 'Lack of Shine & Volume')}>Lack of Shine & Volume</button>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSelect('scalpType', 'oily_flaky')}
+                  style={{
+                    padding: '18px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    backgroundColor: '#FFFDF9',
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.92rem' }}>Oily & Greasy</div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>Roots feel limp and greasy by the next afternoon</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSelect('scalpType', 'dry_tight')}
+                  style={{
+                    padding: '18px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    backgroundColor: '#FFFDF9',
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.92rem' }}>Dry & Stretched</div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>Feels itchy, dry, and tight without hydration</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSelect('scalpType', 'normal')}
+                  style={{
+                    padding: '18px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    backgroundColor: '#FFFDF9',
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.92rem' }}>Balanced / Normal</div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>Comfortable for 2–3 days without excess oil</div>
+                </button>
               </div>
-              <button className="btn-back" style={{ display: 'block', margin: '24px auto 0' }} onClick={() => setStep(1)}>Back</button>
             </div>
           )}
 
+          {/* Step 3: Washing Frequency */}
           {step === 3 && (
-            <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
-              <p style={{ textAlign: 'center', color: 'var(--color-accent-gold-dark)', fontWeight: 'bold', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                Question 3 of 3
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-serif)', color: 'var(--color-primary)', marginBottom: '8px', textAlign: 'center' }}>
+                3. How often do you currently wash your hair?
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', textAlign: 'center', marginBottom: '24px' }}>
+                Botanical shampoos work best when paired with an optimal wash rhythm.
               </p>
-              <h3 style={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '24px' }}>What is your hair length?</h3>
-              <div className="quiz-grid-3col">
-                <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('length', 'Short')}>Short</button>
-                <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('length', 'Medium')}>Medium</button>
-                <button className="btn-secondary" style={{ padding: '16px' }} onClick={() => handleSelect('length', 'Long')}>Long</button>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSelect('frequency', 'daily')}
+                  style={{
+                    padding: '18px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    backgroundColor: '#FFFDF9',
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.92rem' }}>Every Day (Daily)</div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>Need a formula that doesn't strip natural sebum</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSelect('frequency', '2-3_times')}
+                  style={{
+                    padding: '18px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    backgroundColor: '#FFFDF9',
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.92rem' }}>2–3 Times a Week</div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>Standard Ayurvedic recovery frequency</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSelect('frequency', 'once')}
+                  style={{
+                    padding: '18px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    backgroundColor: '#FFFDF9',
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.92rem' }}>Once a Week</div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>Deep weekly scalp reset and champi ritual</div>
+                </button>
               </div>
-              <button className="btn-back" style={{ display: 'block', margin: '24px auto 0' }} onClick={() => setStep(2)}>Back</button>
             </div>
           )}
 
-          {step === 4 && (
-            <div style={{ animation: 'fadeIn 0.5s ease-out', textAlign: 'center' }}>
-              <h3 style={{ fontSize: '2.2rem', marginBottom: '12px' }}>Your Recommended Routine</h3>
-              
-              <div style={{ backgroundColor: 'var(--color-bg-card)', padding: '24px', borderRadius: '8px', border: '1px solid var(--color-border)', marginBottom: '24px', textAlign: 'left' }}>
-                <h4 style={{ fontSize: '1.4rem', color: 'var(--color-primary)', marginBottom: '8px' }}>
-                  Keshira Herbal Shampoo ({getRecommendation().size})
-                </h4>
-                <p style={{ fontSize: '0.95rem', color: 'var(--color-text-dark)', marginBottom: '12px' }}>
-                  Based on your answers, we recommend utilizing the <strong>{getRecommendation().size}</strong> size bottle.
+          {/* Results Step */}
+          {step > 3 && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#166534', backgroundColor: '#DCFCE7', padding: '4px 12px', borderRadius: '12px', display: 'inline-block', marginBottom: '6px' }}>
+                  ✓ DIAGNOSIS COMPLETE
+                </span>
+                <h3 style={{ fontSize: '1.6rem', fontFamily: 'var(--font-serif)', color: 'var(--color-primary)', margin: '0 0 6px' }}>
+                  Your Prescribed Routine: {rec.shampoo.shortName}
+                </h3>
+                <p style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', maxWidth: '520px', margin: '0 auto' }}>
+                  {rec.routineReason}
                 </p>
-                <ul style={{ listStyle: 'none', paddingLeft: 0, fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
-                  <li style={{ marginBottom: '8px' }}>
-                    🗓️ <strong>Routine:</strong> Wash <strong>{getRecommendation().frequency}</strong> using lukewarm water.
-                  </li>
-                  <li style={{ marginBottom: '8px' }}>
-                    🌿 <strong>Target Herbs:</strong> Infused with active extracts of <strong>{getRecommendation().herbs.join(', ')}</strong> to focus on your hair concerns.
-                  </li>
-                  <li style={{ marginBottom: '8px' }}>
-                    🏷️ <strong>Price:</strong> ₹{getRecommendation().price}
-                  </li>
-                </ul>
               </div>
 
-              <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
-                <button className="btn-primary" onClick={handleAddRecommended}>
-                  Add Recommended to Bag
-                </button>
-                <button className="btn-secondary" onClick={resetQuiz}>
-                  Retake Quiz
-                </button>
+              {/* Recommended Regimen Showcase */}
+              <div style={{ backgroundColor: 'var(--color-bg-card)', borderRadius: '14px', padding: '22px', border: '1.5px solid rgba(200, 162, 97, 0.4)', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+                  <div>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-accent-gold-dark)', textTransform: 'uppercase' }}>
+                      Recommended 2-Step Routine:
+                    </span>
+                    <h4 style={{ fontSize: '1.15rem', color: 'var(--color-primary)', margin: '2px 0 0', fontFamily: 'var(--font-serif)' }}>
+                      Keshira Herbal Oil + {rec.shampoo.shortName} (200ml Each)
+                    </h4>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-primary)', fontFamily: 'var(--font-serif)' }}>
+                      ₹449
+                    </span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', textDecoration: 'line-through', marginLeft: '6px' }}>
+                      ₹747
+                    </span>
+                    <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 700 }}>Save ₹298 + FREE Express Delivery</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+                  <div style={{ backgroundColor: '#FFF', padding: '12px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)' }}>Step 1: Pre-Wash Oil</div>
+                    <div style={{ fontSize: '0.75rem', color: '#4B5563', marginTop: '2px' }}>Massage Keshira Herbal Oil for 5 mins, 1 hr before wash.</div>
+                  </div>
+                  <div style={{ backgroundColor: '#FFF', padding: '12px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)' }}>Step 2: Herbal Wash</div>
+                    <div style={{ fontSize: '0.75rem', color: '#4B5563', marginTop: '2px' }}>{rec.washFrequency} using {rec.shampoo.shortName}.</div>
+                  </div>
+                </div>
+
+                {/* CTAs */}
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={handleAddRegimenDuo}
+                    style={{
+                      flex: 1,
+                      minWidth: '220px',
+                      padding: '12px 20px',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--color-primary)',
+                      color: '#FAF7F2',
+                      fontWeight: 700,
+                      fontSize: '0.88rem',
+                      border: 'none',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(18, 43, 25, 0.2)'
+                    }}
+                  >
+                    Add Complete 2-Step Regimen • ₹449
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddSingleShampoo}
+                    style={{
+                      padding: '12px 18px',
+                      borderRadius: '8px',
+                      backgroundColor: '#FFF',
+                      color: 'var(--color-primary)',
+                      fontWeight: 600,
+                      fontSize: '0.82rem',
+                      border: '1px solid var(--color-border)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Single Shampoo (₹{rec.shampoo.prices['200ml'].price}{isBogoActive ? ' • BOGO Available' : ''})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetQuiz}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      backgroundColor: 'transparent',
+                      color: 'var(--color-text-muted)',
+                      fontSize: '0.78rem',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Retake Quiz
+                  </button>
+                </div>
               </div>
             </div>
           )}

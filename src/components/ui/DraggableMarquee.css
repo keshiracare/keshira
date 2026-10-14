@@ -1,0 +1,44 @@
+.obsidian-marquee-viewport {
+  width: 100%;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-y;
+  position: relative;
+}
+
+.obsidian-marquee-viewport:active {
+  cursor: grabbing;
+}
+
+.obsidian-marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+
+.obsidian-marquee-list {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  padding: 0 18px;
+  flex-shrink: 0;
+}
+
+.obsidian-marquee-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 162, 97, 0.15);
+  border-radius: 9999px;
+  white-space: nowrap;
+  transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.obsidian-marquee-item:hover {
+  background: rgba(200, 162, 97, 0.1);
+  border-color: rgba(200, 162, 97, 0.4);
+  transform: translateY(-1px);
+}

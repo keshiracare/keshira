@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
 
+# Host & Sitemap Location
+Host: https://keshira.vercel.app
 Sitemap: https://keshira.vercel.app/sitemap.xml

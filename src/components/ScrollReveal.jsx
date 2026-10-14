@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-export default function ScrollReveal({ children, delay = 0 }) {
+export default function ScrollReveal({ children, delay = 0, className = '', ...props }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function ScrollReveal({ children, delay = 0 }) {
   }, [delay]);
 
   return (
-    <div ref={ref} className="reveal">
+    <div ref={ref} className={`reveal ${className}`.trim()} {...props}>
       {children}
     </div>
   );

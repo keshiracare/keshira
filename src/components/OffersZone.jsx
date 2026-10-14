@@ -11,10 +11,16 @@ export default function OffersZone() {
   return (
     <section className="offers-section section-padding">
       <div className="container">
-        <div className="section-header">
-          <span className="badge">Special Deals</span>
-          <h2>Exclusive Herbal Offers</h2>
-          <p className="section-subtitle">Natural Care, Better Value</p>
+        <div className="section-header text-center" style={{ marginBottom: '40px' }}>
+          <span className="section-eyebrow">
+            SPECIAL OFFERS & BUNDLES
+          </span>
+          <h2 className="section-title">
+            Exclusive Herbal Care Values
+          </h2>
+          <p className="section-subtitle" style={{ margin: '0 auto' }}>
+            Pure botanical nourishment with direct-to-consumer value and free pan-India shipping.
+          </p>
         </div>
 
         <div className="offers-grid">
@@ -29,11 +35,20 @@ export default function OffersZone() {
               </p>
             </div>
             <div>
-              <button className="btn-gold" onClick={() => handleScroll('purchase-section')}>
-                Get Deal • ₹398
+              <button 
+                className="btn-gold" 
+                onClick={() => {
+                  if (window.navigateTo) {
+                    window.navigateTo('/collections');
+                  } else {
+                    window.location.pathname = '/collections';
+                  }
+                }}
+              >
+                Shop Multi-Pack Bundles • Save up to ₹146+
               </button>
               <div className="offer-coupon">
-                *Automatically qualifies for Free Shipping. Combine with promo codes for additional savings.
+                *Includes Free Express Shipping on all bundles. Combine with promo codes for additional savings.
               </div>
             </div>
           </div>
@@ -42,10 +57,9 @@ export default function OffersZone() {
           <div className="offer-card" style={{ backgroundColor: 'var(--color-bg-card)', color: 'var(--color-text-dark)' }}>
             <div>
               <span className="offer-card-tag" style={{ color: 'var(--color-primary)' }}>Welcome Offer</span>
-              <h3 style={{ color: 'var(--color-primary)' }}>First-Time Ayurvedic Care</h3>
+              <h3 style={{ color: 'var(--color-primary)' }}>First-Order 10% Discount</h3>
               <p className="offer-card-desc" style={{ color: 'var(--color-text-muted)' }}>
-                New to Keshira? Try our hand-poured herbal blend today and get an extra 10% off your entire first purchase. 
-                Use promo code below.
+                New to Keshira? Get an instant 10% off your entire first purchase. Get our bestselling <strong>400ml Hair Fall Rescue Duo for only ₹404 net</strong> (marked at ₹449) with FREE Express Shipping!
               </p>
             </div>
             <div>

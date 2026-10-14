@@ -1,364 +1,339 @@
 import React, { useState } from 'react';
 
-const BOTTLE_HERB = {
-  id: 'bottle',
-  name: 'Keshira Shampoo',
-  role: 'Nourishing Herbal Formula',
-  story: 'Hand-poured in micro batches. Blended with 10 traditional Ayurvedic herbs. Free from sulfates, parabens, silicones, and artificial colors. Safe, biodegradable, and crafted with family care to restore hair vitality.',
-  zoomPos: '50% 50%',
-  zoomSize: '220%'
+// Macro Botanical Studio Photography Assets
+import dewyAmlaImg from '../assets/Dewy Amla and Rustic Herbal Pods.png';
+import rosemaryOilFlatlayImg from '../assets/Rosemary, Cloves, and Golden Oil Flat Lay.png';
+import rusticBotanicalsImg from '../assets/Rustic Botanical Hair Care Ingredients.png';
+
+const INGREDIENTS_BY_TARGET = {
+  all: [
+    {
+      id: 'amla',
+      name: 'Wild Amla & Pods',
+      sanskrit: 'Phyllanthus Emblica',
+      tag: 'Antioxidant Shield',
+      role: 'Vitamin C Rich Follicle Fortifier',
+      foundIn: 'Herbal Hair Oil & Hibiscus Shampoo',
+      bioactive: 'Bioflavonoids & Ascorbic Acid',
+      whatItDoes: 'Dense source of plant antioxidants that shields the strand from environmental oxidation and brittleness.',
+      icon: '🍏',
+      photo: dewyAmlaImg,
+      photoCaption: 'Dewy Amla berries and sun-cured Shikakai pods on artisanal linen'
+    },
+    {
+      id: 'rosemary',
+      name: 'Rosemary & Whole Cloves',
+      sanskrit: 'Salvia Rosmarinus',
+      tag: 'Micro-Circulation',
+      role: 'Scalp Vitality & Follicle Clarifier',
+      foundIn: 'Neem Shampoo & Herbal Hair Oil',
+      bioactive: 'Carnosic Acid & Eugenol',
+      whatItDoes: 'Promotes micro-circulation across the scalp surface, clears sebum congestion, and maintains follicle environment.',
+      icon: '🍃',
+      photo: rosemaryOilFlatlayImg,
+      photoCaption: 'Fresh rosemary sprigs, aromatic cloves, and pure golden sesame oil drop'
+    },
+    {
+      id: 'bhringraj',
+      name: 'Bhringraj & Botanicals',
+      sanskrit: 'Eclipta Alba',
+      tag: 'Follicle Anchorage',
+      role: 'Follicle Activator & Anti-Shedding',
+      foundIn: 'Herbal Hair Oil & Hibiscus Shampoo',
+      bioactive: 'Wedelolactone & Ecliptine',
+      whatItDoes: 'Referred to as the "King of Hair" in classical texts; revitalizes micro-capillaries around the hair bulb and reduces shower shedding.',
+      icon: '🌿',
+      photo: rusticBotanicalsImg,
+      photoCaption: 'Whole raw Ayurvedic herbs: dried Reetha soapnuts, Shikakai, and cold-pressed base'
+    },
+    {
+      id: 'neem',
+      name: 'Sacred Neem',
+      sanskrit: 'Azadirachta Indica',
+      tag: 'Antimicrobial Defense',
+      role: 'Scalp Clarifier & Flake Defense',
+      foundIn: 'Neem Herbal Shampoo',
+      bioactive: 'Nimbin & Azadirachtin',
+      whatItDoes: 'Targets Malassezia yeast overgrowth and soothes persistent scalp itchiness without stripping protective sebum.',
+      icon: '🌱',
+      photo: rusticBotanicalsImg,
+      photoCaption: 'Raw medicinal herbs cold-infused in micro-batches'
+    },
+    {
+      id: 'reetha',
+      name: 'Reetha (Soapnut)',
+      sanskrit: 'Sapindus Mukorossi',
+      tag: 'Bio-Saponin Foam',
+      role: '100% Botanical Sulfate-Free Cleanser',
+      foundIn: 'All 3 Herbal Shampoos',
+      bioactive: 'Triterpenoid Saponins (12%)',
+      whatItDoes: 'Creates a gentle, creamy lather at pH 5.5 that lifts away oil and atmospheric dust while preserving hair lipids.',
+      icon: '🌰',
+      photo: dewyAmlaImg,
+      photoCaption: 'Handcrafted raw soapnut pods and organic fruit acids'
+    },
+    {
+      id: 'shikakai',
+      name: 'Shikakai Pods',
+      sanskrit: 'Acacia Concinna',
+      tag: 'Natural Detangler',
+      role: 'Mild pH Fruit Acid Cleanser & Conditioner',
+      foundIn: 'All 3 Herbal Shampoos',
+      bioactive: 'Vitamins A, C, D, K & Natural Mucilage',
+      whatItDoes: 'Smooths the cuticle scales upon contact, enhancing natural softness and ease of combing without silicones.',
+      icon: '🌿',
+      photo: rusticBotanicalsImg,
+      photoCaption: 'Rustic herbal pods sun-dried before hydro-extraction'
+    },
+    {
+      id: 'sesame',
+      name: 'Cold-Pressed Sesame Oil',
+      sanskrit: 'Tila Taila Base',
+      tag: 'Ayurvedic Base',
+      role: 'Deep-Penetrating Carrier Lipid',
+      foundIn: 'Herbal Hair Oil',
+      bioactive: 'Sesamin, Sesamol & Omega-6/9',
+      whatItDoes: 'Traditional Ayurvedic base oil chosen for its fine molecular weight that carries herbal infusions directly into hair roots.',
+      icon: '🫙',
+      photo: rosemaryOilFlatlayImg,
+      photoCaption: 'Golden cold-pressed sesame oil simmered with raw herbs'
+    },
+    {
+      id: 'methi',
+      name: 'Fenugreek (Methi)',
+      sanskrit: 'Trigonella Foenum-Graecum',
+      tag: 'Moisture Cushion',
+      role: 'Plant Mucilage & Scalp Calmer',
+      foundIn: 'Neem Shampoo & Gentle Care',
+      bioactive: 'Plant Lecithin & Natural Mucilage',
+      whatItDoes: 'Covers dry hair lengths in a silky botanical moisture shield, soothing dry scalp patches and reducing frizz.',
+      icon: '🌾',
+      photo: rusticBotanicalsImg,
+      photoCaption: 'Nutrient-rich seeds soaked for natural detangling mucilage'
+    }
+  ]
 };
 
-const INGREDIENTS = [
-  {
-    id: 'neem',
-    name: 'Neem',
-    role: 'Antibacterial & Scalp Soother',
-    story: 'The Sacred Healer. Used for over 4,000 years in Ayurvedic medicine. Neem contains active nimbin and azadirachtin which calm itchy, irritated scalps, clear oil blocks, and eliminate dandruff-causing fungi.',
-    top: '27%',
-    left: '23%',
-    zoomPos: '15% 26%',
-    zoomSize: '330%'
-  },
-  {
-    id: 'amla',
-    name: 'Amla',
-    role: 'Follicle Booster & Vitamin C',
-    story: 'The Nectar of Youth. Also known as Indian Gooseberry, Amla is one of the richest organic sources of Vitamin C and iron. It feeds hair follicles, combats oxidative damage, and prevents premature graying.',
-    top: '22%',
-    left: '78%',
-    zoomPos: '80% 21%',
-    zoomSize: '330%'
-  },
-  {
-    id: 'shikakai',
-    name: 'Shikakai',
-    role: 'Gentle Ayurvedic Cleanser',
-    story: 'Fruit for the Hair. Traditional bark pods used in ancient India for hair washing. Shikakai contains mild natural saponins that cleanse without stripping, keeping the scalp pH balanced and dry frizz-free.',
-    top: '40%',
-    left: '76%',
-    zoomPos: '78% 41%',
-    zoomSize: '330%'
-  },
-  {
-    id: 'hibiscus',
-    name: 'Hibiscus',
-    role: 'Natural Botanical Conditioner',
-    story: 'The Crimson Conditioner. Hibiscus flowers are packed with natural mucilage, amino acids, and AHAs. They hydrate coarse hair fibers, prevent split ends, and leave a lustrous Ayurvedic shine.',
-    top: '62%',
-    left: '79%',
-    zoomPos: '80% 63%',
-    zoomSize: '330%'
-  },
-  {
-    id: 'clove',
-    name: 'Clove',
-    role: 'Follicle Stimulator',
-    story: 'The Scalp Stimulator. Cloves are highly warming and rich in eugenol. Clove extracts improve local scalp circulation, accelerating nutrient delivery to active hair roots to promote growth.',
-    top: '76%',
-    left: '74%',
-    zoomPos: '75% 77%',
-    zoomSize: '330%'
-  },
-  {
-    id: 'rosemary',
-    name: 'Rosemary',
-    role: 'Growth & Thickness Promoter',
-    story: 'The Botanical Invigorator. A natural DHT blocker. Rosemary oil and leaves soothe follicular inflammation, clear sebum blockage, and strengthen thin hair fibers to reduce breakage.',
-    top: '88%',
-    left: '67%',
-    zoomPos: '68% 89%',
-    zoomSize: '330%'
-  },
-  {
-    id: 'flaxseeds',
-    name: 'Flax Seeds',
-    role: 'Moisture Lock & Elasticity',
-    story: 'The Hydration Shield. Loaded with Omega-3 fatty acids and Vitamin E. Flax seeds secrete a nourishing gel that wraps dry cuticles, locking in moisture and preventing styling breakage.',
-    top: '91%',
-    left: '45%',
-    zoomPos: '45% 91%',
-    zoomSize: '330%'
-  },
-  {
-    id: 'aritha',
-    name: 'Aritha',
-    role: 'Organic Saponin Cleanser',
-    story: 'The Soapnut Cleanser. Aritha shells secrete rich, natural lathering agents. They gently remove excess grease, dust, and product buildup from the hair shafts without drying out the scalp.',
-    top: '78%',
-    left: '23%',
-    zoomPos: '22% 79%',
-    zoomSize: '330%'
-  },
-  {
-    id: 'curryleaves',
-    name: 'Curry Leaves',
-    role: 'Pigment & Strength Guardian',
-    story: 'The Pigment Guardian. Packed with amino acids, beta-carotene, and antioxidants. Curry leaves nurture hair roots, prevent premature follicle aging, and restore thickness to weak strands.',
-    top: '66%',
-    left: '16%',
-    zoomPos: '15% 67%',
-    zoomSize: '330%'
-  },
-  {
-    id: 'fenugreek',
-    name: 'Fenugreek',
-    role: 'Scalp Hydrator & Rejuvenator',
-    story: 'The Root Rejuvenator. Fenugreek (Methi) seeds contain high amounts of proteins and lecithin. They combat dry scalp conditions, reconstruct damaged hair fibers, and provide a silky texture.',
-    top: '48%',
-    left: '18%',
-    zoomPos: '18% 49%',
-    zoomSize: '330%'
-  }
+const NO_TOXINS_PROMISE = [
+  { name: 'Zero Sulfates (SLS / SLES)', reason: 'Pure Reetha soapnuts provide bio-saponins that cleanse without disturbing natural scalp lipids.' },
+  { name: 'Zero Silicones & Mineral Oil', reason: 'Pure cold-pressed sesame oil nourishes hair roots without plastic coating or pore congestion.' },
+  { name: 'Zero Synthetic Preservatives', reason: 'Handcrafted weekly micro-batches eliminate the need for harsh synthetic biocides and parabens.' },
+  { name: 'Zero Artificial Fragrances', reason: 'Naturally scented with whole rosemary leaves, cloves, and sun-dried Ayurvedic botanicals.' }
 ];
 
 export default function IngredientsSection() {
-  const [hoveredHerb, setHoveredHerb] = useState(null);
-  const [selectedHerb, setSelectedHerb] = useState(null);
-
-  // Active item to display (hover takes priority, fallback to selected, fallback to bottle)
-  const displayedHerb = hoveredHerb || selectedHerb || BOTTLE_HERB;
-
-  const handleHerbClick = (herb) => {
-    if (selectedHerb?.id === herb.id) {
-      setSelectedHerb(null); // toggle off
-    } else {
-      setSelectedHerb(herb);
-    }
-  };
+  const [selectedHerb, setSelectedHerb] = useState(INGREDIENTS_BY_TARGET.all[0]);
 
   return (
-    <section id="ingredients" className="ingredients-section section-padding" style={{ backgroundColor: 'var(--color-bg-parchment)' }}>
+    <section id="ingredients" className="botanical-ingredients-section">
       <div className="container">
-        <div className="section-header" style={{ marginBottom: '40px' }}>
-          <span className="badge">100% Active Botanicals</span>
-          <h2 style={{ fontSize: '2.8rem', marginTop: '10px' }}>What's Inside Keshira?</h2>
-          <div style={{ width: '60px', height: '3px', backgroundColor: 'var(--color-accent-gold)', margin: '15px auto' }}></div>
-          <p className="section-subtitle" style={{ fontSize: '1.25rem' }}>Hover over the hotspots or tap the ingredients below to read their Ayurvedic story</p>
+
+        {/* Section Header */}
+        <div className="ingredients-header-row">
+          <span className="section-eyebrow">TRANSPARENT FORMULATION</span>
+          <h2 className="section-title">The Botanical Ingredients</h2>
+          <p className="section-subtitle">
+            Every bottle is hand-poured with real Indian herbs. Macro studio photography of our raw, authentic botanicals before slow hydro-infusion.
+          </p>
         </div>
 
-        {/* Central Display Card with Border & Soft Backdrop */}
-        <div 
-          className="ingredients-wrapper-card"
-          style={{
-            backgroundColor: 'var(--color-bg-parchment-light)',
+        {/* Studio Gallery Preview Banner */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '16px',
+          marginBottom: '36px'
+        }}>
+          <div style={{
+            position: 'relative',
+            borderRadius: '12px',
+            overflow: 'hidden',
             border: '1px solid var(--color-border)',
-            borderRadius: '16px',
-            padding: '30px',
-            boxShadow: 'var(--shadow-lg)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '30px'
-          }}
-        >
-          <div className="ingredients-grid-layout">
-            
-            {/* Left Column: Interactive Diagram with Hotspots */}
-            <div 
-              style={{ 
-                position: 'relative', 
-                borderRadius: '12px', 
-                overflow: 'hidden', 
-                boxShadow: 'var(--shadow-sm)',
-                border: '1px solid rgba(26, 50, 30, 0.08)'
-              }}
-            >
-              <img 
-                src="/assets/ingredients-diagram.jpg" 
-                alt="Keshira Shampoo Bottle surrounded by 10 traditional ingredients" 
-                className="ingredients-img"
-                style={{ display: 'block', width: '100%', height: 'auto', transition: 'filter 0.3s ease' }}
-              />
-              
-              {/* Central Bottle Hotspot */}
-              <div 
-                className={`hotspot-node ${displayedHerb.id === 'bottle' ? 'active-hotspot' : ''}`}
-                style={{ top: '56%', left: '50%' }}
-                onMouseEnter={() => setHoveredHerb(BOTTLE_HERB)}
-                onMouseLeave={() => setHoveredHerb(null)}
-                onClick={() => handleHerbClick(BOTTLE_HERB)}
-                aria-label="Keshira Shampoo Bottle Details"
-              >
-                <div className="hotspot-pulse"></div>
-                <div className="hotspot-dot"></div>
-              </div>
-
-              {/* 10 Ingredients Hotspots */}
-              {INGREDIENTS.map((ing) => (
-                <div 
-                  key={ing.id}
-                  className={`hotspot-node ${displayedHerb.id === ing.id ? 'active-hotspot' : ''}`}
-                  style={{ top: ing.top, left: ing.left }}
-                  onMouseEnter={() => setHoveredHerb(ing)}
-                  onMouseLeave={() => setHoveredHerb(null)}
-                  onClick={() => handleHerbClick(ing)}
-                  aria-label={`${ing.name} Details`}
-                >
-                  <div className="hotspot-pulse"></div>
-                  <div className="hotspot-dot"></div>
-                </div>
-              ))}
-            </div>
-
-            {/* Right Column: Dynamic Spotlight & Storyboard Panel */}
-            <div 
-              style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                height: '100%',
-                justifyContent: 'center'
-              }}
-            >
-              <div 
-                className="spotlight-panel"
-                style={{ 
-                  backgroundColor: 'rgba(26, 50, 30, 0.02)', 
-                  border: '1px dashed var(--color-accent-gold)', 
-                  borderRadius: '12px', 
-                  padding: '35px 24px', 
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  minHeight: '380px',
-                  boxShadow: 'inset 0 0 20px rgba(180, 147, 84, 0.05)',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                {/* circular zoom lens */}
-                <div 
-                  style={{ 
-                    width: '140px', 
-                    height: '140px', 
-                    borderRadius: '50%', 
-                    border: '3px solid var(--color-accent-gold)', 
-                    boxShadow: '0 8px 24px rgba(180, 147, 84, 0.25)',
-                    backgroundImage: 'url(/assets/ingredients-diagram.jpg)',
-                    backgroundPosition: displayedHerb.zoomPos,
-                    backgroundSize: displayedHerb.zoomSize,
-                    backgroundRepeat: 'no-repeat',
-                    transition: 'background-position 0.4s cubic-bezier(0.25, 1, 0.5, 1), background-size 0.4s cubic-bezier(0.25, 1, 0.5, 1)',
-                    marginBottom: '20px'
-                  }}
-                ></div>
-
-                <span 
-                  style={{ 
-                    fontSize: '0.72rem', 
-                    color: 'var(--color-accent-gold-dark)', 
-                    fontWeight: '700', 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '0.1em',
-                    display: 'block',
-                    marginBottom: '4px'
-                  }}
-                >
-                  {displayedHerb.role}
-                </span>
-                
-                <h3 
-                  style={{ 
-                    fontSize: '2.2rem', 
-                    margin: '4px 0 12px 0', 
-                    fontFamily: 'var(--font-serif)', 
-                    color: 'var(--color-primary)',
-                    fontWeight: '600'
-                  }}
-                >
-                  {displayedHerb.name}
-                </h3>
-                
-                <p 
-                  style={{ 
-                    fontSize: '0.92rem', 
-                    color: 'var(--color-text-muted)', 
-                    lineHeight: '1.6', 
-                    maxWidth: '400px',
-                    margin: 0
-                  }}
-                >
-                  {displayedHerb.story}
-                </p>
-              </div>
-            </div>
-
+            height: '180px',
+            backgroundColor: '#F8F5EF'
+          }}>
+            <img 
+              src={dewyAmlaImg} 
+              alt="Dewy Amla and Rustic Herbal Pods" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            />
+            <span style={{
+              position: 'absolute',
+              bottom: '8px',
+              left: '8px',
+              backgroundColor: 'rgba(39, 56, 43, 0.85)',
+              color: '#FAF7F2',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              padding: '3px 8px',
+              borderRadius: '4px',
+              backdropFilter: 'blur(4px)'
+            }}>
+              Dewy Amla & Pods
+            </span>
           </div>
 
-          {/* Quick-Select Botanical Chips (Mobile friendly / desktop backup) */}
-          <div 
-            style={{
-              borderTop: '1px solid var(--color-border)',
-              paddingTop: '24px'
-            }}
-          >
-            <p 
-              style={{ 
-                fontSize: '0.8rem', 
-                fontWeight: '700', 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.05em', 
-                color: 'var(--color-primary)', 
-                textAlign: 'center', 
-                marginBottom: '16px' 
-              }}
-            >
-              🌿 Quick Select Botanicals:
-            </p>
-            <div 
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '10px',
-                justifyContent: 'center'
-              }}
-            >
-              {/* Bottle Chip */}
-              <button
-                className={`herb-chip ${displayedHerb.id === 'bottle' ? 'active' : ''}`}
-                onClick={() => handleHerbClick(BOTTLE_HERB)}
-                onMouseEnter={() => setHoveredHerb(BOTTLE_HERB)}
-                onMouseLeave={() => setHoveredHerb(null)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '50px',
-                  border: '1px solid var(--color-border)',
-                  fontSize: '0.85rem',
-                  fontWeight: '500',
-                  backgroundColor: displayedHerb.id === 'bottle' ? 'var(--color-primary)' : 'var(--color-bg-parchment)',
-                  color: displayedHerb.id === 'bottle' ? 'var(--color-text-light)' : 'var(--color-primary)',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
-              >
-                🍶 Keshira Bottle
-              </button>
+          <div style={{
+            position: 'relative',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            border: '1px solid var(--color-border)',
+            height: '180px',
+            backgroundColor: '#F8F5EF'
+          }}>
+            <img 
+              src={rosemaryOilFlatlayImg} 
+              alt="Rosemary, Cloves, and Golden Oil Flat Lay" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            />
+            <span style={{
+              position: 'absolute',
+              bottom: '8px',
+              left: '8px',
+              backgroundColor: 'rgba(39, 56, 43, 0.85)',
+              color: '#FAF7F2',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              padding: '3px 8px',
+              borderRadius: '4px',
+              backdropFilter: 'blur(4px)'
+            }}>
+              Rosemary & Golden Oil
+            </span>
+          </div>
 
-              {/* Herb Chips */}
-              {INGREDIENTS.map((ing) => (
+          <div style={{
+            position: 'relative',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            border: '1px solid var(--color-border)',
+            height: '180px',
+            backgroundColor: '#F8F5EF'
+          }}>
+            <img 
+              src={rusticBotanicalsImg} 
+              alt="Rustic Botanical Hair Care Ingredients" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            />
+            <span style={{
+              position: 'absolute',
+              bottom: '8px',
+              left: '8px',
+              backgroundColor: 'rgba(39, 56, 43, 0.85)',
+              color: '#FAF7F2',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              padding: '3px 8px',
+              borderRadius: '4px',
+              backdropFilter: 'blur(4px)'
+            }}>
+              Raw Botanical Harvest
+            </span>
+          </div>
+        </div>
+
+        {/* Interactive Master-Detail Herb Showcase */}
+        <div className="ingredients-showcase-grid">
+          
+          {/* Left: Herb List with clean indicators */}
+          <div className="herbs-nav-list">
+            {INGREDIENTS_BY_TARGET.all.map((herb) => {
+              const isSelected = selectedHerb.id === herb.id;
+              return (
                 <button
-                  key={ing.id}
-                  className={`herb-chip ${displayedHerb.id === ing.id ? 'active' : ''}`}
-                  onClick={() => handleHerbClick(ing)}
-                  onMouseEnter={() => setHoveredHerb(ing)}
-                  onMouseLeave={() => setHoveredHerb(null)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '50px',
-                    border: '1px solid var(--color-border)',
-                    fontSize: '0.85rem',
-                    fontWeight: '500',
-                    backgroundColor: displayedHerb.id === ing.id ? 'var(--color-primary)' : 'var(--color-bg-parchment)',
-                    color: displayedHerb.id === ing.id ? 'var(--color-text-light)' : 'var(--color-primary)',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
+                  key={herb.id}
+                  type="button"
+                  onClick={() => setSelectedHerb(herb)}
+                  className={`herb-select-item ${isSelected ? 'active' : ''}`}
                 >
-                  🍃 {ing.name}
+                  <div className="herb-item-left">
+                    <span className="herb-item-icon">{herb.icon}</span>
+                    <div>
+                      <div className="herb-item-name">{herb.name}</div>
+                      <div className="herb-item-sanskrit">{herb.sanskrit}</div>
+                    </div>
+                  </div>
+                  <span className="herb-item-tag">{herb.tag}</span>
                 </button>
-              ))}
+              );
+            })}
+          </div>
+
+          {/* Right: Art-directed Herb Spotlight Card with Macro Photography */}
+          <div className="herb-spotlight-card">
+            <div className="spotlight-top">
+              <span className="spotlight-icon">{selectedHerb.icon}</span>
+              <div>
+                <span className="spotlight-eyebrow">{selectedHerb.sanskrit}</span>
+                <h3 className="spotlight-title">{selectedHerb.name}</h3>
+              </div>
+            </div>
+
+            {/* Macro Herb Photo Feature */}
+            {selectedHerb.photo && (
+              <div style={{
+                marginBottom: '20px',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                border: '1px solid var(--color-border)',
+                height: '160px',
+                position: 'relative'
+              }}>
+                <img 
+                  src={selectedHerb.photo} 
+                  alt={selectedHerb.name} 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  background: 'linear-gradient(transparent, rgba(39, 56, 43, 0.85))',
+                  padding: '6px 12px',
+                  color: '#FAF7F2',
+                  fontSize: '0.72rem',
+                  fontWeight: 500
+                }}>
+                  📸 {selectedHerb.photoCaption}
+                </div>
+              </div>
+            )}
+
+            <div className="spotlight-badge-row">
+              <span className="spotlight-pill">Primary Function: {selectedHerb.role}</span>
+              <span className="spotlight-pill">Found in: {selectedHerb.foundIn}</span>
+            </div>
+
+            <div className="spotlight-body">
+              <h4 className="spotlight-subheading">Botanical Action:</h4>
+              <p className="spotlight-desc">{selectedHerb.whatItDoes}</p>
+
+              <h4 className="spotlight-subheading">Bioactive Compounds:</h4>
+              <p className="spotlight-bioactive">{selectedHerb.bioactive}</p>
+            </div>
+
+            <div className="spotlight-footer">
+              <span className="spotlight-verified-badge">✓ Whole Herb Hydro-Infusion</span>
+              <span className="spotlight-verified-badge">✓ Hand-Processed in Gujarat</span>
             </div>
           </div>
 
         </div>
+
+        {/* Purity & Clean Standards Grid */}
+        <div className="purity-standards-grid">
+          {NO_TOXINS_PROMISE.map((item, idx) => (
+            <div key={idx} className="purity-standard-item">
+              <div className="purity-item-title">
+                <span className="purity-check">✓</span>
+                <span>{item.name}</span>
+              </div>
+              <p className="purity-item-desc">{item.reason}</p>
+            </div>
+          ))}
+        </div>
+
       </div>
     </section>
   );

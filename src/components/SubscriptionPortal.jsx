@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { normalizeEmail } from '../firebase';
+import React, { useState, useEffect, useCallback } from 'react';
+import { supabase, normalizeEmail } from '../supabase';
 
 export default function SubscriptionPortal({ isOpen, onClose }) {
   const [orders, setOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState('subscriptions'); // subscriptions, address
+  const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'subscriptions', 'address'
   const [emailSearch, setEmailSearch] = useState('');
   const [searchSubmitted, setSearchSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [addressForm, setAddressForm] = useState({
     fullName: '',
     address: '',
@@ -14,19 +15,79 @@ export default function SubscriptionPortal({ isOpen, onClose }) {
   });
   const [successMsg, setSuccessMsg] = useState('');
 
+  const loadOrders = useCallback(async (targetEmail = '') => {
+    setIsLoading(true);
+    let allOrders = [];
+
+    // 1. Try local storage first for instant cached rendering
+    const saved = localStorage.getItem('keshira_orders');
+    if (saved) {
+      try {
+        allOrders = JSON.parse(saved);
+      } catch {
+        allOrders = [];
+      }
+    }
+
+    // 2. Fetch live orders from Supabase PostgreSQL
+    try {
+      let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+      const emailToFilter = (targetEmail || emailSearch).trim().toLowerCase();
+      if (emailToFilter) {
+        const norm = normalizeEmail(emailToFilter);
+        query = query.or(`email.eq.${emailToFilter},normalized_email.eq.${norm}`);
+      }
+
+      const { data, error } = await query;
+      if (!error && data && data.length > 0) {
+        const formatted = data.map((row) => {
+          // Supabase schema stores order payload inside jsonb 'order_data' column
+          const orderData = row.order_data || {};
+          const shipAddr = orderData.shippingAddress || row.shipping_address || {};
+          return {
+            ...orderData,
+            id: row.id || orderData.id,
+            date: orderData.date || row.created_at,
+            total: Number(orderData.total || row.total || 0),
+            status: row.status || orderData.status || 'Received',
+            utr: orderData.utr || row.utr || '',
+            items: Array.isArray(orderData.items) ? orderData.items : (Array.isArray(row.items) ? row.items : []),
+            shippingAddress: {
+              fullName: shipAddr.fullName || row.customer_name || '',
+              email: row.email || shipAddr.email || row.customer_email || '',
+              phone: shipAddr.phone || row.customer_phone || '',
+              address: shipAddr.address || '',
+              city: shipAddr.city || '',
+              pinCode: shipAddr.pinCode || ''
+            },
+            subscriptionStatus: orderData.subscriptionStatus || row.subscription_status || 'Active',
+            nextShipment: orderData.nextShipment || row.next_shipment
+          };
+        });
+
+        // Merge Supabase orders with any local orders (avoiding duplicates)
+        const orderMap = new Map();
+        formatted.forEach(o => orderMap.set(o.id, o));
+        allOrders.forEach(o => {
+          if (!orderMap.has(o.id)) orderMap.set(o.id, o);
+        });
+        allOrders = Array.from(orderMap.values());
+      }
+    } catch (err) {
+      console.warn('Could not fetch orders from Supabase:', err);
+    }
+
+    setOrders(allOrders);
+    setIsLoading(false);
+    return allOrders;
+  }, [emailSearch]);
+
   useEffect(() => {
     if (isOpen) {
       loadOrders();
       setSuccessMsg('');
     }
-  }, [isOpen]);
-
-  const loadOrders = () => {
-    const saved = localStorage.getItem('keshira_orders');
-    if (saved) {
-      setOrders(JSON.parse(saved));
-    }
-  };
+  }, [isOpen, loadOrders]);
 
   if (!isOpen) return null;
 
@@ -68,88 +129,143 @@ export default function SubscriptionPortal({ isOpen, onClose }) {
   function calculateNextShipDate(orderDateStr, freqStr) {
     const orderDate = new Date(orderDateStr);
     if (isNaN(orderDate.getTime())) return 'Next Month';
-    const days = freqStr.includes('45') ? 45 : 30;
+    const days = freqStr && freqStr.includes('45') ? 45 : 30;
     orderDate.setDate(orderDate.getDate() + days);
     return orderDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  const handleSearchSubmit = (e) => {
+  const handleSearchSubmit = async (e) => {
     e.preventDefault();
     if (!emailSearch) return;
     setSearchSubmitted(true);
+    const loadedOrders = await loadOrders(emailSearch);
 
-    // If subscriptions exist, initialize address form with the first active subscription address
-    if (subscriptions.length > 0) {
+    // Default to the first found shipping address from the freshly loaded orders
+    const pool = loadedOrders || orders;
+    const matchingOrder = pool.find(o => 
+      o.shippingAddress && (
+        o.shippingAddress.email.trim().toLowerCase() === emailSearch.trim().toLowerCase() ||
+        normalizeEmail(o.shippingAddress.email) === normalizeEmail(emailSearch)
+      )
+    );
+
+    if (matchingOrder && matchingOrder.shippingAddress) {
       setAddressForm({
-        fullName: subscriptions[0].fullName,
-        address: subscriptions[0].address,
-        city: subscriptions[0].city,
-        pinCode: subscriptions[0].pinCode
+        fullName: matchingOrder.shippingAddress.fullName || '',
+        address: matchingOrder.shippingAddress.address || '',
+        city: matchingOrder.shippingAddress.city || '',
+        pinCode: matchingOrder.shippingAddress.pinCode || ''
       });
     }
   };
 
-  const handleToggleStatus = (orderId, currentStatus) => {
+  const handleToggleStatus = async (orderId, currentStatus) => {
     const nextStatus = currentStatus === 'Active' ? 'Paused' : 'Active';
+    let targetOrder = null;
     const updatedOrders = orders.map((order) => {
       if (order.id === orderId) {
-        return { ...order, subscriptionStatus: nextStatus };
+        targetOrder = { ...order, subscriptionStatus: nextStatus };
+        return targetOrder;
       }
       return order;
     });
     setOrders(updatedOrders);
     localStorage.setItem('keshira_orders', JSON.stringify(updatedOrders));
-    setSuccessMsg(`Subscription status updated to ${nextStatus}!`);
+
+    // Persist to Supabase
+    if (targetOrder) {
+      try {
+        await supabase.from('orders').update({
+          subscription_status: nextStatus,
+          order_data: targetOrder
+        }).eq('id', orderId);
+      } catch (err) {
+        console.warn('Could not sync status change with Supabase:', err);
+      }
+    }
+
+    setSuccessMsg(`Subscription ${nextStatus === 'Active' ? 'resumed' : 'paused'} successfully.`);
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  const handleChangeFrequency = (orderId, newFreq) => {
+  const handleChangeFrequency = async (orderId, newFreq) => {
+    let targetOrder = null;
     const updatedOrders = orders.map((order) => {
       if (order.id === orderId) {
-        // Update frequency inside items
         const updatedItems = order.items.map((item) => {
           if (item.purchaseType === 'subscribe') {
             return { ...item, frequency: `${newFreq} Days` };
           }
           return item;
         });
-        return { 
+        targetOrder = { 
           ...order, 
           items: updatedItems,
           nextShipment: calculateNextShipDate(order.date, `${newFreq} Days`) 
         };
+        return targetOrder;
       }
       return order;
     });
     setOrders(updatedOrders);
     localStorage.setItem('keshira_orders', JSON.stringify(updatedOrders));
-    setSuccessMsg(`Delivery frequency changed to every ${newFreq} Days!`);
+
+    // Persist to Supabase
+    if (targetOrder) {
+      try {
+        await supabase.from('orders').update({
+          order_data: targetOrder
+        }).eq('id', orderId);
+      } catch (err) {
+        console.warn('Could not sync frequency change with Supabase:', err);
+      }
+    }
+
+    setSuccessMsg(`Delivery frequency updated to every ${newFreq} days.`);
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  const handleCancelSubscription = (orderId, itemId) => {
+  const handleCancelSubscription = async (orderId, itemId) => {
     if (!window.confirm('Are you sure you want to cancel this auto-delivery subscription?')) {
       return;
     }
+    let targetOrder = null;
     const updatedOrders = orders.map((order) => {
       if (order.id === orderId) {
         const updatedItems = order.items.filter((item) => item.id !== itemId);
-        return { ...order, items: updatedItems };
+        targetOrder = { ...order, items: updatedItems };
+        return targetOrder;
       }
       return order;
-    }).filter((order) => order.items && order.items.length > 0); // remove order if empty
+    }).filter((order) => order.items && order.items.length > 0);
 
     setOrders(updatedOrders);
     localStorage.setItem('keshira_orders', JSON.stringify(updatedOrders));
+
+    // Persist to Supabase
+    if (targetOrder) {
+      try {
+        await supabase.from('orders').update({
+          order_data: targetOrder
+        }).eq('id', orderId);
+      } catch (err) {
+        console.warn('Could not sync cancellation with Supabase:', err);
+      }
+    }
+
     setSuccessMsg('Subscription successfully cancelled.');
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  const handleUpdateAddress = (e) => {
+  const handleUpdateAddress = async (e) => {
     e.preventDefault();
+    const updatedOrdersToSync = [];
     const updatedOrders = orders.map((order) => {
-      if (order.shippingAddress && order.shippingAddress.email.trim().toLowerCase() === emailSearch.trim().toLowerCase()) {
-        return {
+      if (order.shippingAddress && (
+        order.shippingAddress.email.trim().toLowerCase() === emailSearch.trim().toLowerCase() ||
+        normalizeEmail(order.shippingAddress.email) === normalizeEmail(emailSearch)
+      )) {
+        const updated = {
           ...order,
           shippingAddress: {
             ...order.shippingAddress,
@@ -159,11 +275,25 @@ export default function SubscriptionPortal({ isOpen, onClose }) {
             pinCode: addressForm.pinCode
           }
         };
+        updatedOrdersToSync.push(updated);
+        return updated;
       }
       return order;
     });
     setOrders(updatedOrders);
     localStorage.setItem('keshira_orders', JSON.stringify(updatedOrders));
+
+    // Persist to Supabase for matched orders
+    try {
+      for (const order of updatedOrdersToSync) {
+        await supabase.from('orders').update({
+          order_data: order
+        }).eq('id', order.id);
+      }
+    } catch (err) {
+      console.warn('Could not sync updated address with Supabase:', err);
+    }
+
     setSuccessMsg('Delivery shipping address updated successfully!');
     setTimeout(() => setSuccessMsg(''), 3000);
   };
@@ -174,242 +304,356 @@ export default function SubscriptionPortal({ isOpen, onClose }) {
 
   return (
     <div className="modal-overlay" style={{ zIndex: 350 }}>
-      <div className="modal-content" style={{ width: '750px', maxWidth: '95%' }}>
+      <div className="modal-content portal-modal-dialog">
+        {/* Close Button */}
         <button className="modal-close" onClick={onClose} aria-label="Close Portal">
-          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
 
-        <div className="portal-modal-content">
-          <h3 style={{ fontSize: '2rem', marginBottom: '8px' }}>Customer Subscription Portal</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '24px' }}>
-            Manage your recurring Ayurvedic auto-deliveries.
-          </p>
+        <div className="portal-inner">
+          {/* Header */}
+          <div className="portal-header">
+            <span className="portal-badge">AYURVEDIC CARE ACCOUNT</span>
+            <h3 className="portal-title">My Account & Orders</h3>
+            <p className="portal-subtitle">
+              Manage your orders, dispatch schedules, and delivery addresses.
+            </p>
+          </div>
 
           {successMsg && (
-            <div style={{ padding: '12px 16px', backgroundColor: 'rgba(39, 174, 96, 0.1)', color: '#27ae60', borderRadius: '6px', border: '1px solid rgba(39, 174, 96, 0.2)', marginBottom: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
-              {successMsg}
+            <div className="portal-alert-success">
+              ✓ {successMsg}
             </div>
           )}
 
           {!searchSubmitted ? (
-            /* Search Form */
-            <form onSubmit={handleSearchSubmit}>
-              <div className="form-group">
-                <label className="form-label">Enter Checkout Email Address</label>
-                <input 
-                  type="email" 
-                  className="form-input" 
-                  placeholder="e.g. aarav@gmail.com"
-                  value={emailSearch}
-                  onChange={(e) => setEmailSearch(e.target.value)}
-                  required
-                  autoFocus
-                />
-              </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-                Tip: Enter the email address you utilized during checkout to fetch your active subscriptions.
-              </p>
-              <button type="submit" className="btn-primary" style={{ width: '100%', height: '44px' }}>
-                Access My Portal
-              </button>
-            </form>
+            /* Search / Login Form */
+            <div className="portal-login-card">
+              <form onSubmit={handleSearchSubmit}>
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <label className="form-label" style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                    Enter Your Order Email
+                  </label>
+                  <input 
+                    type="email" 
+                    className="form-input" 
+                    placeholder="e.g. name@gmail.com"
+                    value={emailSearch}
+                    onChange={(e) => setEmailSearch(e.target.value)}
+                    required
+                    autoFocus
+                    style={{ fontSize: '0.95rem', height: '46px' }}
+                  />
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '20px', lineHeight: 1.5 }}>
+                  Enter the email address used during your checkout to view your order history, delivery details, and subscription settings.
+                </p>
+                <button type="submit" className="btn-primary" style={{ width: '100%', height: '46px', fontSize: '0.95rem', fontWeight: 600 }}>
+                  Access My Account
+                </button>
+              </form>
+            </div>
           ) : (
             /* Portal Dashboard */
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: '12px', marginBottom: '20px' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Account: <span style={{ color: 'var(--color-primary)' }}>{emailSearch}</span></span>
-                <button className="btn-back" onClick={() => { setSearchSubmitted(false); setEmailSearch(''); }} style={{ fontSize: '0.8rem' }}>
+              {/* Account Meta Bar */}
+              <div className="portal-account-bar">
+                <div className="portal-account-user">
+                  <span className="portal-user-icon">👤</span>
+                  <div>
+                    <span className="portal-user-label">Logged In Account</span>
+                    <span className="portal-user-email">{emailSearch}</span>
+                  </div>
+                </div>
+                <button 
+                  className="portal-exit-btn" 
+                  onClick={() => { setSearchSubmitted(false); setEmailSearch(''); }}
+                >
                   Exit Account
                 </button>
               </div>
 
-              {/* Navigation Tabs */}
-              <ul className="tabs-nav" style={{ marginBottom: '24px' }}>
-                <li>
-                  <button 
-                    className={`tab-btn ${activeTab === 'subscriptions' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('subscriptions')}
-                  >
-                    Subscriptions ({subscriptions.length})
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    className={`tab-btn ${activeTab === 'address' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('address')}
-                    disabled={subscriptions.length === 0}
-                    style={{ opacity: subscriptions.length === 0 ? 0.5 : 1 }}
-                  >
-                    Update Shipping Address
-                  </button>
-                </li>
-              </ul>
+              {/* Modern Segmented Navigation Tabs */}
+              <div className="portal-tabs-segmented">
+                <button 
+                  className={`portal-tab-pill ${activeTab === 'orders' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('orders')}
+                >
+                  My Orders ({customerOrders.length})
+                </button>
+                <button 
+                  className={`portal-tab-pill ${activeTab === 'subscriptions' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('subscriptions')}
+                >
+                  Subscriptions ({subscriptions.length})
+                </button>
+                <button 
+                  className={`portal-tab-pill ${activeTab === 'address' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('address')}
+                  disabled={customerOrders.length === 0}
+                  style={{ opacity: customerOrders.length === 0 ? 0.45 : 1, cursor: customerOrders.length === 0 ? 'not-allowed' : 'pointer' }}
+                >
+                  Shipping Address
+                </button>
+              </div>
 
-              {activeTab === 'subscriptions' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {subscriptions.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>
-                      <p>No active subscriptions found for this email address.</p>
-                      <p style={{ fontSize: '0.8rem', marginTop: '8px' }}>
-                        To set one up, buy shampoo with the **Subscribe & Save** option!
+              {/* Orders Tab */}
+              {activeTab === 'orders' && (
+                <div className="portal-tab-body">
+                  {isLoading ? (
+                    <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--color-primary)' }}>
+                      <div className="spinner" style={{ margin: '0 auto 12px' }}></div>
+                      <span>Fetching your orders from customer records...</span>
+                    </div>
+                  ) : customerOrders.length === 0 ? (
+                    <div className="portal-empty-state">
+                      <div className="portal-empty-icon">🛍️</div>
+                      <h4 className="portal-empty-title">No Orders Found</h4>
+                      <p className="portal-empty-text">
+                        There are no orders registered under <strong>{emailSearch}</strong> yet.
                       </p>
+                      <button 
+                        className="btn-primary" 
+                        onClick={() => {
+                          onClose();
+                          const el = document.getElementById('catalog');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        style={{ padding: '10px 24px', fontSize: '0.86rem', marginTop: '14px' }}
+                      >
+                        Explore Authentic Formulations
+                      </button>
                     </div>
                   ) : (
-                    subscriptions.map((sub, idx) => (
-                      <div 
-                        key={idx}
-                        style={{
-                          border: '1px solid var(--color-border)',
-                          borderRadius: '8px',
-                          padding: '20px',
-                          backgroundColor: sub.status === 'Paused' ? 'rgba(26, 50, 30, 0.01)' : 'var(--color-bg-parchment-light)',
-                          opacity: sub.status === 'Paused' ? 0.7 : 1
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
-                          <div>
-                            <h4 style={{ fontSize: '1.25rem', color: 'var(--color-primary)', margin: 0 }}>
-                              {sub.title} ({sub.variant})
-                            </h4>
-                            <span 
-                              style={{ 
-                                display: 'inline-block',
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.7rem',
-                                fontWeight: 'bold',
-                                marginTop: '6px',
-                                backgroundColor: sub.status === 'Active' ? 'rgba(39, 174, 96, 0.15)' : 'rgba(127, 140, 141, 0.15)',
-                                color: sub.status === 'Active' ? '#27ae60' : '#7f8c8d'
-                              }}
-                            >
-                              Status: {sub.status}
-                            </span>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>₹{sub.price}</div>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Quantity: {sub.quantity}</span>
-                          </div>
-                        </div>
-
-                        <div className="portal-details-grid" style={{ borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', padding: '12px 0', margin: '16px 0', fontSize: '0.85rem' }}>
-                          <div>
-                            📅 <strong>Next Dispatch:</strong> {sub.status === 'Active' ? sub.nextShipment : 'Paused'}
-                          </div>
-                          <div>
-                            🔄 <strong>Frequency:</strong> Every {sub.frequency}
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                          <button 
-                            className="btn-primary" 
-                            style={{ 
-                              padding: '8px 16px', 
-                              fontSize: '0.8rem',
-                              backgroundColor: sub.status === 'Active' ? '#7f8c8d' : 'var(--color-primary)' 
-                            }}
-                            onClick={() => handleToggleStatus(sub.orderId, sub.status)}
-                          >
-                            {sub.status === 'Active' ? 'Pause Auto-Delivery' : 'Resume Auto-Delivery'}
-                          </button>
-
-                          {sub.status === 'Active' && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Change:</span>
-                              <select
-                                value={sub.frequency.split(' ')[0]}
-                                onChange={(e) => handleChangeFrequency(sub.orderId, e.target.value)}
-                                style={{ 
-                                  height: '32px', 
-                                  borderRadius: '4px', 
-                                  border: '1px solid var(--color-border)', 
-                                  padding: '0 8px', 
-                                  backgroundColor: 'var(--color-bg-parchment-light)',
-                                  fontSize: '0.8rem',
-                                  fontFamily: 'inherit'
-                                }}
-                              >
-                                <option value="30">Every 30 Days</option>
-                                <option value="45">Every 45 Days</option>
-                              </select>
+                    <div className="portal-sub-list">
+                      {customerOrders.map((ord, idx) => (
+                        <div key={idx} className="portal-sub-card">
+                          <div className="portal-sub-top">
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span style={{ fontWeight: 800, color: 'var(--color-primary)', fontSize: '1rem', fontFamily: 'monospace' }}>
+                                  #{ord.id}
+                                </span>
+                                <span className="portal-status-badge status-active" style={{ fontSize: '0.72rem' }}>
+                                  ● {ord.status}
+                                </span>
+                              </div>
+                              <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                                Placed on {new Date(ord.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
                             </div>
-                          )}
+                            <div className="portal-sub-price-col">
+                              <span className="portal-sub-price">₹{ord.total}</span>
+                              <span className="portal-sub-qty">
+                                {ord.items ? ord.items.reduce((sum, it) => sum + (it.quantity || 1), 0) : 0} Items
+                              </span>
+                            </div>
+                          </div>
 
-                          <button 
-                            className="btn-secondary" 
-                            style={{ padding: '8px 16px', fontSize: '0.8rem', color: '#c0392b', borderColor: '#c0392b', marginLeft: 'auto' }}
-                            onClick={() => handleCancelSubscription(sub.orderId, sub.itemId)}
-                          >
-                            Cancel Auto-Delivery
-                          </button>
+                          {/* Ordered items breakdown */}
+                          <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid rgba(18, 43, 25, 0.08)', margin: '12px 0' }}>
+                            {ord.items && ord.items.map((item, i) => (
+                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < ord.items.length - 1 ? '1px dashed #eee' : 'none', fontSize: '0.82rem' }}>
+                                <div>
+                                  <strong style={{ color: 'var(--color-primary)' }}>{item.title}</strong>
+                                  <span style={{ color: 'var(--color-text-muted)', marginLeft: '6px' }}>({item.variant}) × {item.quantity}</span>
+                                </div>
+                                <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                                  ₹{item.price * item.quantity}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="portal-sub-info-grid">
+                            <div className="portal-info-item">
+                              <span className="portal-info-label">📍 Deliver To</span>
+                              <span className="portal-info-value">
+                                {ord.shippingAddress?.fullName}, {ord.shippingAddress?.city} ({ord.shippingAddress?.pinCode})
+                              </span>
+                            </div>
+                            <div className="portal-info-item">
+                              <span className="portal-info-label">💳 Payment Reference</span>
+                              <span className="portal-info-value" style={{ fontFamily: 'monospace' }}>
+                                {ord.utr ? ord.utr : 'UPI Verification'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
 
-              {activeTab === 'address' && subscriptions.length > 0 && (
-                <form onSubmit={handleUpdateAddress}>
-                  <h4 style={{ fontSize: '1.2rem', marginBottom: '16px' }}>Update Delivery Details</h4>
-                  
-                  <div className="form-group">
-                    <label className="form-label">Full Name</label>
-                    <input 
-                      type="text" 
-                      name="fullName" 
-                      className="form-input"
-                      value={addressForm.fullName}
-                      onChange={handleAddressChange}
-                      required
-                    />
-                  </div>
+              {/* Subscriptions Tab */}
+              {activeTab === 'subscriptions' && (
+                <div className="portal-tab-body">
+                  {subscriptions.length === 0 ? (
+                    <div className="portal-empty-state">
+                      <div className="portal-empty-icon">📦</div>
+                      <h4 className="portal-empty-title">No Active Subscriptions</h4>
+                      <p className="portal-empty-text">
+                        There are no recurring auto-delivery orders linked to <strong>{emailSearch}</strong>. One-time orders appear under the <strong>My Orders</strong> tab above.
+                      </p>
+                      <button 
+                        className="btn-primary" 
+                        onClick={() => {
+                          onClose();
+                          const el = document.getElementById('catalog');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        style={{ padding: '10px 24px', fontSize: '0.86rem', marginTop: '14px' }}
+                      >
+                        Explore Herbal Subscriptions (Save 10%)
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="portal-sub-list">
+                      {subscriptions.map((sub, idx) => (
+                        <div 
+                          key={idx}
+                          className={`portal-sub-card ${sub.status === 'Paused' ? 'paused' : ''}`}
+                        >
+                          <div className="portal-sub-top">
+                            <div>
+                              <h4 className="portal-sub-title">
+                                {sub.title} ({sub.variant})
+                              </h4>
+                              <span className={`portal-status-badge ${sub.status === 'Active' ? 'status-active' : 'status-paused'}`}>
+                                ● {sub.status} Auto-Delivery
+                              </span>
+                            </div>
+                            <div className="portal-sub-price-col">
+                              <span className="portal-sub-price">₹{sub.price}</span>
+                              <span className="portal-sub-qty">Qty: {sub.quantity}</span>
+                            </div>
+                          </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Street Address</label>
-                    <input 
-                      type="text" 
-                      name="address" 
-                      className="form-input"
-                      value={addressForm.address}
-                      onChange={handleAddressChange}
-                      required
-                    />
-                  </div>
+                          <div className="portal-sub-info-grid">
+                            <div className="portal-info-item">
+                              <span className="portal-info-label">📅 Next Dispatch</span>
+                              <span className="portal-info-value">
+                                {sub.status === 'Active' ? sub.nextShipment : 'Currently Paused'}
+                              </span>
+                            </div>
+                            <div className="portal-info-item">
+                              <span className="portal-info-label">🔄 Cycle Frequency</span>
+                              <span className="portal-info-value">Every {sub.frequency}</span>
+                            </div>
+                          </div>
 
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">City</label>
+                          <div className="portal-sub-actions">
+                            <button 
+                              className={`btn-sub-toggle ${sub.status === 'Active' ? 'btn-pause' : 'btn-resume'}`}
+                              onClick={() => handleToggleStatus(sub.orderId, sub.status)}
+                            >
+                              {sub.status === 'Active' ? 'Pause Auto-Delivery' : 'Resume Auto-Delivery'}
+                            </button>
+
+                            {sub.status === 'Active' && (
+                              <div className="portal-frequency-select">
+                                <label className="portal-freq-label">Frequency:</label>
+                                <select
+                                  value={sub.frequency.split(' ')[0]}
+                                  onChange={(e) => handleChangeFrequency(sub.orderId, e.target.value)}
+                                  className="portal-select"
+                                >
+                                  <option value="30">Every 30 Days</option>
+                                  <option value="45">Every 45 Days</option>
+                                </select>
+                              </div>
+                            )}
+
+                            <button 
+                              className="btn-sub-cancel"
+                              onClick={() => handleCancelSubscription(sub.orderId, sub.itemId)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Address Tab */}
+              {activeTab === 'address' && (
+                <div className="portal-tab-body">
+                  <form onSubmit={handleUpdateAddress} className="portal-address-form">
+                    <div style={{ marginBottom: '16px' }}>
+                      <h4 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--color-primary)', margin: '0 0 4px 0' }}>
+                        Default Delivery Address
+                      </h4>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', margin: 0 }}>
+                        This address will be pre-filled automatically on your future orders and refills.
+                      </p>
+                    </div>
+                    
+                    <div className="form-group" style={{ marginBottom: '14px' }}>
+                      <label className="form-label">Full Name</label>
                       <input 
                         type="text" 
-                        name="city" 
+                        name="fullName" 
                         className="form-input"
-                        value={addressForm.city}
+                        placeholder="e.g. Aarav Sharma"
+                        value={addressForm.fullName}
                         onChange={handleAddressChange}
                         required
                       />
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">PIN Code</label>
+
+                    <div className="form-group" style={{ marginBottom: '14px' }}>
+                      <label className="form-label">Street Address / House No.</label>
                       <input 
                         type="text" 
-                        name="pinCode" 
+                        name="address" 
                         className="form-input"
-                        value={addressForm.pinCode}
+                        placeholder="Flat/House No., Building, Street"
+                        value={addressForm.address}
                         onChange={handleAddressChange}
                         required
                       />
                     </div>
-                  </div>
 
-                  <button type="submit" className="btn-primary" style={{ width: '100%', height: '44px', marginTop: '12px' }}>
-                    Save Delivery Details
-                  </button>
-                </form>
+                    <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+                      <div className="form-group">
+                        <label className="form-label">City</label>
+                        <input 
+                          type="text" 
+                          name="city" 
+                          className="form-input"
+                          placeholder="e.g. Mumbai"
+                          value={addressForm.city}
+                          onChange={handleAddressChange}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">PIN Code</label>
+                        <input 
+                          type="text" 
+                          name="pinCode" 
+                          maxLength="6"
+                          className="form-input"
+                          placeholder="e.g. 400001"
+                          value={addressForm.pinCode}
+                          onChange={handleAddressChange}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <button type="submit" className="btn-primary" style={{ width: '100%', height: '44px', fontWeight: 600 }}>
+                      Save Delivery Address
+                    </button>
+                  </form>
+                </div>
               )}
 
             </div>

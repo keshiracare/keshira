@@ -26,11 +26,16 @@ export default function SocialCollage() {
             @keshira_haircare
           </a>
           
-          <h2 className="collage-title">Purely Homemade, Hand-Poured</h2>
-          <p className="collage-description">
-            Keshira is crafted with traditional care. We source high-quality organic botanical herbs, 
-            extracting active nutrients by hand and pouring in small micro batches to ensure absolute freshness. 
-            Read the detailed back label on our bottles for ingredients, shelf-life, and complete transparency.
+          <span className="section-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
+            COMMUNITY & CRAFT
+          </span>
+          <h2 className="section-title" style={{ fontSize: '2.2rem', marginBottom: '14px' }}>
+            Purely Handcrafted in Ahmedabad
+          </h2>
+          <p className="collage-description" style={{ lineHeight: '1.65', color: 'var(--color-text-body)' }}>
+            Keshira is made with traditional devotion. We source wild-harvested herbs, 
+            slow-cooking active botanicals in pure sesame oil and pouring small micro-batches to guarantee freshness. 
+            Every bottle features complete batch transparency and an honest botanical disclosure.
           </p>
 
           <div className="social-highlights">
