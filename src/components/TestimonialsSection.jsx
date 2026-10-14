@@ -435,8 +435,10 @@ export default function TestimonialsSection() {
           {/* Filter & Add Review Button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ fontSize: '0.82rem', fontWeight: 'bold', color: 'var(--color-primary)' }}>Filter:</label>
+              <label htmlFor="review-rating-filter" style={{ fontSize: '0.82rem', fontWeight: 'bold', color: 'var(--color-primary)' }}>Filter:</label>
               <select
+                id="review-rating-filter"
+                aria-label="Filter reviews by star rating"
                 value={filterRating}
                 onChange={(e) => setFilterRating(e.target.value)}
                 style={{
@@ -780,10 +782,12 @@ export default function TestimonialsSection() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>
+                    <label htmlFor="review-form-rating" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>
                       Rating *
                     </label>
                     <select
+                      id="review-form-rating"
+                      aria-label="Rating"
                       value={form.rating}
                       onChange={(e) => setForm({ ...form, rating: e.target.value })}
                       style={{
@@ -806,10 +810,12 @@ export default function TestimonialsSection() {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>
+                    <label htmlFor="review-form-scalptype" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>
                       Scalp Type
                     </label>
                     <select
+                      id="review-form-scalptype"
+                      aria-label="Scalp Type"
                       value={form.scalpType}
                       onChange={(e) => setForm({ ...form, scalpType: e.target.value })}
                       style={{
@@ -832,10 +838,12 @@ export default function TestimonialsSection() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>
+                  <label htmlFor="review-form-product" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>
                     Product Used
                   </label>
                   <select
+                    id="review-form-product"
+                    aria-label="Product Used"
                     value={form.productUsed}
                     onChange={(e) => setForm({ ...form, productUsed: e.target.value })}
                     style={{

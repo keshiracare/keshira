@@ -489,6 +489,7 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
                         style={{ flex: 1, height: '32px', padding: '0 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
                       />
                       <select 
+                        aria-label="Select Rating"
                         value={newReview.rating} 
                         onChange={e => setNewReview({ ...newReview, rating: Number(e.target.value) })}
                         style={{ height: '32px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '0.8rem', fontWeight: 600 }}

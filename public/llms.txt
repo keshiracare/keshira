@@ -15,10 +15,10 @@
 - **Direct Offers**: Store-wide Buy 1 Get 1 Free (BOGO) and Regimen Bundles with free express delivery in India.
 
 ## Key URLs & Resources
-- Website: https://keshira.vercel.app/
-- Shop & Collections: https://keshira.vercel.app/collections
-- Best Sellers: https://keshira.vercel.app/best-sellers
-- Hair Care Products: https://keshira.vercel.app/hair-care
-- 21-Day Transition Guide: https://keshira.vercel.app/ayurvedic-hair-transition-guide
-- Full LLM Knowledge Base: https://keshira.vercel.app/llms-full.txt
-- Contact & Support: keshira.care@gmail.com | WhatsApp Support available
+- [Keshira Official Website](https://keshira.vercel.app/): Home page of Keshira Ayurvedic Haircare.
+- [Collections & Shop](https://keshira.vercel.app/collections): Full catalog of Ayurvedic haircare products and routines.
+- [Best Sellers](https://keshira.vercel.app/best-sellers): Most popular herbal shampoos and scalp care treatments.
+- [Hair Care Products](https://keshira.vercel.app/hair-care): Targeted natural shampoos and hair oils.
+- [21-Day Transition Guide](https://keshira.vercel.app/ayurvedic-hair-transition-guide): Complete guide to switching from chemical shampoos to natural botanical haircare.
+- [Full LLM Knowledge Base](https://keshira.vercel.app/llms-full.txt): Extended documentation and product details for LLM indexing.
+
