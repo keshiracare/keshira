@@ -227,7 +227,7 @@ export const KESHIRA_PRODUCTS = {
   }
 };
 
-// Curated 2-Step Regimen Bundles (Shampoo + Oil) - High AOV Driver
+// Curated Regimen Bundles & Multi-Pack Duos (Shampoo + Oil, Twins & Full Routines)
 export const KESHIRA_BUNDLES = [
   {
     id: 'bundle-hairfall-regimen',
@@ -242,6 +242,9 @@ export const KESHIRA_BUNDLES = [
     size: '200ml + 200ml',
     badge: '⭐ MOST POPULAR • DUO DEAL',
     image: '/assets/combo-luxury.jpg',
+    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.jpeg',
+    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    category: 'oil-shampoo-duo',
     includes: [
       '1x Keshira Hibiscus Herbal Shampoo (200ml)',
       '1x Keshira Herbal Oil (200ml)',
@@ -261,6 +264,9 @@ export const KESHIRA_BUNDLES = [
     size: '200ml + 200ml',
     badge: '🌿 FLAKE RESET • DUO DEAL',
     image: '/assets/combo-luxury.jpg',
+    shampooImage: '/assets/Keshira Neem Herbal Shampoo.jpeg',
+    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    category: 'oil-shampoo-duo',
     includes: [
       '1x Keshira Neem Herbal Shampoo (200ml)',
       '1x Keshira Herbal Oil (200ml)',
@@ -280,9 +286,55 @@ export const KESHIRA_BUNDLES = [
     size: '200ml + 200ml',
     badge: '✨ GENTLE CARE • DUO DEAL',
     image: '/assets/combo-luxury.jpg',
+    shampooImage: '/assets/Keshira Gentle Herbal Shampoo.jpeg',
+    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    category: 'oil-shampoo-duo',
     includes: [
       '1x Keshira Gentle Herbal Shampoo (200ml)',
       '1x Keshira Herbal Oil (200ml)',
+      'FREE Pan-India Express Delivery'
+    ]
+  },
+  {
+    id: 'bundle-double-nourish-shampoo-twin',
+    name: 'Double Nourish Shampoo Twin-Pack',
+    tagline: '2x 200ml Herbal Shampoo (400ml Value Stock)',
+    target: 'Uninterrupted Daily/Weekly Cleansing Ritual',
+    shampooId: 'hairfall',
+    price: 359,
+    originalPrice: 398,
+    savings: 39,
+    savingsPercent: '10% OFF',
+    size: '200ml + 200ml (400ml)',
+    badge: '🔥 TWIN PACK • BEST VALUE',
+    image: '/assets/hero-shampoo.jpg',
+    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.jpeg',
+    oilImage: '/assets/Keshira Neem Herbal Shampoo.jpeg',
+    category: 'multi-pack',
+    includes: [
+      '2x Keshira Herbal Shampoo (200ml each = 400ml total)',
+      'Choose Hibiscus, Neem, or Gentle formula',
+      'FREE Pan-India Express Delivery'
+    ]
+  },
+  {
+    id: 'bundle-intensive-scalp-oil-duo',
+    name: 'Intensive Scalp Therapy Oil Twin-Pack',
+    tagline: '2x 200ml Cold-Cooked Herbal Hair Oil (400ml)',
+    target: 'Deep Follicle Nutrition & Weekly Champi Routine',
+    price: 459,
+    originalPrice: 498,
+    savings: 39,
+    savingsPercent: '8% OFF',
+    size: '200ml + 200ml (400ml)',
+    badge: '🌿 OIL TWIN • 14 SACRED HERBS',
+    image: '/assets/Keshira Herbal Oil.jpeg',
+    shampooImage: '/assets/Keshira Herbal Oil.jpeg',
+    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    category: 'multi-pack',
+    includes: [
+      '2x Keshira Herbal Hair Oil (200ml each = 400ml total)',
+      'Pre-wash nourishment with cold-pressed sesame base',
       'FREE Pan-India Express Delivery'
     ]
   },
@@ -292,16 +344,41 @@ export const KESHIRA_BUNDLES = [
     tagline: 'Starter Size for First-Time Ayurvedic Explorers',
     target: 'Try Keshira at an accessible price point',
     shampooId: 'hairfall',
-    price: 269,
-    originalPrice: 467,
-    savings: 198,
-    savingsPercent: '42% OFF',
+    price: 219,
+    originalPrice: 248,
+    savings: 29,
+    savingsPercent: '12% OFF',
     size: '100ml + 100ml',
-    badge: '🌱 STARTER KIT • SAVE ₹198',
+    badge: '🌱 STARTER KIT • SAVE ₹29',
     image: '/assets/collage-details.jpg',
+    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.jpeg',
+    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    category: 'oil-shampoo-duo',
     includes: [
-      '1x Keshira Herbal Shampoo of your choice (100ml)',
+      '1x Keshira Herbal Shampoo (100ml)',
       '1x Keshira Herbal Oil (100ml)',
+      'FREE Pan-India Express Delivery'
+    ]
+  },
+  {
+    id: 'bundle-3month-regrowth-supply',
+    name: '3-Month Complete Regrowth Supply',
+    tagline: 'Ultimate 5-Bottle Apothecary Regimen (600ml Wash + 400ml Oil)',
+    target: 'Comprehensive 12-Week Ayurvedic Hair Transformation',
+    price: 949,
+    originalPrice: 1095,
+    savings: 146,
+    savingsPercent: '13% OFF',
+    size: '3x Shampoo + 2x Oil (1000ml Total)',
+    badge: '👑 MAX SAVINGS • SAVE ₹146',
+    image: '/assets/combo-luxury.jpg',
+    shampooImage: '/assets/Keshira Hibiscus Herbal Shampoo.jpeg',
+    oilImage: '/assets/Keshira Herbal Oil.jpeg',
+    category: 'multi-pack',
+    includes: [
+      '3x Keshira Herbal Shampoo (200ml each = 600ml)',
+      '2x Keshira Herbal Hair Oil (200ml each = 400ml)',
+      'Free Ayurvedic Hair Transition Guide',
       'FREE Pan-India Express Delivery'
     ]
   }

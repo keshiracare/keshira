@@ -273,7 +273,7 @@ export default function BestSellersPage({ onAddToCart, onNavigateHome }) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-            {[KESHIRA_BUNDLES.hairfallDuo, KESHIRA_BUNDLES.dandruffDuo].map(bundle => (
+            {KESHIRA_BUNDLES.slice(0, 2).map(bundle => (
               <div 
                 key={bundle.id}
                 style={{
