@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase, serializeReviewText, deserializeReviewRow } from '../supabase';
+import { supabase, serializeReviewText, deserializeReviewRow, normalizeEmail } from '../supabase';
 
 const INITIAL_TESTIMONIALS = [
   {
@@ -123,11 +123,14 @@ export default function TestimonialsSection() {
   };
 
   const verifyOrderEligibility = async () => {
-    const query = form.orderIdOrEmail.trim();
-    if (!query) {
+    const rawQuery = form.orderIdOrEmail.trim();
+    if (!rawQuery) {
       alert('Please enter your Order ID or purchase email.');
       return;
     }
+
+    const query = rawQuery.toLowerCase();
+    const normalizedInputEmail = normalizeEmail(rawQuery);
 
     setIsVerifying(true);
     setVerificationStatus(null);
@@ -136,10 +139,12 @@ export default function TestimonialsSection() {
       // 1. Check local storage orders first
       const savedOrders = localStorage.getItem('keshira_orders');
       const orderList = savedOrders ? JSON.parse(savedOrders) : [];
-      const localMatch = orderList.find(o => 
-        (o.id && o.id.toLowerCase() === query.toLowerCase()) ||
-        (o.shippingAddress && o.shippingAddress.email && o.shippingAddress.email.toLowerCase() === query.toLowerCase())
-      );
+      const localMatch = orderList.find(o => {
+        const oId = (o.id || '').toLowerCase();
+        const oEmail = (o.shippingAddress?.email || o.email || '').toLowerCase();
+        const normOEmail = normalizeEmail(oEmail);
+        return oId === query || oEmail === query || (normalizedInputEmail && normOEmail === normalizedInputEmail);
+      });
 
       if (localMatch) {
         setVerificationStatus('verified');
@@ -154,12 +159,23 @@ export default function TestimonialsSection() {
         return;
       }
 
-      // 2. Query Supabase orders table
-      const { data: dbOrders, error } = await supabase
+      // 2. Query Supabase orders table with a strict 4-second timeout to prevent infinite/stuck checking
+      const searchConditions = [`id.ilike.%${rawQuery}%`, `email.ilike.%${rawQuery}%`];
+      if (normalizedInputEmail) {
+        searchConditions.push(`normalized_email.eq.${normalizedInputEmail}`);
+      }
+
+      const queryPromise = supabase
         .from('orders')
         .select('id, email, order_data')
-        .or(`id.ilike.%${query}%,email.ilike.%${query}%`)
+        .or(searchConditions.join(','))
         .limit(1);
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Verification timeout')), 4000)
+      );
+
+      const { data: dbOrders, error } = await Promise.race([queryPromise, timeoutPromise]);
 
       if (!error && dbOrders && dbOrders.length > 0) {
         setVerificationStatus('verified');
@@ -176,8 +192,8 @@ export default function TestimonialsSection() {
       }
     } catch (err) {
       console.warn('Verification lookup fallback:', err);
-      // If error or offline, consider valid community submission
-      setVerificationStatus('community');
+      // If network times out, hangs, or table is inaccessible, smoothly conclude as community review
+      setVerificationStatus('not_found');
     } finally {
       setIsVerifying(false);
     }
