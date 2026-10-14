@@ -34,7 +34,16 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
   const [activeVariant, setActiveVariant] = useState('200ml');
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('benefits');
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState(() => {
+    try {
+      const saved = localStorage.getItem('keshira_reviews');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_REVIEWS;
+  });
   const [newReview, setNewReview] = useState({
     name: '',
     rating: 5,
@@ -201,7 +210,7 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
     });
 
     try {
-      const { data: inserted } = await supabase.from('reviews').insert([{
+      const { data: inserted, error: insertErr } = await supabase.from('reviews').insert([{
         name: reviewObj.name,
         rating: reviewObj.rating,
         scalp_type: reviewObj.scalpType,
@@ -209,19 +218,28 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
         date: reviewObj.date
       }]).select().single();
 
-      const saved = inserted ? deserializeReviewRow(inserted) : { id: `local-${Date.now()}`, ...reviewObj };
-      const updated = [saved, ...reviews];
-      setReviews(updated);
-      localStorage.setItem('keshira_reviews', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
-      window.dispatchEvent(new CustomEvent('keshira:review-added'));
-    } catch {
+      if (insertErr) {
+        console.error('Error inserting review to Supabase from ProductDetail:', insertErr);
+      }
+
+      const saved = (inserted && !insertErr) ? deserializeReviewRow(inserted) : { id: `local-${Date.now()}`, ...reviewObj };
+      setReviews(prev => {
+        const updated = [saved, ...prev.filter(r => r.id !== saved.id)];
+        localStorage.setItem('keshira_reviews', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
+        window.dispatchEvent(new CustomEvent('keshira:review-added'));
+        return updated;
+      });
+    } catch (err) {
+      console.error('Exception inserting review from ProductDetail:', err);
       const saved = { id: `local-${Date.now()}`, ...reviewObj };
-      const updated = [saved, ...reviews];
-      setReviews(updated);
-      localStorage.setItem('keshira_reviews', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
-      window.dispatchEvent(new CustomEvent('keshira:review-added'));
+      setReviews(prev => {
+        const updated = [saved, ...prev.filter(r => r.id !== saved.id)];
+        localStorage.setItem('keshira_reviews', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
+        window.dispatchEvent(new CustomEvent('keshira:review-added'));
+        return updated;
+      });
     }
 
     setNewReview({ name: '', rating: 5, scalpType: 'Normal & Balanced', text: '' });

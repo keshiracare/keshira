@@ -50,7 +50,16 @@ const INITIAL_TESTIMONIALS = [
 ];
 
 export default function TestimonialsSection() {
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState(() => {
+    try {
+      const saved = localStorage.getItem('keshira_reviews');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_TESTIMONIALS;
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterRating, setFilterRating] = useState('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -331,26 +340,32 @@ export default function TestimonialsSection() {
         .single();
 
       if (error) {
-        console.warn('Could not persist review to Supabase:', error);
+        console.error('Failed to insert review to Supabase:', error);
+      } else {
+        console.log('Review inserted successfully to Supabase:', insertedData?.id);
       }
 
-      const saved = insertedData 
+      const saved = (insertedData && !error) 
         ? deserializeReviewRow(insertedData)
         : { id: `local-${Date.now()}`, ...newEntry };
 
-      const updated = [saved, ...reviews];
-      setReviews(updated);
-      localStorage.setItem('keshira_reviews', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
-      window.dispatchEvent(new CustomEvent('keshira:review-added'));
+      setReviews(prevReviews => {
+        const updated = [saved, ...prevReviews.filter(r => r.id !== saved.id)];
+        localStorage.setItem('keshira_reviews', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
+        window.dispatchEvent(new CustomEvent('keshira:review-added'));
+        return updated;
+      });
     } catch (err) {
       console.error('Failed to save review to Supabase, falling back to local storage cache:', err);
       const saved = { id: `local-${Date.now()}`, ...newEntry };
-      const updated = [saved, ...reviews];
-      setReviews(updated);
-      localStorage.setItem('keshira_reviews', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
-      window.dispatchEvent(new CustomEvent('keshira:review-added'));
+      setReviews(prevReviews => {
+        const updated = [saved, ...prevReviews.filter(r => r.id !== saved.id)];
+        localStorage.setItem('keshira_reviews', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: updated }));
+        window.dispatchEvent(new CustomEvent('keshira:review-added'));
+        return updated;
+      });
     } finally {
       setIsSubmitting(false);
       setSubmitSuccess(true);
