@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { KESHIRA_PRODUCTS, getActiveOffers } from '../data/products';
+import { KESHIRA_PRODUCTS, getActiveOffers, getEffectiveProductPrice } from '../data/products';
 
 export default function ShampooComparisonTable({ onSelectProduct, storeOffers: propStoreOffers }) {
   const [storeOffers, setStoreOffers] = useState(propStoreOffers || getActiveOffers());
@@ -56,7 +56,7 @@ export default function ShampooComparisonTable({ onSelectProduct, storeOffers: p
                       {shampoo.shortName}
                     </h3>
                     <div className="table-price-tag">
-                      ₹{shampoo.prices['200ml'].price} <span className="table-size-sub">/ 200ml</span>
+                      ₹{getEffectiveProductPrice(shampoo.prices['200ml'], isBogoActive).price} <span className="table-size-sub">/ 200ml</span>
                     </div>
                     {isBogoActive && (
                       <div className="table-bogo-tag">

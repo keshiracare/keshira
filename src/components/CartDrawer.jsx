@@ -25,6 +25,7 @@ export default function CartDrawer({
   const [emailInput, setEmailInput] = useState(userEmail || '');
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [emailMessage, setEmailMessage] = useState({ text: '', type: '' });
+  const [isPriceBreakdownOpen, setIsPriceBreakdownOpen] = useState(false);
 
   // Listen for live offer/coupon updates from Admin Portal
   useEffect(() => {
@@ -821,18 +822,63 @@ export default function CartDrawer({
               )}
             </div>
 
-            {/* Estimated Total Bar */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'baseline',
-              marginBottom: '4px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {/* Estimated Total Bar (Collapsible Price Breakdown) */}
+            <div 
+              onClick={() => setIsPriceBreakdownOpen(prev => !prev)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsPriceBreakdownOpen(prev => !prev);
+                }
+              }}
+              aria-expanded={isPriceBreakdownOpen}
+              title="Click to view detailed price breakdown"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px',
+                cursor: 'pointer',
+                userSelect: 'none',
+                padding: '4px 0',
+                borderRadius: '4px',
+                transition: 'background-color 0.15s ease'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#111827' }}>
                   Estimated Total
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#6B7280' }}>⌵</span>
+                <span 
+                  style={{ 
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    backgroundColor: '#F3F4F6',
+                    color: '#4B5563',
+                    transform: isPriceBreakdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.25s ease'
+                  }}
+                  aria-hidden="true"
+                >
+                  <svg 
+                    width="11" 
+                    height="11" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </span>
               </div>
 
               <div style={{ textAlign: 'right' }}>
@@ -846,6 +892,80 @@ export default function CartDrawer({
                 </span>
               </div>
             </div>
+
+            {/* Collapsible Price Breakdown Card */}
+            {isPriceBreakdownOpen && (
+              <div style={{
+                margin: '8px 0 12px',
+                padding: '12px 14px',
+                borderRadius: '8px',
+                backgroundColor: '#F9FAFB',
+                border: '1px solid #E5E7EB',
+                fontSize: '0.78rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                animation: 'fadeIn 0.2s ease'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4B5563' }}>
+                  <span>Bag Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} {cart.reduce((sum, item) => sum + item.quantity, 0) === 1 ? 'item' : 'items'})</span>
+                  <span>₹{grossSubtotal}</span>
+                </div>
+
+                {bogoDiscount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: 600 }}>
+                    <span>🎁 Buy 1 Get 1 Free Savings</span>
+                    <span>-₹{bogoDiscount}</span>
+                  </div>
+                )}
+
+                {discountAmount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: 600 }}>
+                    <span>🏷️ Promo Discount ({appliedDiscount}% OFF{promoCode ? ` - ${promoCode}` : ''})</span>
+                    <span>-₹{discountAmount}</span>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4B5563' }}>
+                  <span>Express Delivery Charges</span>
+                  <span>
+                    {shippingCost === 0 ? (
+                      <strong style={{ color: '#16A34A' }}>FREE</strong>
+                    ) : (
+                      `₹${shippingCost}`
+                    )}
+                  </span>
+                </div>
+
+                <div style={{
+                  borderTop: '1px dashed #D1D5DB',
+                  paddingTop: '6px',
+                  marginTop: '2px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontWeight: 700,
+                  color: '#111827'
+                }}>
+                  <span>Final Payable</span>
+                  <span style={{ fontSize: '0.92rem' }}>₹{total}</span>
+                </div>
+
+                {(bogoDiscount + discountAmount) > 0 && (
+                  <div style={{
+                    marginTop: '2px',
+                    fontSize: '0.72rem',
+                    color: '#15803D',
+                    fontWeight: 700,
+                    backgroundColor: '#DCFCE7',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    textAlign: 'center'
+                  }}>
+                    🎉 You are saving ₹{bogoDiscount + discountAmount}.00 on this order!
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Free shipping micro tag */}
             <div style={{ marginBottom: '14px', fontSize: '0.72rem', color: shippingCost === 0 ? '#16A34A' : '#4B5563', fontWeight: 600 }}>

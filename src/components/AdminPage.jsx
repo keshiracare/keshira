@@ -50,6 +50,22 @@ export default function AdminPage({ onNavigateHome }) {
   useEffect(() => {
     if (isAuthenticated) {
       loadData();
+
+      // Check URL query parameters for Telegram 1-click verification/rejection
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const verifyOrderId = urlParams.get('verifyOrder');
+        const action = urlParams.get('action');
+
+        if (verifyOrderId && action) {
+          const newStatus = action === 'verify' ? 'Payment Verified' : 'Payment Not Received';
+          setTimeout(() => {
+            handleUpdatePaymentVerification(verifyOrderId, newStatus);
+            // Clean up query param from URL bar
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }, 800);
+        }
+      }
     }
   }, [isAuthenticated]);
 
@@ -549,10 +565,75 @@ export default function AdminPage({ onNavigateHome }) {
     return null;
   };
 
+  // Send Automated Payment Confirmation or Rejection Email to Customer via EmailJS
+  const sendPaymentStatusEmail = (order, isVerified) => {
+    const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_ez47q6c';
+    const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_felpos2';
+    const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'dUvyAAVmDEHvYT4Nb';
+
+    if (!order?.shippingAddress?.email || PUBLIC_KEY === 'YOUR_EMAILJS_PUBLIC_KEY') return;
+
+    const subject = isVerified 
+      ? `✅ Payment Received & Order Confirmed (#${order.id}) - Keshira Apothecary` 
+      : `⚠️ Payment Not Received for Order #${order.id} - Keshira Apothecary`;
+
+    const statusNoticeHtml = isVerified
+      ? `<div style="background-color: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 16px; margin: 20px 0; color: #065F46;">
+           <h3 style="margin: 0 0 6px 0; font-size: 16px; color: #047857;">🎉 Payment Successfully Confirmed!</h3>
+           <p style="margin: 0; font-size: 13px; line-height: 1.5;">We have verified your UPI payment in our accounts. Your fresh micro-batch botanical formulation has been assigned priority dispatch.</p>
+         </div>`
+      : `<div style="background-color: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 16px; margin: 20px 0; color: #991B1B;">
+           <h3 style="margin: 0 0 6px 0; font-size: 16px; color: #B91C1C;">⚠️ Payment Not Received</h3>
+           <p style="margin: 0 0 10px 0; font-size: 13px; line-height: 1.5;">We were unable to locate your payment for <strong>Order #${order.id}</strong> (Amount: ₹${order.total}). Your order has not been placed yet.</p>
+           <p style="margin: 0 0 12px 0; font-size: 13px; line-height: 1.5;">If funds were deducted from your bank account or you entered an incorrect UTR, please reply to this email with your payment screenshot or reach out via WhatsApp so our team can immediately assist you.</p>
+           <a href="https://wa.me/919998887776?text=Help%20with%20payment%20for%20order%20${order.id}" style="display: inline-block; background-color: #122B19; color: #FFFFFF; font-size: 12px; font-weight: bold; text-decoration: none; padding: 8px 14px; border-radius: 6px;">
+             Contact WhatsApp Support →
+           </a>
+         </div>`;
+
+    const templateParams = {
+      subject: subject,
+      customer_name: order.shippingAddress.fullName,
+      customer_email: order.shippingAddress.email,
+      customer_phone: order.shippingAddress.phone,
+      delivery_address: `${order.shippingAddress.address}, ${order.shippingAddress.city} - ${order.shippingAddress.pinCode}`,
+      order_id: order.id,
+      utr_ref: order.utr || 'Pending',
+      items_html: statusNoticeHtml,
+      guide_link: 'https://keshira.vercel.app/ayurvedic-hair-transition-guide',
+      subtotal: order.subtotal || order.total,
+      discount_row: '',
+      shipping_cost: order.shipping === 0 ? 'FREE' : `₹${order.shipping}`,
+      shipping_color: order.shipping === 0 ? '#27ae60' : '#444',
+      order_total: order.total
+    };
+
+    fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id: SERVICE_ID,
+        template_id: TEMPLATE_ID,
+        user_id: PUBLIC_KEY,
+        template_params: templateParams
+      })
+    })
+    .then(r => console.log('Payment status customer email sent:', r.status))
+    .catch(err => console.error('Failed to send payment status email:', err));
+  };
+
   const handleUpdatePaymentVerification = async (orderId, newUtrStatus) => {
+    const targetOrder = orders.find(o => o.id === orderId);
+    const isVerified = newUtrStatus === 'Payment Verified';
+    const isRejected = newUtrStatus === 'Payment Not Received';
+
     const updatedOrders = orders.map(order => {
       if (order.id === orderId) {
-        return { ...order, utr: newUtrStatus };
+        return { 
+          ...order, 
+          utr: newUtrStatus,
+          status: isRejected ? 'Payment Failed' : (isVerified ? 'Processing' : order.status)
+        };
       }
       return order;
     });
@@ -571,17 +652,27 @@ export default function AdminPage({ onNavigateHome }) {
       const currentOrderData = currentRows && currentRows[0]?.order_data ? currentRows[0].order_data : {};
       const updatedOrderData = {
         ...currentOrderData,
-        utr: newUtrStatus
+        utr: newUtrStatus,
+        status: isRejected ? 'Payment Failed' : (isVerified ? 'Processing' : (currentOrderData.status || 'Received'))
       };
 
       // 2. Update Supabase
       const { error: updateErr } = await supabase
         .from('orders')
-        .update({ order_data: updatedOrderData })
+        .update({ 
+          order_data: updatedOrderData,
+          status: updatedOrderData.status
+        })
         .eq('id', orderId);
 
       if (updateErr) throw updateErr;
-      showToast(newUtrStatus === 'Payment Verified' ? 'Payment marked as Verified!' : `Payment marked as ${newUtrStatus}`);
+
+      // 3. Trigger Automated Customer Email
+      if (targetOrder) {
+        sendPaymentStatusEmail({ ...targetOrder, ...updatedOrderData }, isVerified);
+      }
+
+      showToast(isVerified ? '✅ Payment Verified & Confirmation Email Sent!' : (isRejected ? '❌ Marked Unpaid & Notification Email Sent!' : `Payment updated to ${newUtrStatus}`));
     } catch (err) {
       console.error('Error updating payment status in Supabase:', err);
       showToast('Status updated locally');
@@ -1973,7 +2064,7 @@ export default function AdminPage({ onNavigateHome }) {
                                     </button>
                                   </div>
                                 ) : (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                     {order.utr !== 'Payment Verified' && (
                                       <button
                                         onClick={() => handleUpdatePaymentVerification(order.id, 'Payment Verified')}
@@ -1982,7 +2073,7 @@ export default function AdminPage({ onNavigateHome }) {
                                           color: '#065F46',
                                           border: '1px solid #A7F3D0',
                                           borderRadius: '4px',
-                                          padding: '2px 8px',
+                                          padding: '3px 8px',
                                           fontSize: '0.72rem',
                                           fontWeight: 600,
                                           cursor: 'pointer',
@@ -1990,27 +2081,48 @@ export default function AdminPage({ onNavigateHome }) {
                                           alignItems: 'center',
                                           gap: '3px'
                                         }}
-                                        title="Verify that funds were credited in bank account"
+                                        title="Verify that funds were credited in bank account and notify customer"
                                       >
-                                        ✓ Mark Verified
+                                        ✓ Confirm Payment
+                                      </button>
+                                    )}
+                                    {order.utr !== 'Payment Not Received' && (
+                                      <button
+                                        onClick={() => handleUpdatePaymentVerification(order.id, 'Payment Not Received')}
+                                        style={{
+                                          backgroundColor: '#FEF2F2',
+                                          color: '#991B1B',
+                                          border: '1px solid #FECACA',
+                                          borderRadius: '4px',
+                                          padding: '3px 8px',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 600,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '3px'
+                                        }}
+                                        title="Reject order and email customer that payment was not received"
+                                      >
+                                        ✕ Not Received
                                       </button>
                                     )}
                                     {order.utr === 'Payment Verified' && (
                                       <button
                                         onClick={() => handleUpdatePaymentVerification(order.id, 'Pending Verification')}
                                         style={{
-                                          backgroundColor: '#FEF2F2',
-                                          color: '#991B1B',
-                                          border: '1px solid #FECACA',
+                                          backgroundColor: '#F3F4F6',
+                                          color: '#4B5563',
+                                          border: '1px solid #E5E7EB',
                                           borderRadius: '4px',
-                                          padding: '2px 8px',
+                                          padding: '3px 8px',
                                           fontSize: '0.7rem',
                                           fontWeight: 500,
                                           cursor: 'pointer'
                                         }}
-                                        title="Undo verification if money not received"
+                                        title="Reset status back to Pending"
                                       >
-                                        Unverify
+                                        Reset
                                       </button>
                                     )}
                                   </div>

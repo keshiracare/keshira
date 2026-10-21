@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getActiveProducts, getActiveOffers, getProductsWithLiveRatings } from '../data/products';
+import { getActiveProducts, getActiveOffers, getProductsWithLiveRatings, getEffectiveProductPrice } from '../data/products';
 
 export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffers }) {
   const [catalogMap, setCatalogMap] = useState(() => {
@@ -86,7 +86,9 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
 
   const handleAddSingleProduct = (product) => {
     const size = selectedSizes[product.id] || '200ml';
-    const priceInfo = product.prices?.[size] || { price: 349, originalPrice: 499, bogoPairPrice: 149 };
+    const rawPriceInfo = product.prices?.[size] || { price: 349, originalPrice: 499, bogoPairPrice: 149 };
+    const isBogoActive = Boolean(storeOffers?.isBogoEnabled && product.isBOGO);
+    const effectivePrice = getEffectiveProductPrice(rawPriceInfo, isBogoActive);
 
     if (onAddToCart) {
       onAddToCart({
@@ -96,13 +98,13 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
         title: `${product.name} - ${size}`,
         variant: size,
         subVariant: product.shortName,
-        price: priceInfo.price,
-        originalPrice: priceInfo.originalPrice,
-        bogoPairPrice: priceInfo.bogoPairPrice,
+        price: effectivePrice.price,
+        originalPrice: effectivePrice.originalPrice,
+        bogoPairPrice: rawPriceInfo.bogoPairPrice,
         quantity: 1,
         image: product.images?.primary || '/assets/Keshira Herbal Oil.jpeg',
         purchaseType: 'one-time',
-        isBOGO: product.isBOGO,
+        isBOGO: isBogoActive,
         frequency: null
       });
       showNotice(product.shortName);
@@ -170,7 +172,9 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
         <div className="product-showcase-grid">
           {filteredProducts.map(product => {
             const currentSize = selectedSizes[product.id] || '200ml';
-            const priceData = product.prices[currentSize];
+            const rawPriceData = product.prices[currentSize];
+            const isBogoActive = Boolean(storeOffers?.isBogoEnabled && product.isBOGO);
+            const priceData = getEffectiveProductPrice(rawPriceData, isBogoActive);
 
             return (
               <div key={product.id} className="product-showcase-card">
@@ -179,7 +183,7 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
                 <div className="product-image-container">
                   <div className="product-tag-row">
                     <span className="product-ph-pill">{product.pH.split(' ')[0]}</span>
-                    {Boolean(storeOffers?.isBogoEnabled) && product.isBOGO && (
+                    {isBogoActive && (
                       <span className="product-bogo-pill">Buy 1 Get 1 Free</span>
                     )}
                   </div>
@@ -230,7 +234,8 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
                     <span className="size-label">Select Bottle Size:</span>
                     <div className="size-buttons-group">
                       {Object.keys(product.prices).map(sizeKey => {
-                        const sizeInfo = product.prices[sizeKey];
+                        const rawSizeInfo = product.prices[sizeKey];
+                        const sizeInfo = getEffectiveProductPrice(rawSizeInfo, isBogoActive);
                         const isActive = currentSize === sizeKey;
                         return (
                           <button
@@ -239,7 +244,7 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
                             onClick={() => handleSizeChange(product.id, sizeKey)}
                             className={`size-toggle-btn ${isActive ? 'active' : ''}`}
                           >
-                            <span>{sizeInfo.size}</span>
+                            <span>{rawSizeInfo.size}</span>
                             <span className="size-price-tag">₹{sizeInfo.price}</span>
                           </button>
                         );
@@ -253,12 +258,14 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
                       <div className="product-price-current">
                         ₹{priceData.price}
                       </div>
-                      <div className="product-price-original">
-                        ₹{priceData.originalPrice}
-                      </div>
-                      {Boolean(storeOffers?.isBogoEnabled) && product.isBOGO && (
+                      {priceData.isDiscounted && (
+                        <div className="product-price-original">
+                          ₹{priceData.originalPrice}
+                        </div>
+                      )}
+                      {isBogoActive && (
                         <div className="bogo-dispatch-note">
-                          Buy 1 Get 1 Free (₹{priceData.bogoPairPrice} for 2)
+                          Buy 1 Get 1 Free (₹{rawPriceData.bogoPairPrice} for 2)
                         </div>
                       )}
                     </div>

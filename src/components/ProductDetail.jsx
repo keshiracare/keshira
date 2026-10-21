@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, serializeReviewText, deserializeReviewRow } from '../supabase';
-import { getActiveProducts, getActiveOffers, KESHIRA_BUNDLES, computeReviewsStats } from '../data/products';
+import { getActiveProducts, getActiveOffers, KESHIRA_BUNDLES, computeReviewsStats, getEffectiveProductPrice } from '../data/products';
 import PincodeDeliveryChecker from './PincodeDeliveryChecker';
 import { useToast } from '../context/ToastContext';
 
@@ -138,13 +138,17 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
   const liveRating = currentSpecificStats?.count > 0 ? (currentSpecificStats.sum / currentSpecificStats.count).toFixed(1) : reviewsStats.averageRatingFormatted;
   const liveCount = currentSpecificStats?.count > 0 ? currentSpecificStats.count : reviewsStats.totalCount;
 
+  const isBogoActive = Boolean(storeOffers?.isBogoEnabled && currentProduct?.isBOGO);
+  const rawProductPriceInfo = currentProduct?.prices?.[activeVariant] || { price: 349, originalPrice: 499, bogoPairPrice: 149 };
+  const effectiveProductPrice = getEffectiveProductPrice(rawProductPriceInfo, isBogoActive);
+
   const price = isBundle 
     ? currentBundle.price 
-    : currentProduct?.prices?.[activeVariant]?.price || 349;
+    : effectiveProductPrice.price;
 
   const originalPrice = isBundle
     ? currentBundle.originalPrice
-    : currentProduct?.prices?.[activeVariant]?.originalPrice || 499;
+    : effectiveProductPrice.originalPrice;
 
   const handleAddToCart = () => {
     if (!onAddToCart) return;
@@ -382,26 +386,30 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
                 Select Size:
               </span>
               <div style={{ display: 'flex', gap: '8px' }}>
-                {Object.keys(currentProduct.prices).map(sz => (
-                  <button
-                    key={sz}
-                    type="button"
-                    onClick={() => setActiveVariant(sz)}
-                    style={{
-                      flex: 1,
-                      padding: '10px',
-                      borderRadius: '8px',
-                      fontSize: '0.82rem',
-                      fontWeight: activeVariant === sz ? 700 : 500,
-                      border: activeVariant === sz ? '2px solid var(--color-primary)' : '1px solid #D1D5DB',
-                      backgroundColor: activeVariant === sz ? 'var(--color-bg-card)' : '#FFF',
-                      color: 'var(--color-primary)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {sz} Bottle • ₹{currentProduct.prices[sz].price}
-                  </button>
-                ))}
+                {Object.keys(currentProduct.prices).map(sz => {
+                  const rawSzInfo = currentProduct.prices[sz];
+                  const szInfo = getEffectiveProductPrice(rawSzInfo, isBogoActive);
+                  return (
+                    <button
+                      key={sz}
+                      type="button"
+                      onClick={() => setActiveVariant(sz)}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: activeVariant === sz ? 700 : 500,
+                        border: activeVariant === sz ? '2px solid var(--color-primary)' : '1px solid #D1D5DB',
+                        backgroundColor: activeVariant === sz ? 'var(--color-bg-card)' : '#FFF',
+                        color: 'var(--color-primary)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {sz} Bottle • ₹{szInfo.price}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

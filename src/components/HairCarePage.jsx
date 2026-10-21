@@ -1,8 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { getActiveProducts, getProductsWithLiveRatings } from '../data/products';
+import { getActiveProducts, getProductsWithLiveRatings, getActiveOffers, getEffectiveProductPrice } from '../data/products';
 
-export default function HairCarePage({ onAddToCart, onNavigateHome, initialConcern = 'all' }) {
+export default function HairCarePage({ onAddToCart, onNavigateHome, initialConcern = 'all', storeOffers: propStoreOffers }) {
   const [selectedConcern, setSelectedConcern] = useState(initialConcern);
+  const [storeOffers, setStoreOffers] = useState(propStoreOffers || getActiveOffers());
+
+  useEffect(() => {
+    if (propStoreOffers) setStoreOffers(propStoreOffers);
+  }, [propStoreOffers]);
+
+  useEffect(() => {
+    const handleOffersUpdated = (e) => setStoreOffers(e.detail || getActiveOffers());
+    window.addEventListener('keshira_offers_updated', handleOffersUpdated);
+    return () => window.removeEventListener('keshira_offers_updated', handleOffersUpdated);
+  }, []);
+
   const [catalogMap, setCatalogMap] = useState(() => {
     try {
       const saved = localStorage.getItem('keshira_reviews');
@@ -67,7 +79,10 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
 
   const handleAdd = (prod) => {
     const size = selectedSizes[prod.id] || '200ml';
-    const priceData = prod.prices[size];
+    const rawPriceData = prod.prices[size];
+    const isBogoActive = Boolean(storeOffers?.isBogoEnabled && prod.isBOGO);
+    const priceData = getEffectiveProductPrice(rawPriceData, isBogoActive);
+
     if (onAddToCart) {
       onAddToCart({
         id: `keshira-${prod.id}-${size}-one-time-0`,
@@ -78,11 +93,11 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
         subVariant: prod.shortName,
         price: priceData.price,
         originalPrice: priceData.originalPrice,
-        bogoPairPrice: priceData.bogoPairPrice,
+        bogoPairPrice: rawPriceData.bogoPairPrice,
         quantity: 1,
         image: prod.images.primary,
         purchaseType: 'one-time',
-        isBOGO: prod.isBOGO,
+        isBOGO: isBogoActive,
         frequency: null
       });
       showToast(prod.shortName);
@@ -166,7 +181,9 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '28px' }}>
           {displayedProducts.map(product => {
             const currentSize = selectedSizes[product.id] || '200ml';
-            const priceData = product.prices[currentSize];
+            const rawPriceData = product.prices[currentSize];
+            const isBogoActive = Boolean(storeOffers?.isBogoEnabled && product.isBOGO);
+            const priceData = getEffectiveProductPrice(rawPriceData, isBogoActive);
 
             return (
               <div 
@@ -214,7 +231,8 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
                     {/* Size Selector */}
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                       {Object.keys(product.prices).map(sizeKey => {
-                        const sInfo = product.prices[sizeKey];
+                        const rawSInfo = product.prices[sizeKey];
+                        const sInfo = getEffectiveProductPrice(rawSInfo, isBogoActive);
                         const isActive = currentSize === sizeKey;
                         return (
                             <button
@@ -233,7 +251,7 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
                                 cursor: 'pointer'
                               }}
                             >
-                              {sInfo.size} • ₹{sInfo.price}
+                              {rawSInfo.size} • ₹{sInfo.price}
                             </button>
                           );
                         })}
@@ -242,7 +260,7 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
                   </div>
 
                   <div style={{ padding: '0 20px 20px 20px' }}>
-                    {product.isBOGO && (
+                    {isBogoActive && (
                       <div style={{ backgroundColor: '#F0F4F0', color: 'var(--color-primary, #2D3E2F)', padding: '4px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, marginBottom: '10px', textAlign: 'center', border: '1px solid #C8D6C9' }}>
                         🎁 BUY 1 GET 1 FREE • 2x {currentSize} Dispatched
                       </div>
@@ -253,13 +271,17 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
                         <span style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--color-primary, #2D3E2F)' }}>
                           ₹{priceData.price}
                         </span>
-                        <span style={{ fontSize: '0.85rem', color: '#9CA3AF', textDecoration: 'line-through', marginLeft: '6px' }}>
-                          ₹{priceData.originalPrice}
-                        </span>
+                        {priceData.isDiscounted && (
+                          <span style={{ fontSize: '0.85rem', color: '#9CA3AF', textDecoration: 'line-through', marginLeft: '6px' }}>
+                            ₹{priceData.originalPrice}
+                          </span>
+                        )}
                       </div>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary, #2D3E2F)' }}>
-                        {priceData.savings}
-                      </span>
+                      {isBogoActive && (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary, #2D3E2F)' }}>
+                          {rawPriceData.savings}
+                        </span>
+                      )}
                     </div>
 
                     <button

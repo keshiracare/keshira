@@ -389,6 +389,12 @@ export const KESHIRA_PRODUCTS_STORAGE_KEY = 'keshira_live_products';
 export const KESHIRA_BUNDLES_STORAGE_KEY = 'keshira_live_bundles';
 export const KESHIRA_OFFERS_STORAGE_KEY = 'keshira_store_offers';
 
+import { supabase, isSupabaseConfigured } from '../supabase';
+
+// In-memory cache for ultra-fast, synchronous access
+let cachedOffers = null;
+let cachedProducts = null;
+
 // Default Offers & Coupon Codes Configuration
 export const DEFAULT_STORE_OFFERS = {
   isBogoEnabled: true,
@@ -426,12 +432,14 @@ export const DEFAULT_STORE_OFFERS = {
 
 // Helper to get active store offers & coupon configs
 export const getActiveOffers = () => {
+  if (cachedOffers) return cachedOffers;
   try {
     const saved = localStorage.getItem(KESHIRA_OFFERS_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && typeof parsed === 'object') {
-        return { ...DEFAULT_STORE_OFFERS, ...parsed };
+        cachedOffers = { ...DEFAULT_STORE_OFFERS, ...parsed };
+        return cachedOffers;
       }
     }
   } catch (err) {
@@ -440,11 +448,19 @@ export const getActiveOffers = () => {
   return DEFAULT_STORE_OFFERS;
 };
 
-// Helper to save store offers & coupon configs
-export const saveActiveOffers = (offers) => {
+// Helper to save store offers & coupon configs (Supabase + localStorage cache)
+export const saveActiveOffers = async (offers) => {
   try {
+    cachedOffers = offers;
     localStorage.setItem(KESHIRA_OFFERS_STORAGE_KEY, JSON.stringify(offers));
     window.dispatchEvent(new CustomEvent('keshira_offers_updated', { detail: offers }));
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('store_settings')
+        .upsert({ id: 'offers_and_promotions', data: offers, updated_at: new Date().toISOString() });
+      if (error) console.error('Supabase store_settings offers sync error:', error);
+    }
     return true;
   } catch (err) {
     console.error('Failed to save store offers:', err);
@@ -452,11 +468,19 @@ export const saveActiveOffers = (offers) => {
   }
 };
 
-// Helper to reset store offers & coupons to default
-export const resetOffersToDefault = () => {
+// Helper to reset store offers & coupons to default (Supabase + localStorage)
+export const resetOffersToDefault = async () => {
   try {
+    cachedOffers = DEFAULT_STORE_OFFERS;
     localStorage.removeItem(KESHIRA_OFFERS_STORAGE_KEY);
     window.dispatchEvent(new CustomEvent('keshira_offers_updated', { detail: DEFAULT_STORE_OFFERS }));
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('store_settings')
+        .upsert({ id: 'offers_and_promotions', data: DEFAULT_STORE_OFFERS, updated_at: new Date().toISOString() });
+      if (error) console.error('Supabase store_settings reset offers error:', error);
+    }
     return true;
   } catch (err) {
     console.error('Failed to reset store offers:', err);
@@ -464,14 +488,16 @@ export const resetOffersToDefault = () => {
   }
 };
 
-// Helper to get active products (returns admin overrides if saved in localStorage or memory, otherwise static defaults)
+// Helper to get active products (synchronous fast read from cache/localStorage/default)
 export const getActiveProducts = () => {
+  if (cachedProducts) return cachedProducts;
   try {
     const saved = localStorage.getItem(KESHIRA_PRODUCTS_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-        return parsed;
+        cachedProducts = parsed;
+        return cachedProducts;
       }
     }
   } catch (err) {
@@ -480,11 +506,19 @@ export const getActiveProducts = () => {
   return KESHIRA_PRODUCTS;
 };
 
-// Helper to save product catalog updates
-export const saveActiveProducts = (newProducts) => {
+// Helper to save product catalog updates (Supabase + localStorage cache)
+export const saveActiveProducts = async (newProducts) => {
   try {
+    cachedProducts = newProducts;
     localStorage.setItem(KESHIRA_PRODUCTS_STORAGE_KEY, JSON.stringify(newProducts));
     window.dispatchEvent(new CustomEvent('keshira_products_updated', { detail: newProducts }));
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('store_settings')
+        .upsert({ id: 'product_catalog', data: newProducts, updated_at: new Date().toISOString() });
+      if (error) console.error('Supabase store_settings products sync error:', error);
+    }
     return true;
   } catch (err) {
     console.error('Failed to save products:', err);
@@ -492,15 +526,75 @@ export const saveActiveProducts = (newProducts) => {
   }
 };
 
-// Helper to reset products to original defaults
-export const resetProductsToDefault = () => {
+// Helper to reset products to original defaults (Supabase + localStorage)
+export const resetProductsToDefault = async () => {
   try {
+    cachedProducts = KESHIRA_PRODUCTS;
     localStorage.removeItem(KESHIRA_PRODUCTS_STORAGE_KEY);
     window.dispatchEvent(new CustomEvent('keshira_products_updated', { detail: KESHIRA_PRODUCTS }));
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('store_settings')
+        .upsert({ id: 'product_catalog', data: KESHIRA_PRODUCTS, updated_at: new Date().toISOString() });
+      if (error) console.error('Supabase store_settings reset products error:', error);
+    }
     return true;
   } catch (err) {
     console.error('Failed to reset products:', err);
     return false;
+  }
+};
+
+// Initialize and fetch latest settings from Supabase, then subscribe to live real-time changes
+export const initSupabaseStoreSettings = async () => {
+  if (!isSupabaseConfigured) return;
+
+  try {
+    const { data, error } = await supabase
+      .from('store_settings')
+      .select('id, data');
+
+    if (error) {
+      console.warn('Could not fetch store_settings from Supabase:', error);
+      return;
+    }
+
+    if (Array.isArray(data)) {
+      data.forEach(row => {
+        if (row.id === 'offers_and_promotions' && row.data) {
+          cachedOffers = { ...DEFAULT_STORE_OFFERS, ...row.data };
+          localStorage.setItem(KESHIRA_OFFERS_STORAGE_KEY, JSON.stringify(cachedOffers));
+          window.dispatchEvent(new CustomEvent('keshira_offers_updated', { detail: cachedOffers }));
+        }
+        if (row.id === 'product_catalog' && row.data && typeof row.data === 'object' && Object.keys(row.data).length > 0) {
+          cachedProducts = row.data;
+          localStorage.setItem(KESHIRA_PRODUCTS_STORAGE_KEY, JSON.stringify(cachedProducts));
+          window.dispatchEvent(new CustomEvent('keshira_products_updated', { detail: cachedProducts }));
+        }
+      });
+    }
+
+    // Subscribe to live changes in Supabase so any update from other devices instantly reflects here
+    supabase
+      .channel('public:store_settings')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, (payload) => {
+        const row = payload.new;
+        if (!row || !row.id || !row.data) return;
+
+        if (row.id === 'offers_and_promotions') {
+          cachedOffers = { ...DEFAULT_STORE_OFFERS, ...row.data };
+          localStorage.setItem(KESHIRA_OFFERS_STORAGE_KEY, JSON.stringify(cachedOffers));
+          window.dispatchEvent(new CustomEvent('keshira_offers_updated', { detail: cachedOffers }));
+        } else if (row.id === 'product_catalog') {
+          cachedProducts = row.data;
+          localStorage.setItem(KESHIRA_PRODUCTS_STORAGE_KEY, JSON.stringify(cachedProducts));
+          window.dispatchEvent(new CustomEvent('keshira_products_updated', { detail: cachedProducts }));
+        }
+      })
+      .subscribe();
+  } catch (err) {
+    console.warn('Failed to initialize Supabase store settings:', err);
   }
 };
 
@@ -566,4 +660,30 @@ export const getProductsWithLiveRatings = (baseProducts, reviewsList = []) => {
   });
 
   return products;
+};
+
+// Helper to determine the effective selling price of a product size based on B1G1 active state:
+// When B1G1 is active (both store-wide AND for the product): use promotional price (e.g. ₹299 / ₹499)
+// When B1G1 is OFF: revert to printed MRP (e.g. ₹399 / ₹599; Oil ₹499 / ₹699)
+export const getEffectiveProductPrice = (priceData, isBogoActive = true) => {
+  if (!priceData) return { price: 299, originalPrice: 399, isDiscounted: false };
+
+  const bogoOn = Boolean(isBogoActive);
+  const promoPrice = Number(priceData.price) || 299;
+  const regularPrice = Number(priceData.originalPrice) || promoPrice;
+
+  if (bogoOn) {
+    return {
+      price: promoPrice,
+      originalPrice: regularPrice,
+      isDiscounted: regularPrice > promoPrice
+    };
+  }
+
+  // When B1G1 is OFF: price reverts to regular MRP (no discount)
+  return {
+    price: regularPrice,
+    originalPrice: regularPrice,
+    isDiscounted: false
+  };
 };

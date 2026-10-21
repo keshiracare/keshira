@@ -41,11 +41,16 @@ const TermsAndConditions = lazy(() => import('./components/TermsAndConditions'))
 const RefundPolicy = lazy(() => import('./components/RefundPolicy'));
 
 import Footer from './components/Footer';
-import { getActiveOffers } from './data/products';
+import { getActiveOffers, initSupabaseStoreSettings } from './data/products';
 
 export default function App() {
   const { showToast } = useToast();
   const [storeOffers, setStoreOffers] = useState(getActiveOffers());
+
+  // Initialize and listen to Supabase real-time backend updates for all devices
+  useEffect(() => {
+    initSupabaseStoreSettings();
+  }, []);
 
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -595,6 +600,7 @@ export default function App() {
             <BestSellersPage 
               onAddToCart={handleAddToCart}
               onNavigateHome={(path = '/') => navigateTo(path)}
+              storeOffers={storeOffers}
             />
           </main>
         ) : isHairCarePage ? (
@@ -602,6 +608,7 @@ export default function App() {
             <HairCarePage 
               onAddToCart={handleAddToCart}
               onNavigateHome={(path = '/') => navigateTo(path)}
+              storeOffers={storeOffers}
             />
           </main>
         ) : isCollectionsPage ? (

@@ -156,10 +156,15 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
       return;
     }
 
-    // Generate Order ID if not already generated
+    // Generate Collision-Safe Order ID if not already generated (KES-YYYYMMDD-XXXX)
     if (!orderId) {
-      const randomId = 'KES-' + Math.floor(100000 + Math.random() * 900000);
-      setOrderId(randomId);
+      const now = new Date();
+      const datePart = now.getFullYear().toString() +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        String(now.getDate()).padStart(2, '0');
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const generatedId = `KES-${datePart}-${randomSuffix}`;
+      setOrderId(generatedId);
     }
     setStep(2);
   };
@@ -540,6 +545,14 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
         TELEGRAM_BOT_TOKEN !== 'your_telegram_bot_token' && 
         TELEGRAM_CHAT_ID !== 'your_telegram_chat_id') {
       
+      // Base URL for admin direct-action links
+      const siteOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://keshira.vercel.app';
+      const verifyUrl = `${siteOrigin}/admin?verifyOrder=${order.id}&action=verify`;
+      const rejectUrl = `${siteOrigin}/admin?verifyOrder=${order.id}&action=reject`;
+      const cleanPhone = (order.shippingAddress.phone || '').replace(/\D/g, '');
+      const waPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+      const waLink = `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hello ${order.shippingAddress.fullName}, thank you for your order with Keshira (#${order.id})!`)}`;
+
       const telegramMessage = `
 <b>🟢 New Order Received: ${order.id}</b>
 ---------------------------------------
@@ -555,24 +568,78 @@ ${order.items ? order.items.map(item => `• ${item.title} (${item.variant}) x $
 <b>Total Amount:</b> <b>₹${order.total}</b>
 `.trim();
 
-      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: telegramMessage,
-          parse_mode: 'HTML'
+      const inlineKeyboard = [
+        [
+          { text: '✅ Verify & Confirm Payment', url: verifyUrl },
+          { text: '❌ Reject / Unpaid Email', url: rejectUrl }
+        ],
+        [
+          { text: '💬 Chat Customer on WhatsApp', url: waLink }
+        ]
+      ];
+
+      // If customer attached a payment screenshot, send as Telegram Photo!
+      if (order.screenshot && order.screenshot.startsWith('data:image/')) {
+        try {
+          const arr = order.screenshot.split(',');
+          const mime = arr[0].match(/:(.*?);/)[1];
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          const blob = new Blob([u8arr], { type: mime });
+
+          const formData = new FormData();
+          formData.append('chat_id', TELEGRAM_CHAT_ID);
+          formData.append('photo', blob, `${order.id}-receipt.jpg`);
+          formData.append('caption', telegramMessage);
+          formData.append('parse_mode', 'HTML');
+          formData.append('reply_markup', JSON.stringify({ inline_keyboard: inlineKeyboard }));
+
+          fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+            method: 'POST',
+            body: formData
+          })
+          .then((res) => {
+            if (res.ok) console.log('Telegram photo alert sent successfully!');
+            else console.error('Telegram photo failed with status:', res.status);
+          })
+          .catch((err) => {
+            console.error('Error sending Telegram photo alert:', err);
+          });
+        } catch (e) {
+          console.warn('Failed to parse screenshot for Telegram, falling back to message:', e);
+          sendTelegramTextMessage();
+        }
+      } else {
+        sendTelegramTextMessage();
+      }
+
+      function sendTelegramTextMessage() {
+        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: telegramMessage,
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: inlineKeyboard
+            }
+          })
         })
-      })
-      .then((res) => {
-        if (res.ok) console.log('Telegram bot alert sent successfully!');
-        else console.error('Telegram bot failed with status:', res.status);
-      })
-      .catch((err) => {
-        console.error('Error sending Telegram alert:', err);
-      });
+        .then((res) => {
+          if (res.ok) console.log('Telegram bot alert sent successfully!');
+          else console.error('Telegram bot failed with status:', res.status);
+        })
+        .catch((err) => {
+          console.error('Error sending Telegram alert:', err);
+        });
+      }
     }
   };
 
