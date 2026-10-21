@@ -138,7 +138,7 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
   const liveRating = currentSpecificStats?.count > 0 ? (currentSpecificStats.sum / currentSpecificStats.count).toFixed(1) : reviewsStats.averageRatingFormatted;
   const liveCount = currentSpecificStats?.count > 0 ? currentSpecificStats.count : reviewsStats.totalCount;
 
-  const isBogoActive = Boolean(storeOffers?.isBogoEnabled && currentProduct?.isBOGO);
+  const isBogoActive = Boolean(storeOffers?.isBogoEnabled && !isBundle);
   const rawProductPriceInfo = currentProduct?.prices?.[activeVariant] || { price: 349, originalPrice: 499, bogoPairPrice: 149 };
   const effectiveProductPrice = getEffectiveProductPrice(rawProductPriceInfo, isBogoActive);
 
@@ -354,13 +354,13 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
             <span style={{ fontSize: '0.78rem', backgroundColor: '#E8F5E9', color: '#166534', fontWeight: 700, padding: '3px 10px', borderRadius: '12px' }}>
               {isBundle 
                 ? `Save ₹${bundleData ? bundleData.savings : (originalPrice - price)} (Duo Deal) + Free Delivery` 
-                : (Boolean(storeOffers?.isBogoEnabled) && currentProduct.isBOGO)
+                : Boolean(storeOffers?.isBogoEnabled)
                   ? 'BOGO: Buy 1 Get 1 FREE' 
                   : `Save ₹${originalPrice - price}`}
             </span>
           </div>
 
-          {!isBundle && Boolean(storeOffers?.isBogoEnabled) && currentProduct.isBOGO && (
+          {!isBundle && Boolean(storeOffers?.isBogoEnabled) && (
             <div style={{ backgroundColor: '#FEF3C7', color: '#92400E', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, border: '1px solid #FCD34D', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span>🎁</span>
               <span>BUY 1 GET 1 FREE: Add 2 bottles of {currentProduct.shortName} and pay only ₹{currentProduct.prices[activeVariant]?.bogoPairPrice} total!</span>

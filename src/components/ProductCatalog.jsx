@@ -87,7 +87,7 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
   const handleAddSingleProduct = (product) => {
     const size = selectedSizes[product.id] || '200ml';
     const rawPriceInfo = product.prices?.[size] || { price: 349, originalPrice: 499, bogoPairPrice: 149 };
-    const isBogoActive = Boolean(storeOffers?.isBogoEnabled && product.isBOGO);
+    const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
     const effectivePrice = getEffectiveProductPrice(rawPriceInfo, isBogoActive);
 
     if (onAddToCart) {
@@ -173,7 +173,7 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
           {filteredProducts.map(product => {
             const currentSize = selectedSizes[product.id] || '200ml';
             const rawPriceData = product.prices[currentSize];
-            const isBogoActive = Boolean(storeOffers?.isBogoEnabled && product.isBOGO);
+            const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
             const priceData = getEffectiveProductPrice(rawPriceData, isBogoActive);
 
             return (

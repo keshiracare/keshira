@@ -192,8 +192,8 @@ export default function App() {
     setCart((prevCart) => {
       let updatedCart = [...prevCart];
 
-      // Check if product is B1G1 eligible AND store-wide B1G1 offer is active
-      const isBogoActive = Boolean(storeOffers?.isBogoEnabled && newItem.isBOGO);
+      // Global B1G1 Offer check: active store-wide for all non-bundle individual products
+      const isBogoActive = Boolean(storeOffers?.isBogoEnabled && newItem.purchaseType !== 'bundle');
 
       if (isBogoActive && newItem.purchaseType !== 'bundle' && !newItem.isFreeBogoItem) {
         // Customer adds 1 paid bottle

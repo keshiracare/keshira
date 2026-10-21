@@ -321,22 +321,6 @@ export default function AdminPage({ onNavigateHome }) {
     showToast(`✅ "${updatedProduct.name}" saved successfully!`);
   };
 
-  // Direct Product BOGO Toggle Handler
-  const handleToggleProductBogo = (prodKey) => {
-    const prod = productsCatalog[prodKey];
-    if (!prod) return;
-    const newBogoStatus = !prod.isBOGO;
-    const updated = {
-      ...productsCatalog,
-      [prodKey]: {
-        ...prod,
-        isBOGO: newBogoStatus
-      }
-    };
-    setProductsCatalog(updated);
-    saveActiveProducts(updated);
-    showToast(`🎁 B1G1 for "${prod.shortName || prod.name}" is now ${newBogoStatus ? 'ACTIVE' : 'DISABLED'}`);
-  };
 
   const handleDeleteProduct = (prodKey) => {
     const prod = productsCatalog[prodKey];
@@ -2581,59 +2565,38 @@ export default function AdminPage({ onNavigateHome }) {
                         </div>
                       </div>
 
-                      {/* B1G1 Badge Status & Direct Toggle */}
+                      {/* B1G1 Store-wide Status Indicator */}
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '10px 12px',
-                        backgroundColor: prod.isBOGO ? '#F0FDF4' : '#F9FAFB',
+                        backgroundColor: storeOffers.isBogoEnabled ? '#F0FDF4' : '#F9FAFB',
                         borderRadius: '8px',
-                        border: prod.isBOGO ? '1px solid #BBF7D0' : '1px solid #E5E7EB'
+                        border: storeOffers.isBogoEnabled ? '1px solid #BBF7D0' : '1px solid #E5E7EB'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ fontSize: '0.9rem' }}>🎁</span>
                           <div>
-                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: prod.isBOGO ? '#15803D' : '#6B7280' }}>
-                              {prod.isBOGO ? 'B1G1 Offer Enabled' : 'B1G1 Disabled'}
+                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: storeOffers.isBogoEnabled ? '#15803D' : '#6B7280' }}>
+                              {storeOffers.isBogoEnabled ? 'Global B1G1 Active' : 'Global B1G1 Paused'}
                             </div>
                             <div style={{ fontSize: '0.68rem', color: '#9CA3AF' }}>
-                              ⭐ {prod.rating || 4.8} ({prod.reviewCount || 100} reviews)
+                              Controlled centrally in Offers & Promotions tab
                             </div>
                           </div>
                         </div>
 
-                        {/* Interactive Toggle Switch */}
-                        <button
-                          type="button"
-                          onClick={() => handleToggleProductBogo(prodKey)}
-                          title={`Click to ${prod.isBOGO ? 'disable' : 'enable'} B1G1 for this product`}
-                          style={{
-                            width: '42px',
-                            height: '24px',
-                            borderRadius: '12px',
-                            backgroundColor: prod.isBOGO ? '#10B981' : '#D1D5DB',
-                            border: 'none',
-                            cursor: 'pointer',
-                            position: 'relative',
-                            transition: 'background-color 0.2s ease',
-                            padding: 0,
-                            outline: 'none',
-                            flexShrink: 0
-                          }}
-                        >
-                          <div style={{
-                            width: '18px',
-                            height: '18px',
-                            borderRadius: '50%',
-                            backgroundColor: '#FFFFFF',
-                            position: 'absolute',
-                            top: '3px',
-                            left: prod.isBOGO ? '21px' : '3px',
-                            transition: 'left 0.2s ease',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                          }} />
-                        </button>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          backgroundColor: storeOffers.isBogoEnabled ? '#DCFCE7' : '#E5E7EB',
+                          color: storeOffers.isBogoEnabled ? '#15803D' : '#4B5563'
+                        }}>
+                          {storeOffers.isBogoEnabled ? 'ON' : 'OFF'}
+                        </span>
                       </div>
                     </div>
 

@@ -217,15 +217,11 @@ export default function CartDrawer({
     item.id?.includes('bundle')
   );
 
-  // Group B1G1 items by type and size
-  // Note: Each paid bottle has price 349/549, and its free bottle has price 0.
-  // The gross subtotal for 1 paid bottle (349) + 1 free bottle (0) is 349.
-  // But customer should pay bogoPairPrice (₹149 for 100ml, ₹249 for 200ml) per pair!
-  // So when pair is present (1 paid + 1 free), extra discount = paidPrice - bogoPairPrice
-  // = 349 - 149 = 200 (for 100ml), 549 - 249 = 300 (for 200ml).
+  // Group B1G1 items strictly by category (Shampoo with Shampoo, Oil with Oil) and bottle size
+  // Note: Only items of the same product type (shampoo vs oil) and same size are paired together
   const bogoGroups = {};
   cart.forEach(item => {
-    if (item.isBOGO && item.purchaseType !== 'bundle') {
+    if (item.purchaseType !== 'bundle') {
       const type = item.productType || (item.id?.includes('oil') || item.title?.toLowerCase().includes('oil') ? 'oil' : 'shampoo');
       const size = item.variant || '200ml';
       const key = `${type}-${size}`;

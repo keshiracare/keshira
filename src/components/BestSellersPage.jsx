@@ -71,7 +71,7 @@ export default function BestSellersPage({ onAddToCart, onNavigateHome, storeOffe
   const handleAdd = (prod) => {
     const size = selectedSizes[prod.id] || '200ml';
     const rawPriceData = prod.prices[size];
-    const isBogoActive = Boolean(storeOffers?.isBogoEnabled && prod.isBOGO);
+    const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
     const priceData = getEffectiveProductPrice(rawPriceData, isBogoActive);
 
     if (onAddToCart) {
@@ -167,7 +167,7 @@ export default function BestSellersPage({ onAddToCart, onNavigateHome, storeOffe
           {bestSellers.map(product => {
             const currentSize = selectedSizes[product.id] || '200ml';
             const rawPriceData = product.prices[currentSize];
-            const isBogoActive = Boolean(storeOffers?.isBogoEnabled && product.isBOGO);
+            const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
             const priceData = getEffectiveProductPrice(rawPriceData, isBogoActive);
 
             return (
