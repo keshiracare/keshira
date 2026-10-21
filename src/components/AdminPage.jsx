@@ -378,14 +378,29 @@ export default function AdminPage({ onNavigateHome }) {
 
   // --- Offers & Coupons Management Handlers ---
   const handleToggleOffer = (key) => {
+    const updatedValue = !storeOffers[key];
     const updated = {
       ...storeOffers,
-      [key]: !storeOffers[key]
+      [key]: updatedValue
     };
+
+    // If toggling B1G1 master offer, synchronize all products in the catalog as well!
+    if (key === 'isBogoEnabled') {
+      const updatedCatalog = { ...productsCatalog };
+      Object.keys(updatedCatalog).forEach(prodKey => {
+        updatedCatalog[prodKey] = {
+          ...updatedCatalog[prodKey],
+          isBOGO: updatedValue
+        };
+      });
+      setProductsCatalog(updatedCatalog);
+      saveActiveProducts(updatedCatalog);
+    }
+
     setStoreOffers(updated);
     saveActiveOffers(updated);
     const label = key === 'isBogoEnabled' ? 'Buy 1 Get 1 Free (B1G1)' : 'Free Shipping';
-    showToast(`🔔 ${label} is now ${updated[key] ? 'ENABLED' : 'PAUSED'}`);
+    showToast(`🔔 ${label} is now ${updatedValue ? 'ENABLED' : 'PAUSED'}`);
   };
 
   const handleToggleCoupon = (couponCode) => {

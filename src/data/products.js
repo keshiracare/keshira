@@ -456,10 +456,33 @@ export const saveActiveOffers = async (offers) => {
     window.dispatchEvent(new CustomEvent('keshira_offers_updated', { detail: offers }));
 
     if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('store_settings')
-        .upsert({ id: 'offers_and_promotions', data: offers, updated_at: new Date().toISOString() });
-      if (error) console.error('Supabase store_settings offers sync error:', error);
+      // 1. Update store_promotions row in Supabase
+      const { error: promoErr } = await supabase
+        .from('store_promotions')
+        .upsert({
+          id: 'global',
+          is_bogo_enabled: offers.isBogoEnabled !== false,
+          free_shipping_above: offers.freeShippingAbove || 300,
+          is_free_shipping_enabled: offers.isFreeShippingOfferEnabled !== false,
+          promo_popup_enabled: offers.promoPopupOfferEnabled !== false,
+          updated_at: new Date().toISOString()
+        });
+      if (promoErr) console.error('Supabase store_promotions sync error:', promoErr);
+
+      // 2. Sync coupons table
+      if (Array.isArray(offers.coupons)) {
+        for (const coup of offers.coupons) {
+          await supabase.from('coupons').upsert({
+            code: coup.code,
+            description: coup.description,
+            discount_percent: coup.discountPercent,
+            min_order_value: coup.minOrderValue || 0,
+            first_order_only: Boolean(coup.firstOrderOnly),
+            returning_only: Boolean(coup.returningOnly),
+            enabled: coup.enabled !== false
+          });
+        }
+      }
     }
     return true;
   } catch (err) {
@@ -476,10 +499,27 @@ export const resetOffersToDefault = async () => {
     window.dispatchEvent(new CustomEvent('keshira_offers_updated', { detail: DEFAULT_STORE_OFFERS }));
 
     if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('store_settings')
-        .upsert({ id: 'offers_and_promotions', data: DEFAULT_STORE_OFFERS, updated_at: new Date().toISOString() });
-      if (error) console.error('Supabase store_settings reset offers error:', error);
+      await supabase
+        .from('store_promotions')
+        .upsert({
+          id: 'global',
+          is_bogo_enabled: DEFAULT_STORE_OFFERS.isBogoEnabled,
+          free_shipping_above: DEFAULT_STORE_OFFERS.freeShippingAbove,
+          is_free_shipping_enabled: DEFAULT_STORE_OFFERS.isFreeShippingOfferEnabled,
+          promo_popup_enabled: DEFAULT_STORE_OFFERS.promoPopupOfferEnabled,
+          updated_at: new Date().toISOString()
+        });
+      for (const coup of DEFAULT_STORE_OFFERS.coupons) {
+        await supabase.from('coupons').upsert({
+          code: coup.code,
+          description: coup.description,
+          discount_percent: coup.discountPercent,
+          min_order_value: coup.minOrderValue || 0,
+          first_order_only: Boolean(coup.firstOrderOnly),
+          returning_only: Boolean(coup.returningOnly),
+          enabled: coup.enabled !== false
+        });
+      }
     }
     return true;
   } catch (err) {
@@ -506,18 +546,38 @@ export const getActiveProducts = () => {
   return KESHIRA_PRODUCTS;
 };
 
-// Helper to save product catalog updates (Supabase + localStorage cache)
+// Helper to save product catalog updates (Supabase structured table + localStorage cache)
 export const saveActiveProducts = async (newProducts) => {
   try {
     cachedProducts = newProducts;
     localStorage.setItem(KESHIRA_PRODUCTS_STORAGE_KEY, JSON.stringify(newProducts));
     window.dispatchEvent(new CustomEvent('keshira_products_updated', { detail: newProducts }));
 
-    if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('store_settings')
-        .upsert({ id: 'product_catalog', data: newProducts, updated_at: new Date().toISOString() });
-      if (error) console.error('Supabase store_settings products sync error:', error);
+    if (isSupabaseConfigured && newProducts) {
+      // Upsert each product into the structured public.products table
+      for (const key of Object.keys(newProducts)) {
+        const prod = newProducts[key];
+        const row = {
+          id: prod.id || key,
+          name: prod.name || '',
+          short_name: prod.shortName || prod.name || '',
+          concern: prod.concern || '',
+          category: prod.category || '',
+          product_type: prod.productType || 'shampoo',
+          is_bogo: Boolean(prod.isBOGO),
+          rating: Number(prod.rating) || 5.0,
+          review_count: Number(prod.reviewCount) || 0,
+          price_100ml: Number(prod.prices?.['100ml']?.price) || 299,
+          mrp_100ml: Number(prod.prices?.['100ml']?.originalPrice) || 399,
+          bogo_100ml: Number(prod.prices?.['100ml']?.bogoPairPrice) || 299,
+          price_200ml: Number(prod.prices?.['200ml']?.price) || 499,
+          mrp_200ml: Number(prod.prices?.['200ml']?.originalPrice) || 599,
+          bogo_200ml: Number(prod.prices?.['200ml']?.bogoPairPrice) || 499,
+          updated_at: new Date().toISOString()
+        };
+        const { error } = await supabase.from('products').upsert(row);
+        if (error) console.error(`Error saving product ${row.id} to Supabase:`, error);
+      }
     }
     return true;
   } catch (err) {
@@ -534,10 +594,28 @@ export const resetProductsToDefault = async () => {
     window.dispatchEvent(new CustomEvent('keshira_products_updated', { detail: KESHIRA_PRODUCTS }));
 
     if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('store_settings')
-        .upsert({ id: 'product_catalog', data: KESHIRA_PRODUCTS, updated_at: new Date().toISOString() });
-      if (error) console.error('Supabase store_settings reset products error:', error);
+      for (const key of Object.keys(KESHIRA_PRODUCTS)) {
+        const prod = KESHIRA_PRODUCTS[key];
+        const row = {
+          id: prod.id || key,
+          name: prod.name,
+          short_name: prod.shortName,
+          concern: prod.concern,
+          category: prod.category,
+          product_type: prod.productType,
+          is_bogo: Boolean(prod.isBOGO),
+          rating: Number(prod.rating),
+          review_count: Number(prod.reviewCount),
+          price_100ml: Number(prod.prices['100ml']?.price),
+          mrp_100ml: Number(prod.prices['100ml']?.originalPrice),
+          bogo_100ml: Number(prod.prices['100ml']?.bogoPairPrice),
+          price_200ml: Number(prod.prices['200ml']?.price),
+          mrp_200ml: Number(prod.prices['200ml']?.originalPrice),
+          bogo_200ml: Number(prod.prices['200ml']?.bogoPairPrice),
+          updated_at: new Date().toISOString()
+        };
+        await supabase.from('products').upsert(row);
+      }
     }
     return true;
   } catch (err) {
@@ -546,48 +624,151 @@ export const resetProductsToDefault = async () => {
   }
 };
 
-// Initialize and fetch latest settings from Supabase, then subscribe to live real-time changes
+// Helper to merge DB products row into full in-memory product definition
+const mergeDbProductWithDefaults = (dbRow, fallbackProd) => {
+  if (!fallbackProd) return null;
+  const p100 = Number(dbRow.price_100ml) || fallbackProd.prices['100ml'].price;
+  const mrp100 = Number(dbRow.mrp_100ml) || fallbackProd.prices['100ml'].originalPrice;
+  const bogo100 = Number(dbRow.bogo_100ml) || fallbackProd.prices['100ml'].bogoPairPrice;
+
+  const p200 = Number(dbRow.price_200ml) || fallbackProd.prices['200ml'].price;
+  const mrp200 = Number(dbRow.mrp_200ml) || fallbackProd.prices['200ml'].originalPrice;
+  const bogo200 = Number(dbRow.bogo_200ml) || fallbackProd.prices['200ml'].bogoPairPrice;
+
+  return {
+    ...fallbackProd,
+    id: dbRow.id,
+    name: dbRow.name || fallbackProd.name,
+    shortName: dbRow.short_name || fallbackProd.shortName,
+    concern: dbRow.concern || fallbackProd.concern,
+    category: dbRow.category || fallbackProd.category,
+    productType: dbRow.product_type || fallbackProd.productType,
+    isBOGO: Boolean(dbRow.is_bogo),
+    rating: Number(dbRow.rating) || fallbackProd.rating,
+    reviewCount: Number(dbRow.review_count) || fallbackProd.reviewCount,
+    prices: {
+      '100ml': {
+        size: '100ml',
+        price: p100,
+        originalPrice: mrp100,
+        bogoPairPrice: bogo100,
+        savings: `BOGO: Buy 1 Get 1 FREE (Pay ₹${bogo100} for 2 Bottles • ₹${Math.round(bogo100 / 2)}/bottle)`,
+        bogoNotice: `Buy 1 Get 1 Free • 2nd Bottle Free (₹${bogo100} for 2 Bottles)`
+      },
+      '200ml': {
+        size: '200ml',
+        price: p200,
+        originalPrice: mrp200,
+        bogoPairPrice: bogo200,
+        savings: `BOGO: Buy 1 Get 1 FREE (Pay ₹${bogo200} for 2 Bottles • ₹${Math.round(bogo200 / 2)}/bottle)`,
+        bogoNotice: `Buy 1 Get 1 Free • 2nd Bottle Free (₹${bogo200} for 2 Bottles)`
+      }
+    }
+  };
+};
+
+// Initialize and fetch latest settings from Supabase structured tables, then subscribe to live real-time changes
 export const initSupabaseStoreSettings = async () => {
   if (!isSupabaseConfigured) return;
 
   try {
-    const { data, error } = await supabase
-      .from('store_settings')
-      .select('id, data');
+    // 1. Fetch store promotions & coupons in parallel
+    const [promoRes, couponsRes, productsRes] = await Promise.all([
+      supabase.from('store_promotions').select('*').limit(1).maybeSingle(),
+      supabase.from('coupons').select('*').order('created_at', { ascending: true }),
+      supabase.from('products').select('*')
+    ]);
 
-    if (error) {
-      console.warn('Could not fetch store_settings from Supabase:', error);
-      return;
+    // Apply store promotions
+    if (promoRes.data) {
+      const p = promoRes.data;
+      const current = cachedOffers || getActiveOffers();
+      cachedOffers = {
+        ...current,
+        isBogoEnabled: Boolean(p.is_bogo_enabled),
+        freeShippingAbove: Number(p.free_shipping_above) || 300,
+        isFreeShippingOfferEnabled: Boolean(p.is_free_shipping_enabled),
+        promoPopupOfferEnabled: Boolean(p.promo_popup_enabled)
+      };
     }
 
-    if (Array.isArray(data)) {
-      data.forEach(row => {
-        if (row.id === 'offers_and_promotions' && row.data) {
-          cachedOffers = { ...DEFAULT_STORE_OFFERS, ...row.data };
-          localStorage.setItem(KESHIRA_OFFERS_STORAGE_KEY, JSON.stringify(cachedOffers));
-          window.dispatchEvent(new CustomEvent('keshira_offers_updated', { detail: cachedOffers }));
-        }
-        if (row.id === 'product_catalog' && row.data && typeof row.data === 'object' && Object.keys(row.data).length > 0) {
-          cachedProducts = row.data;
-          localStorage.setItem(KESHIRA_PRODUCTS_STORAGE_KEY, JSON.stringify(cachedProducts));
-          window.dispatchEvent(new CustomEvent('keshira_products_updated', { detail: cachedProducts }));
+    // Apply coupons
+    if (couponsRes.data && couponsRes.data.length > 0) {
+      const mappedCoupons = couponsRes.data.map(c => ({
+        code: c.code,
+        description: c.description,
+        discountPercent: Number(c.discount_percent),
+        minOrderValue: Number(c.min_order_value) || 0,
+        firstOrderOnly: Boolean(c.first_order_only),
+        returningOnly: Boolean(c.returning_only),
+        enabled: Boolean(c.enabled)
+      }));
+      cachedOffers = {
+        ...(cachedOffers || getActiveOffers()),
+        coupons: mappedCoupons
+      };
+    }
+
+    if (cachedOffers) {
+      localStorage.setItem(KESHIRA_OFFERS_STORAGE_KEY, JSON.stringify(cachedOffers));
+      window.dispatchEvent(new CustomEvent('keshira_offers_updated', { detail: cachedOffers }));
+    }
+
+    // Apply products
+    if (productsRes.data && productsRes.data.length > 0) {
+      const currentProds = { ...(cachedProducts || getActiveProducts()) };
+      productsRes.data.forEach(dbRow => {
+        const fallback = currentProds[dbRow.id] || KESHIRA_PRODUCTS[dbRow.id];
+        if (fallback) {
+          currentProds[dbRow.id] = mergeDbProductWithDefaults(dbRow, fallback);
         }
       });
+      cachedProducts = currentProds;
+      localStorage.setItem(KESHIRA_PRODUCTS_STORAGE_KEY, JSON.stringify(cachedProducts));
+      window.dispatchEvent(new CustomEvent('keshira_products_updated', { detail: cachedProducts }));
     }
 
-    // Subscribe to live changes in Supabase so any update from other devices instantly reflects here
+    // 2. Subscribe to live changes in Supabase realtime channels for instant multi-device sync
     supabase
-      .channel('public:store_settings')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, (payload) => {
-        const row = payload.new;
-        if (!row || !row.id || !row.data) return;
-
-        if (row.id === 'offers_and_promotions') {
-          cachedOffers = { ...DEFAULT_STORE_OFFERS, ...row.data };
+      .channel('public:keshira_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'store_promotions' }, (payload) => {
+        const p = payload.new;
+        if (!p) return;
+        cachedOffers = {
+          ...(cachedOffers || getActiveOffers()),
+          isBogoEnabled: Boolean(p.is_bogo_enabled),
+          freeShippingAbove: Number(p.free_shipping_above) || 300,
+          isFreeShippingOfferEnabled: Boolean(p.is_free_shipping_enabled),
+          promoPopupOfferEnabled: Boolean(p.promo_popup_enabled)
+        };
+        localStorage.setItem(KESHIRA_OFFERS_STORAGE_KEY, JSON.stringify(cachedOffers));
+        window.dispatchEvent(new CustomEvent('keshira_offers_updated', { detail: cachedOffers }));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'coupons' }, async () => {
+        const { data: dbCoupons } = await supabase.from('coupons').select('*').order('created_at', { ascending: true });
+        if (dbCoupons) {
+          const mapped = dbCoupons.map(c => ({
+            code: c.code,
+            description: c.description,
+            discountPercent: Number(c.discount_percent),
+            minOrderValue: Number(c.min_order_value) || 0,
+            firstOrderOnly: Boolean(c.first_order_only),
+            returningOnly: Boolean(c.returning_only),
+            enabled: Boolean(c.enabled)
+          }));
+          cachedOffers = { ...(cachedOffers || getActiveOffers()), coupons: mapped };
           localStorage.setItem(KESHIRA_OFFERS_STORAGE_KEY, JSON.stringify(cachedOffers));
           window.dispatchEvent(new CustomEvent('keshira_offers_updated', { detail: cachedOffers }));
-        } else if (row.id === 'product_catalog') {
-          cachedProducts = row.data;
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+        const dbRow = payload.new;
+        if (!dbRow || !dbRow.id) return;
+        const currentProds = { ...(cachedProducts || getActiveProducts()) };
+        const fallback = currentProds[dbRow.id] || KESHIRA_PRODUCTS[dbRow.id];
+        if (fallback) {
+          currentProds[dbRow.id] = mergeDbProductWithDefaults(dbRow, fallback);
+          cachedProducts = currentProds;
           localStorage.setItem(KESHIRA_PRODUCTS_STORAGE_KEY, JSON.stringify(cachedProducts));
           window.dispatchEvent(new CustomEvent('keshira_products_updated', { detail: cachedProducts }));
         }
