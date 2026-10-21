@@ -558,10 +558,7 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
         TELEGRAM_BOT_TOKEN !== 'your_telegram_bot_token' && 
         TELEGRAM_CHAT_ID !== 'your_telegram_chat_id') {
       
-      // Base URL for admin direct-action links
-      const siteOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://keshira.vercel.app';
-      const verifyUrl = `${siteOrigin}/admin?verifyOrder=${order.id}&action=verify`;
-      const rejectUrl = `${siteOrigin}/admin?verifyOrder=${order.id}&action=reject`;
+      // Base URL for admin direct-action fallback links
       const cleanPhone = (order.shippingAddress.phone || '').replace(/\D/g, '');
       const waPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
       const waLink = `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hello ${order.shippingAddress.fullName}, thank you for your order with Keshira (#${order.id})!`)}`;
@@ -581,10 +578,11 @@ ${order.items ? order.items.map(item => `• ${item.title} (${item.variant}) x $
 <b>Total Amount:</b> <b>₹${order.total}</b>
 `.trim();
 
+      // Interactive Telegram Inline Buttons: using callback_data triggers the automated serverless webhook!
       const inlineKeyboard = [
         [
-          { text: '✅ Verify & Confirm Payment', url: verifyUrl },
-          { text: '❌ Reject / Unpaid Email', url: rejectUrl }
+          { text: '✅ Confirm Payment', callback_data: `verify:${order.id}` },
+          { text: '❌ Reject Payment', callback_data: `reject:${order.id}` }
         ],
         [
           { text: '💬 Chat Customer on WhatsApp', url: waLink }

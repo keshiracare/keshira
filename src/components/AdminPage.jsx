@@ -176,7 +176,8 @@ export default function AdminPage({ onNavigateHome }) {
       concern: prod.concern || '',
       category: prod.category || 'Shampoo',
       productType: prod.productType || 'shampoo',
-      isBOGO: prod.isBOGO !== false,
+      stockQuantity: prod.stockQuantity !== undefined ? prod.stockQuantity : 100,
+      isInStock: prod.isInStock !== false,
       tagline: prod.tagline || '',
       badge: prod.badge || '',
       primaryImage: prod.images?.primary || '',
@@ -284,7 +285,8 @@ export default function AdminPage({ onNavigateHome }) {
       badge: productForm.badge,
       category: productForm.category,
       productType: productForm.productType,
-      isBOGO: Boolean(productForm.isBOGO),
+      stockQuantity: Number(productForm.stockQuantity) || 0,
+      isInStock: Boolean(productForm.isInStock),
       pH: existing.pH || '5.5 (Balanced)',
       rating: Number(productForm.rating) || 4.8,
       reviewCount: Number(productForm.reviewCount) || 100,
@@ -2565,6 +2567,60 @@ export default function AdminPage({ onNavigateHome }) {
                           <span>₹{prod.prices?.['200ml']?.price || (prod.productType === 'oil' ? 599 : 499)} <span style={{ fontSize: '0.7rem', color: '#9CA3AF', textDecoration: 'line-through' }}>₹{prod.prices?.['200ml']?.originalPrice || (prod.productType === 'oil' ? 699 : 599)}</span></span>
                           <span style={{ color: '#15803D', fontWeight: 700 }}>₹{prod.prices?.['200ml']?.bogoPairPrice || (prod.productType === 'oil' ? 599 : 499)} for 2</span>
                         </div>
+                      </div>
+
+                      {/* Stock & Inventory Row */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        backgroundColor: prod.isInStock !== false ? '#F0FDF4' : '#FEF2F2',
+                        borderRadius: '8px',
+                        border: prod.isInStock !== false ? '1px solid #BBF7D0' : '1px solid #FECACA',
+                        marginBottom: '10px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.9rem' }}>📦</span>
+                          <div>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: prod.isInStock !== false ? '#15803D' : '#991B1B' }}>
+                              {prod.isInStock !== false ? `In Stock (${prod.stockQuantity !== undefined ? prod.stockQuantity : 100} units)` : 'Sold Out / Disabled'}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: '#6B7280' }}>
+                              {prod.isInStock !== false ? 'Accepting live customer orders' : 'Checkout button disabled on store'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newInStock = prod.isInStock === false ? true : false;
+                            const updated = {
+                              ...productsCatalog,
+                              [prodKey]: {
+                                ...prod,
+                                isInStock: newInStock,
+                                stockQuantity: newInStock ? (prod.stockQuantity || 100) : 0
+                              }
+                            };
+                            setProductsCatalog(updated);
+                            saveActiveProducts(updated);
+                            showToast(`📦 "${prod.shortName || prod.name}" is now ${newInStock ? 'IN STOCK' : 'MARKED OUT OF STOCK'}`);
+                          }}
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            backgroundColor: prod.isInStock !== false ? '#DCFCE7' : '#FEE2E2',
+                            color: prod.isInStock !== false ? '#15803D' : '#991B1B',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {prod.isInStock !== false ? 'Mark Sold Out' : 'Restock (100)'}
+                        </button>
                       </div>
 
                       {/* B1G1 Store-wide Status Indicator */}

@@ -270,14 +270,33 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
                       )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleAddSingleProduct(product)}
-                      className="product-add-to-cart-btn"
-                    >
-                      <span>Add to Bag</span>
-                      <span className="btn-plus">+</span>
-                    </button>
+                    {product.isInStock === false ? (
+                      <button
+                        type="button"
+                        disabled
+                        style={{
+                          backgroundColor: '#F3F4F6',
+                          color: '#9CA3AF',
+                          border: '1px solid #E5E7EB',
+                          borderRadius: '8px',
+                          padding: '10px 16px',
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          cursor: 'not-allowed'
+                        }}
+                      >
+                        Sold Out
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleAddSingleProduct(product)}
+                        className="product-add-to-cart-btn"
+                      >
+                        <span>Add to Bag</span>
+                        <span className="btn-plus">+</span>
+                      </button>
+                    )}
                   </div>
 
                 </div>

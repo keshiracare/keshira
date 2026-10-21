@@ -567,6 +567,8 @@ export const saveActiveProducts = async (newProducts) => {
           is_bogo: Boolean(prod.isBOGO),
           rating: Number(prod.rating) || 5.0,
           review_count: Number(prod.reviewCount) || 0,
+          stock_quantity: prod.stockQuantity !== undefined ? Number(prod.stockQuantity) : 100,
+          is_in_stock: prod.isInStock !== undefined ? Boolean(prod.isInStock) : true,
           price_100ml: Number(prod.prices?.['100ml']?.price) || 299,
           mrp_100ml: Number(prod.prices?.['100ml']?.originalPrice) || 399,
           bogo_100ml: Number(prod.prices?.['100ml']?.bogoPairPrice) || 299,
@@ -646,6 +648,8 @@ const mergeDbProductWithDefaults = (dbRow, fallbackProd) => {
     isBOGO: Boolean(dbRow.is_bogo),
     rating: Number(dbRow.rating) || fallbackProd.rating,
     reviewCount: Number(dbRow.review_count) || fallbackProd.reviewCount,
+    stockQuantity: dbRow.stock_quantity !== null && dbRow.stock_quantity !== undefined ? Number(dbRow.stock_quantity) : 100,
+    isInStock: dbRow.is_in_stock !== null && dbRow.is_in_stock !== undefined ? Boolean(dbRow.is_in_stock) : true,
     prices: {
       '100ml': {
         size: '100ml',

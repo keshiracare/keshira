@@ -415,32 +415,49 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
           )}
 
           {/* Add to Cart Actions */}
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: '8px', backgroundColor: '#FFF' }}>
-              <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))} style={{ width: '40px', height: '44px', fontSize: '1.1rem' }}>-</button>
-              <div style={{ width: '30px', textAlign: 'center', fontWeight: 700 }}>{quantity}</div>
-              <button type="button" onClick={() => setQuantity(q => q + 1)} style={{ width: '40px', height: '44px', fontSize: '1.1rem' }}>+</button>
+          {(!isBundle && currentProduct?.isInStock === false) ? (
+            <div style={{
+              backgroundColor: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              textAlign: 'center'
+            }}>
+              <span style={{ color: '#991B1B', fontWeight: 700, fontSize: '0.9rem', display: 'block' }}>
+                ⚠️ Currently Sold Out
+              </span>
+              <span style={{ color: '#6B7280', fontSize: '0.78rem' }}>
+                Next fresh micro-batch is brewing. Join waitlist on WhatsApp.
+              </span>
             </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: '8px', backgroundColor: '#FFF' }}>
+                <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))} style={{ width: '40px', height: '44px', fontSize: '1.1rem' }}>-</button>
+                <div style={{ width: '30px', textAlign: 'center', fontWeight: 700 }}>{quantity}</div>
+                <button type="button" onClick={() => setQuantity(q => q + 1)} style={{ width: '40px', height: '44px', fontSize: '1.1rem' }}>+</button>
+              </div>
 
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              style={{
-                flex: 1,
-                height: '46px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--color-primary)',
-                color: '#FAF7F2',
-                fontWeight: 700,
-                fontSize: '0.92rem',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(18, 43, 25, 0.2)'
-              }}
-            >
-              Add to Shopping Bag • ₹{price * quantity}
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                style={{
+                  flex: 1,
+                  height: '46px',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--color-primary)',
+                  color: '#FAF7F2',
+                  fontWeight: 700,
+                  fontSize: '0.92rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(18, 43, 25, 0.2)'
+                }}
+              >
+                Add to Shopping Bag • ₹{price * quantity}
+              </button>
+            </div>
+          )}
 
           {/* Pincode Estimator */}
           <PincodeDeliveryChecker />
