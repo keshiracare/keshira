@@ -223,13 +223,26 @@ export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onC
         adminNotes: ''
       };
 
-      // Save to Supabase Database
+      // Save to Supabase Database with fully normalized columns
       try {
         const { error } = await supabase.from('orders').upsert({
           id: orderId,
           order_data: newOrder,
           email: shippingForm.email.trim().toLowerCase(),
           normalized_email: normalizeEmail(shippingForm.email),
+          customer_name: shippingForm.fullName?.trim() || '',
+          phone: shippingForm.phone?.trim() || '',
+          utr: paymentForm.utr.trim() || 'Pending Verification',
+          total_amount: Number(orderSummary.total) || 0,
+          subtotal: Number(orderSummary.subtotal) || 0,
+          discount: Number(orderSummary.discount || orderSummary.couponDiscount) || 0,
+          coupon_code: orderSummary.couponCode || '',
+          shipping_address: shippingForm.address?.trim() || '',
+          city: shippingForm.city?.trim() || '',
+          pincode: shippingForm.pinCode?.trim() || '',
+          payment_method: 'UPI',
+          payment_status: paymentForm.utr.trim() ? 'Pending Verification' : 'Awaiting Payment',
+          items: cart,
           status: 'Received',
           admin_notes: ''
         });
