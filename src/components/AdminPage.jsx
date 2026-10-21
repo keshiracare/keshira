@@ -82,13 +82,28 @@ export default function AdminPage({ onNavigateHome }) {
 
       const ordersList = (dbOrders || []).map(row => {
         const orderData = row.order_data || {};
+        const shipping = orderData.shippingAddress || {};
         return {
           ...orderData,
           id: row.id,
           date: orderData.date || new Date(row.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
           time: orderData.time || new Date(row.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
           status: row.status || orderData.status || 'Received',
-          adminNotes: row.admin_notes !== undefined ? row.admin_notes : (orderData.adminNotes || '')
+          adminNotes: row.admin_notes !== undefined ? row.admin_notes : (orderData.adminNotes || ''),
+          utr: row.utr || orderData.utr || '',
+          total: row.total_amount !== null && row.total_amount !== undefined ? Number(row.total_amount) : (orderData.total || 0),
+          subtotal: row.subtotal !== null && row.subtotal !== undefined ? Number(row.subtotal) : (orderData.subtotal || 0),
+          discount: row.discount !== null && row.discount !== undefined ? Number(row.discount) : (orderData.discount || 0),
+          couponCode: row.coupon_code || orderData.couponCode || '',
+          items: Array.isArray(row.items) && row.items.length > 0 ? row.items : (orderData.items || []),
+          shippingAddress: {
+            fullName: row.customer_name || shipping.fullName || '',
+            phone: row.phone || shipping.phone || '',
+            email: row.email || row.normalized_email || shipping.email || '',
+            address: row.shipping_address || shipping.address || '',
+            city: row.city || shipping.city || '',
+            pinCode: row.pincode || shipping.pinCode || ''
+          }
         };
       });
 
@@ -640,27 +655,14 @@ export default function AdminPage({ onNavigateHome }) {
     localStorage.setItem('keshira_orders', JSON.stringify(updatedOrders));
 
     try {
-      // 1. Fetch current order_data to keep everything synchronized
-      const { data: currentRows, error: fetchErr } = await supabase
-        .from('orders')
-        .select('order_data')
-        .eq('id', orderId);
-
-      if (fetchErr) throw fetchErr;
-
-      const currentOrderData = currentRows && currentRows[0]?.order_data ? currentRows[0].order_data : {};
-      const updatedOrderData = {
-        ...currentOrderData,
-        utr: newUtrStatus,
-        status: isRejected ? 'Payment Failed' : (isVerified ? 'Processing' : (currentOrderData.status || 'Received'))
-      };
-
-      // 2. Update Supabase
+      // 2. Update Supabase with normalized columns
+      const newStatus = isRejected ? 'Payment Failed' : (isVerified ? 'Processing' : 'Received');
       const { error: updateErr } = await supabase
         .from('orders')
         .update({ 
-          order_data: updatedOrderData,
-          status: updatedOrderData.status
+          status: newStatus,
+          payment_status: isVerified ? 'Verified' : (isRejected ? 'Failed' : 'Pending Verification'),
+          utr: newUtrStatus
         })
         .eq('id', orderId);
 
