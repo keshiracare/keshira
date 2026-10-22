@@ -139,7 +139,10 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
   const liveCount = currentSpecificStats?.count > 0 ? currentSpecificStats.count : reviewsStats.totalCount;
 
   const isBogoActive = Boolean(storeOffers?.isBogoEnabled && !isBundle);
-  const rawProductPriceInfo = currentProduct?.prices?.[activeVariant] || { price: 349, originalPrice: 499, bogoPairPrice: 149 };
+  const isOil = currentProduct?.productType === 'oil' || currentProduct?.id?.includes('oil');
+  const defaultPrice = activeVariant === '100ml' ? (isOil ? 399 : 299) : (isOil ? 599 : 499);
+  const defaultMrp = activeVariant === '100ml' ? (isOil ? 499 : 399) : (isOil ? 699 : 599);
+  const rawProductPriceInfo = currentProduct?.prices?.[activeVariant] || { price: defaultPrice, originalPrice: defaultMrp, bogoPairPrice: defaultPrice };
   const effectiveProductPrice = getEffectiveProductPrice(rawProductPriceInfo, isBogoActive);
 
   const price = isBundle 
@@ -348,16 +351,20 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
             <span style={{ fontSize: '2.1rem', fontWeight: 800, color: 'var(--color-primary)', fontFamily: 'var(--font-serif)' }}>
               ₹{price}
             </span>
-            <span style={{ fontSize: '1.2rem', color: 'var(--color-text-muted)', textDecoration: 'line-through' }}>
-              ₹{originalPrice}
-            </span>
-            <span style={{ fontSize: '0.78rem', backgroundColor: '#E8F5E9', color: '#166534', fontWeight: 700, padding: '3px 10px', borderRadius: '12px' }}>
-              {isBundle 
-                ? `Save ₹${bundleData ? bundleData.savings : (originalPrice - price)} (Duo Deal) + Free Delivery` 
-                : Boolean(storeOffers?.isBogoEnabled)
-                  ? 'BOGO: Buy 1 Get 1 FREE' 
-                  : `Save ₹${originalPrice - price}`}
-            </span>
+            {originalPrice > price && (
+              <span style={{ fontSize: '1.2rem', color: 'var(--color-text-muted)', textDecoration: 'line-through' }}>
+                ₹{originalPrice}
+              </span>
+            )}
+            {((isBundle && originalPrice > price) || (!isBundle && isBogoActive) || (!isBundle && !isBogoActive && originalPrice > price)) && (
+              <span style={{ fontSize: '0.78rem', backgroundColor: '#E8F5E9', color: '#166534', fontWeight: 700, padding: '3px 10px', borderRadius: '12px' }}>
+                {isBundle 
+                  ? `Save ₹${bundleData ? bundleData.savings : (originalPrice - price)} (Duo Deal) + Free Delivery` 
+                  : isBogoActive
+                    ? 'BOGO: Buy 1 Get 1 FREE' 
+                    : `Save ₹${originalPrice - price}`}
+              </span>
+            )}
           </div>
 
           {!isBundle && Boolean(storeOffers?.isBogoEnabled) && (

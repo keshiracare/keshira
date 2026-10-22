@@ -48,7 +48,24 @@ export default function AdminPage({ onNavigateHome }) {
   };
 
   useEffect(() => {
+    const handleOffersUpdated = (e) => {
+      if (e.detail) setStoreOffers(e.detail);
+    };
+    const handleProductsUpdated = (e) => {
+      if (e.detail) setProductsCatalog(e.detail);
+    };
+    window.addEventListener('keshira_offers_updated', handleOffersUpdated);
+    window.addEventListener('keshira_products_updated', handleProductsUpdated);
+    return () => {
+      window.removeEventListener('keshira_offers_updated', handleOffersUpdated);
+      window.removeEventListener('keshira_products_updated', handleProductsUpdated);
+    };
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated) {
+      setProductsCatalog(getActiveProducts());
+      setStoreOffers(getActiveOffers());
       loadData();
 
       // Check URL query parameters for Telegram 1-click verification/rejection
@@ -298,17 +315,17 @@ export default function AdminPage({ onNavigateHome }) {
       prices: {
         '100ml': {
           size: '100ml',
-          price: Number(productForm.price100) || 349,
-          originalPrice: Number(productForm.origPrice100) || 499,
-          bogoPairPrice: Number(productForm.bogo100) || 149,
+          price: Number(productForm.price100) || (productForm.productType === 'oil' ? 399 : 299),
+          originalPrice: Number(productForm.origPrice100) || (productForm.productType === 'oil' ? 499 : 399),
+          bogoPairPrice: Number(productForm.bogo100) || (productForm.productType === 'oil' ? 399 : 299),
           savings: `BOGO: Buy 1 Get 1 FREE (Pay ₹${productForm.bogo100} for 2)`,
           bogoNotice: `Buy 1 Get 1 Free • 2nd Bottle Free (₹${productForm.bogo100} for 2)`
         },
         '200ml': {
           size: '200ml',
-          price: Number(productForm.price200) || 549,
-          originalPrice: Number(productForm.origPrice200) || 699,
-          bogoPairPrice: Number(productForm.bogo200) || 249,
+          price: Number(productForm.price200) || (productForm.productType === 'oil' ? 599 : 499),
+          originalPrice: Number(productForm.origPrice200) || (productForm.productType === 'oil' ? 699 : 599),
+          bogoPairPrice: Number(productForm.bogo200) || (productForm.productType === 'oil' ? 599 : 499),
           savings: `BOGO: Buy 1 Get 1 FREE (Pay ₹${productForm.bogo200} for 2)`,
           bogoNotice: `Buy 1 Get 1 Free • 2nd Bottle Free (₹${productForm.bogo200} for 2)`
         }
@@ -3222,7 +3239,7 @@ export default function AdminPage({ onNavigateHome }) {
                     Buy 1 Get 1 Free (B1G1)
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.82rem', color: '#6B7280', lineHeight: 1.45 }}>
-                    When enabled, buying 1 bottle auto-adds 2nd free companion bottle of same type (₹149 / ₹249 pair deal).
+                    When enabled, buying 1 bottle auto-adds 2nd free companion bottle of same type and size.
                   </p>
                 </div>
 

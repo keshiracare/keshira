@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { KESHIRA_PRODUCTS, KESHIRA_BUNDLES } from '../data/products';
+import { getActiveProducts, KESHIRA_BUNDLES } from '../data/products';
 
 export default function SearchModal({ isOpen, onClose, onNavigate }) {
+  const [catalog, setCatalog] = useState(() => getActiveProducts());
   const [query, setQuery] = useState('');
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    const handleProductsUpdated = (e) => {
+      if (e.detail) setCatalog(e.detail);
+    };
+    window.addEventListener('keshira_products_updated', handleProductsUpdated);
+    return () => window.removeEventListener('keshira_products_updated', handleProductsUpdated);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -36,7 +45,7 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
 
   const normalized = query.trim().toLowerCase();
 
-  const allProducts = Object.values(KESHIRA_PRODUCTS);
+  const allProducts = Object.values(catalog);
 
   const matchedProducts = normalized
     ? allProducts.filter(p => {

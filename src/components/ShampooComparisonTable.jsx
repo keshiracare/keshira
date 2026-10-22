@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { KESHIRA_PRODUCTS, getActiveOffers, getEffectiveProductPrice } from '../data/products';
+import { getActiveProducts, getActiveOffers, getEffectiveProductPrice } from '../data/products';
 
 export default function ShampooComparisonTable({ onSelectProduct, storeOffers: propStoreOffers }) {
   const [storeOffers, setStoreOffers] = useState(propStoreOffers || getActiveOffers());
+  const [catalog, setCatalog] = useState(() => getActiveProducts());
 
   useEffect(() => {
     if (propStoreOffers) {
@@ -14,17 +15,24 @@ export default function ShampooComparisonTable({ onSelectProduct, storeOffers: p
     const handleOffersUpdated = (e) => {
       setStoreOffers(e.detail || getActiveOffers());
     };
+    const handleProductsUpdated = (e) => {
+      setCatalog(e.detail || getActiveProducts());
+    };
     window.addEventListener('keshira_offers_updated', handleOffersUpdated);
-    return () => window.removeEventListener('keshira_offers_updated', handleOffersUpdated);
+    window.addEventListener('keshira_products_updated', handleProductsUpdated);
+    return () => {
+      window.removeEventListener('keshira_offers_updated', handleOffersUpdated);
+      window.removeEventListener('keshira_products_updated', handleProductsUpdated);
+    };
   }, []);
 
   const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
 
   const shampoos = [
-    KESHIRA_PRODUCTS.hairfall,
-    KESHIRA_PRODUCTS.dandruff,
-    KESHIRA_PRODUCTS.gentle
-  ];
+    catalog.hairfall,
+    catalog.dandruff,
+    catalog.gentle
+  ].filter(Boolean);
 
   return (
     <section id="shampoo-comparison" className="shampoo-comparison-section">

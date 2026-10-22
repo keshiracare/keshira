@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { KESHIRA_PRODUCTS, getActiveOffers } from '../data/products';
+import { getActiveProducts, getActiveOffers } from '../data/products';
 
 export default function HairQuiz({ onAddToCart, storeOffers: propStoreOffers }) {
   const [storeOffers, setStoreOffers] = useState(propStoreOffers || getActiveOffers());
+  const [catalog, setCatalog] = useState(() => getActiveProducts());
   const [step, setStep] = useState(1);
   const [answers, setAnswers] = useState({
     concern: '',
@@ -20,8 +21,15 @@ export default function HairQuiz({ onAddToCart, storeOffers: propStoreOffers }) 
     const handleOffersUpdated = (e) => {
       setStoreOffers(e.detail || getActiveOffers());
     };
+    const handleProductsUpdated = (e) => {
+      if (e.detail) setCatalog(e.detail);
+    };
     window.addEventListener('keshira_offers_updated', handleOffersUpdated);
-    return () => window.removeEventListener('keshira_offers_updated', handleOffersUpdated);
+    window.addEventListener('keshira_products_updated', handleProductsUpdated);
+    return () => {
+      window.removeEventListener('keshira_offers_updated', handleOffersUpdated);
+      window.removeEventListener('keshira_products_updated', handleProductsUpdated);
+    };
   }, []);
 
   const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
@@ -43,21 +51,21 @@ export default function HairQuiz({ onAddToCart, storeOffers: propStoreOffers }) 
 
     if (concern === 'dandruff' || scalpType === 'oily_flaky') {
       return {
-        shampoo: KESHIRA_PRODUCTS.dandruff,
+        shampoo: catalog.dandruff || { id: 'dandruff', name: 'Keshira Neem Herbal Shampoo', shortName: 'Neem Herbal Shampoo', prices: { '200ml': { price: 499, originalPrice: 599, bogoPairPrice: 499 } }, images: { primary: '/assets/Keshira Neem Herbal Shampoo.webp' } },
         concernLabel: 'Dandruff & Itchy Scalp',
         routineReason: 'Your scalp needs antimicrobial botanical cleansing to clear stubborn flakes without stripping sebum.',
         washFrequency: 'Wash 2–3 times weekly with cool water'
       };
     } else if (concern === 'hairfall') {
       return {
-        shampoo: KESHIRA_PRODUCTS.hairfall,
+        shampoo: catalog.hairfall || { id: 'hairfall', name: 'Keshira Hibiscus Herbal Shampoo', shortName: 'Hibiscus Herbal Shampoo', prices: { '200ml': { price: 499, originalPrice: 599, bogoPairPrice: 499 } }, images: { primary: '/assets/Keshira Hibiscus Herbal Shampoo.webp' } },
         concernLabel: 'Hair Fall & Weak Roots',
         routineReason: 'Weak follicles require Ayurvedic root stimulation with Bhringraj, Amla, and Clove.',
         washFrequency: 'Wash 2–3 times weekly paired with pre-wash oiling'
       };
     } else {
       return {
-        shampoo: KESHIRA_PRODUCTS.gentle,
+        shampoo: catalog.gentle || { id: 'gentle', name: 'Keshira Gentle Herbal Shampoo', shortName: 'Gentle Herbal Shampoo', prices: { '200ml': { price: 499, originalPrice: 599, bogoPairPrice: 499 } }, images: { primary: '/assets/Keshira Gentle Herbal Shampoo.webp' } },
         concernLabel: 'Daily Care & Sensitive Scalp',
         routineReason: 'Sensitive cuticles need ultra-mild plant saponins and Aloe Vera hydration.',
         washFrequency: 'Gentle enough for daily use or after gym workouts'

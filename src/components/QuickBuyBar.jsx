@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
-import { KESHIRA_PRODUCTS, KESHIRA_BUNDLES } from '../data/products';
+import React, { useState, useEffect } from 'react';
+import { getActiveProducts, KESHIRA_BUNDLES } from '../data/products';
 
 export default function QuickBuyBar({ onAddToCart }) {
+  const [catalog, setCatalog] = useState(() => getActiveProducts());
   const [activeItemType, setActiveItemType] = useState('bundle'); // 'bundle' or 'oil'
   const [isAdded, setIsAdded] = useState(false);
 
+  useEffect(() => {
+    const handleProductsUpdated = (e) => {
+      if (e.detail) setCatalog(e.detail);
+    };
+    window.addEventListener('keshira_products_updated', handleProductsUpdated);
+    return () => window.removeEventListener('keshira_products_updated', handleProductsUpdated);
+  }, []);
+
   const heroBundle = KESHIRA_BUNDLES[0]; // Hairfall Regimen Duo
-  const heroOil = KESHIRA_PRODUCTS.oil;
+  const heroOil = catalog.oil || { name: 'Keshira Herbal Oil', shortName: 'Herbal Oil', prices: { '200ml': { price: 599 } }, images: { primary: '/assets/Keshira Herbal Oil.jpeg' } };
 
   const handleAdd = () => {
     if (onAddToCart) {

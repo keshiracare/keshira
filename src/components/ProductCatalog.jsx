@@ -86,7 +86,10 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
 
   const handleAddSingleProduct = (product) => {
     const size = selectedSizes[product.id] || '200ml';
-    const rawPriceInfo = product.prices?.[size] || { price: 349, originalPrice: 499, bogoPairPrice: 149 };
+    const isOil = product.productType === 'oil' || product.id?.includes('oil');
+    const defaultPrice = size === '100ml' ? (isOil ? 399 : 299) : (isOil ? 599 : 499);
+    const defaultMrp = size === '100ml' ? (isOil ? 499 : 399) : (isOil ? 699 : 599);
+    const rawPriceInfo = product.prices?.[size] || { price: defaultPrice, originalPrice: defaultMrp, bogoPairPrice: defaultPrice };
     const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
     const effectivePrice = getEffectiveProductPrice(rawPriceInfo, isBogoActive);
 
