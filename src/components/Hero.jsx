@@ -100,7 +100,7 @@ export default function Hero({ storeOffers: propStoreOffers }) {
     {
       id: 'slide-hairfall',
       eyebrow: 'TARGETED 2-STEP REGIMEN',
-      offerTag: 'Root Strengthening Duo • Save ₹49',
+      offerTag: 'Root Strengthening Duo • Save ₹298',
       title: 'Overcome Shedding with Cold-Simmered Botanical Oil',
       description: 'Pre-wash 14-herb sesame oil champi paired with sulfate-free saponin cleansing reinforces hair follicles straight from the dermal papilla.',
       primaryCta: 'Shop 2-Step Routine',

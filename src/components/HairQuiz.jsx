@@ -51,21 +51,21 @@ export default function HairQuiz({ onAddToCart, storeOffers: propStoreOffers }) 
 
     if (concern === 'dandruff' || scalpType === 'oily_flaky') {
       return {
-        shampoo: catalog.dandruff || { id: 'dandruff', name: 'Keshira Neem Herbal Shampoo', shortName: 'Neem Herbal Shampoo', prices: { '200ml': { price: 499, originalPrice: 599, bogoPairPrice: 499 } }, images: { primary: '/assets/Keshira Neem Herbal Shampoo.webp' } },
+        shampoo: catalog.dandruff || { id: 'dandruff', name: 'Keshira Neem Herbal Shampoo', shortName: 'Neem Herbal Shampoo', prices: { '200ml': { price: 249, originalPrice: 499, bogoPairPrice: 449 } }, images: { primary: '/assets/Keshira Neem Herbal Shampoo.webp' } },
         concernLabel: 'Dandruff & Itchy Scalp',
         routineReason: 'Your scalp needs antimicrobial botanical cleansing to clear stubborn flakes without stripping sebum.',
         washFrequency: 'Wash 2–3 times weekly with cool water'
       };
     } else if (concern === 'hairfall') {
       return {
-        shampoo: catalog.hairfall || { id: 'hairfall', name: 'Keshira Hibiscus Herbal Shampoo', shortName: 'Hibiscus Herbal Shampoo', prices: { '200ml': { price: 499, originalPrice: 599, bogoPairPrice: 499 } }, images: { primary: '/assets/Keshira Hibiscus Herbal Shampoo.webp' } },
+        shampoo: catalog.hairfall || { id: 'hairfall', name: 'Keshira Hibiscus Herbal Shampoo', shortName: 'Hibiscus Herbal Shampoo', prices: { '200ml': { price: 249, originalPrice: 399, bogoPairPrice: 449 } }, images: { primary: '/assets/Keshira Hibiscus Herbal Shampoo.webp' } },
         concernLabel: 'Hair Fall & Weak Roots',
         routineReason: 'Weak follicles require Ayurvedic root stimulation with Bhringraj, Amla, and Clove.',
         washFrequency: 'Wash 2–3 times weekly paired with pre-wash oiling'
       };
     } else {
       return {
-        shampoo: catalog.gentle || { id: 'gentle', name: 'Keshira Gentle Herbal Shampoo', shortName: 'Gentle Herbal Shampoo', prices: { '200ml': { price: 499, originalPrice: 599, bogoPairPrice: 499 } }, images: { primary: '/assets/Keshira Gentle Herbal Shampoo.webp' } },
+        shampoo: catalog.gentle || { id: 'gentle', name: 'Keshira Gentle Herbal Shampoo', shortName: 'Gentle Herbal Shampoo', prices: { '200ml': { price: 249, originalPrice: 399, bogoPairPrice: 449 } }, images: { primary: '/assets/Keshira Gentle Herbal Shampoo.webp' } },
         concernLabel: 'Daily Care & Sensitive Scalp',
         routineReason: 'Sensitive cuticles need ultra-mild plant saponins and Aloe Vera hydration.',
         washFrequency: 'Gentle enough for daily use or after gym workouts'

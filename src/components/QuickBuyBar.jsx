@@ -82,7 +82,7 @@ export default function QuickBuyBar({ onAddToCart }) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
               <span style={{ fontSize: '0.72rem', color: 'var(--color-accent-gold-dark)', fontWeight: 700 }}>
-                {activeItemType === 'bundle' ? 'Save ₹49 + Free Shipping' : 'Cold-Pressed Micro-Batch'}
+                {activeItemType === 'bundle' ? `Save ₹${heroBundle.savings || 298} + Free Shipping` : 'Cold-Pressed Micro-Batch'}
               </span>
               <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>• pH 5.5 Balanced</span>
             </div>

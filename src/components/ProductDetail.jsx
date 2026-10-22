@@ -140,9 +140,10 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
 
   const isBogoActive = Boolean(storeOffers?.isBogoEnabled && !isBundle);
   const isOil = currentProduct?.productType === 'oil' || currentProduct?.id?.includes('oil');
-  const defaultPrice = activeVariant === '100ml' ? (isOil ? 399 : 299) : (isOil ? 599 : 499);
-  const defaultMrp = activeVariant === '100ml' ? (isOil ? 499 : 399) : (isOil ? 699 : 599);
-  const rawProductPriceInfo = currentProduct?.prices?.[activeVariant] || { price: defaultPrice, originalPrice: defaultMrp, bogoPairPrice: defaultPrice };
+  const defaultPrice = activeVariant === '100ml' ? (isOil ? 299 : 149) : (isOil ? 399 : 249);
+  const defaultMrp = activeVariant === '100ml' ? (isOil ? 499 : 299) : (isOil ? 699 : 499);
+  const defaultBogo = activeVariant === '100ml' ? (isOil ? 349 : 249) : (isOil ? 549 : 449);
+  const rawProductPriceInfo = currentProduct?.prices?.[activeVariant] || { price: defaultPrice, originalPrice: defaultMrp, bogoPairPrice: defaultBogo };
   const effectiveProductPrice = getEffectiveProductPrice(rawProductPriceInfo, isBogoActive);
 
   const price = isBundle 
