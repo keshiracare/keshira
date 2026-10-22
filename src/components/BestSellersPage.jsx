@@ -30,8 +30,22 @@ export default function BestSellersPage({ onAddToCart, onNavigateHome, storeOffe
         setCatalogMap(prev => getProductsWithLiveRatings(prev, e.detail));
       }
     };
+    const handleProductsUpdated = (e) => {
+      const base = e.detail || getActiveProducts();
+      try {
+        const saved = localStorage.getItem('keshira_reviews');
+        const reviewsList = saved ? JSON.parse(saved) : [];
+        setCatalogMap(getProductsWithLiveRatings(base, reviewsList));
+      } catch {
+        setCatalogMap(base);
+      }
+    };
     window.addEventListener('keshira:reviews-synced', handleReviewsSynced);
-    return () => window.removeEventListener('keshira:reviews-synced', handleReviewsSynced);
+    window.addEventListener('keshira_products_updated', handleProductsUpdated);
+    return () => {
+      window.removeEventListener('keshira:reviews-synced', handleReviewsSynced);
+      window.removeEventListener('keshira_products_updated', handleProductsUpdated);
+    };
   }, []);
 
   const [selectedSizes, setSelectedSizes] = useState({

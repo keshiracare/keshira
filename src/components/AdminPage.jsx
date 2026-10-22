@@ -156,6 +156,65 @@ export default function AdminPage({ onNavigateHome }) {
           window.dispatchEvent(new CustomEvent('keshira:reviews-synced', { detail: parsed }));
         } catch {}
       }
+    }
+
+    // 3. Fetch live products from Supabase to guarantee absolute parity with DB
+    try {
+      const { data: dbProducts, error: prodError } = await supabase
+        .from('products')
+        .select('*');
+
+      if (!prodError && dbProducts && dbProducts.length > 0) {
+        const current = { ...productsCatalog };
+        dbProducts.forEach(row => {
+          const fallback = current[row.id] || KESHIRA_PRODUCTS[row.id];
+          if (fallback) {
+            const p100 = Number(row.price_100ml) || fallback.prices?.['100ml']?.price || 149;
+            const mrp100 = Number(row.mrp_100ml) || fallback.prices?.['100ml']?.originalPrice || 299;
+            const bogo100 = Number(row.bogo_100ml) || fallback.prices?.['100ml']?.bogoPairPrice || 249;
+            const p200 = Number(row.price_200ml) || fallback.prices?.['200ml']?.price || 249;
+            const mrp200 = Number(row.mrp_200ml) || fallback.prices?.['200ml']?.originalPrice || 499;
+            const bogo200 = Number(row.bogo_200ml) || fallback.prices?.['200ml']?.bogoPairPrice || 449;
+
+            current[row.id] = {
+              ...fallback,
+              id: row.id,
+              name: row.name || fallback.name,
+              shortName: row.short_name || fallback.shortName,
+              concern: row.concern || fallback.concern,
+              category: row.category || fallback.category,
+              productType: row.product_type || fallback.productType,
+              isBOGO: Boolean(row.is_bogo),
+              rating: Number(row.rating) || fallback.rating,
+              reviewCount: Number(row.review_count) || fallback.reviewCount,
+              stockQuantity: row.stock_quantity !== null && row.stock_quantity !== undefined ? Number(row.stock_quantity) : 100,
+              isInStock: row.is_in_stock !== null && row.is_in_stock !== undefined ? Boolean(row.is_in_stock) : true,
+              prices: {
+                '100ml': {
+                  size: '100ml',
+                  price: p100,
+                  originalPrice: mrp100,
+                  bogoPairPrice: bogo100,
+                  savings: `BOGO: Buy 1 Get 1 FREE (Pay ₹${bogo100} for 2)`,
+                  bogoNotice: `Buy 1 Get 1 Free • 2nd Bottle Free (₹${bogo100} for 2)`
+                },
+                '200ml': {
+                  size: '200ml',
+                  price: p200,
+                  originalPrice: mrp200,
+                  bogoPairPrice: bogo200,
+                  savings: `BOGO: Buy 1 Get 1 FREE (Pay ₹${bogo200} for 2)`,
+                  bogoNotice: `Buy 1 Get 1 Free • 2nd Bottle Free (₹${bogo200} for 2)`
+                }
+              }
+            };
+          }
+        });
+        setProductsCatalog(current);
+        saveActiveProducts(current);
+      }
+    } catch (err) {
+      console.warn('Could not fetch products directly from Supabase:', err);
     } finally {
       setIsLoading(false);
     }

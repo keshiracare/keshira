@@ -2,8 +2,8 @@
 // Single Source of Truth for Keshira's 4-SKU Lineup and Regimen Bundles.
 // Clean, maintainable, human-readable data structure following the Ponytail philosophy.
 // Store-wide BUY 1 GET 1 FREE (BOGO) Offer:
-// - Single Bottle: 100ml = ₹349, 200ml = ₹549
-// - BOGO Offer: Buying 2 bottles of Shampoo or 2 bottles of Oil costs ₹149 (100ml) or ₹249 (200ml) total!
+// - Single Bottle: Shampoo: 100ml = ₹149 (MRP ₹299), 200ml = ₹249 (MRP ₹499/₹399); Oil: 100ml = ₹299 (MRP ₹499), 200ml = ₹399 (MRP ₹699)
+// - BOGO Pair Offer: Shampoos ₹249 (100ml) or ₹449 (200ml) for 2; Oil ₹349 (100ml) or ₹549 (200ml) for 2!
 
 export const KESHIRA_PRODUCTS = {
   dandruff: {
@@ -29,19 +29,19 @@ export const KESHIRA_PRODUCTS = {
     prices: {
       '100ml': { 
         size: '100ml', 
-        price: 299, 
-        originalPrice: 399,
-        bogoPairPrice: 299,
-        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹299 for 2 Bottles • ₹150/bottle)',
-        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹299 for 2 Bottles)'
+        price: 149, 
+        originalPrice: 299,
+        bogoPairPrice: 249,
+        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹249 for 2 Bottles • ₹125/bottle)',
+        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹249 for 2 Bottles)'
       },
       '200ml': { 
         size: '200ml', 
-        price: 499, 
-        originalPrice: 599,
-        bogoPairPrice: 499,
-        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹499 for 2 Bottles • ₹250/bottle)',
-        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹499 for 2 Bottles)'
+        price: 249, 
+        originalPrice: 499,
+        bogoPairPrice: 449,
+        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹449 for 2 Bottles • ₹225/bottle)',
+        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹449 for 2 Bottles)'
       }
     },
     defaultSize: '200ml',
@@ -84,19 +84,19 @@ export const KESHIRA_PRODUCTS = {
     prices: {
       '100ml': { 
         size: '100ml', 
-        price: 299, 
-        originalPrice: 399,
-        bogoPairPrice: 299,
-        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹299 for 2 Bottles • ₹150/bottle)',
-        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹299 for 2 Bottles)'
+        price: 149, 
+        originalPrice: 299,
+        bogoPairPrice: 249,
+        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹249 for 2 Bottles • ₹125/bottle)',
+        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹249 for 2 Bottles)'
       },
       '200ml': { 
         size: '200ml', 
-        price: 499, 
-        originalPrice: 599,
-        bogoPairPrice: 499,
-        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹499 for 2 Bottles • ₹250/bottle)',
-        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹499 for 2 Bottles)'
+        price: 249, 
+        originalPrice: 499,
+        bogoPairPrice: 449,
+        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹449 for 2 Bottles • ₹225/bottle)',
+        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹449 for 2 Bottles)'
       }
     },
     defaultSize: '200ml',
@@ -139,19 +139,19 @@ export const KESHIRA_PRODUCTS = {
     prices: {
       '100ml': { 
         size: '100ml', 
-        price: 299, 
-        originalPrice: 399,
-        bogoPairPrice: 299,
-        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹299 for 2 Bottles • ₹150/bottle)',
-        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹299 for 2 Bottles)'
+        price: 149, 
+        originalPrice: 299,
+        bogoPairPrice: 249,
+        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹249 for 2 Bottles • ₹125/bottle)',
+        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹249 for 2 Bottles)'
       },
       '200ml': { 
         size: '200ml', 
-        price: 499, 
-        originalPrice: 599,
-        bogoPairPrice: 499,
-        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹499 for 2 Bottles • ₹250/bottle)',
-        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹499 for 2 Bottles)'
+        price: 249, 
+        originalPrice: 499,
+        bogoPairPrice: 449,
+        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹449 for 2 Bottles • ₹225/bottle)',
+        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹449 for 2 Bottles)'
       }
     },
     defaultSize: '200ml',
@@ -194,19 +194,19 @@ export const KESHIRA_PRODUCTS = {
     prices: {
       '100ml': { 
         size: '100ml', 
-        price: 399, 
+        price: 299, 
         originalPrice: 499, 
-        bogoPairPrice: 399,
-        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹399 for 2 Bottles • ₹200/bottle)',
-        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹399 for 2 Bottles)'
+        bogoPairPrice: 349,
+        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹349 for 2 Bottles • ₹175/bottle)',
+        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹349 for 2 Bottles)'
       },
       '200ml': { 
         size: '200ml', 
-        price: 599, 
+        price: 399, 
         originalPrice: 699, 
-        bogoPairPrice: 599,
-        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹599 for 2 Bottles • ₹300/bottle)',
-        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹599 for 2 Bottles)'
+        bogoPairPrice: 549,
+        savings: 'BOGO: Buy 1 Get 1 FREE (Pay ₹549 for 2 Bottles • ₹275/bottle)',
+        bogoNotice: 'Buy 1 Get 1 Free • 2nd Bottle Free (₹549 for 2 Bottles)'
       }
     },
     defaultSize: '200ml',
@@ -847,28 +847,19 @@ export const getProductsWithLiveRatings = (baseProducts, reviewsList = []) => {
   return products;
 };
 
-// Helper to determine the effective selling price of a product size based on B1G1 active state:
-// When B1G1 is active (both store-wide AND for the product): use promotional price (e.g. ₹299 / ₹499)
-// When B1G1 is OFF: revert to printed MRP (e.g. ₹399 / ₹599; Oil ₹499 / ₹699)
+// Helper to determine the effective selling price of a product size:
+// Always respects the live product.prices configured by the admin in Supabase/catalog.
+// - price: The active selling price for a single unit (e.g. ₹149/₹249 for shampoo, ₹299/₹399 for oil).
+// - originalPrice: The printed MRP (e.g. ₹299/₹499/₹699).
 export const getEffectiveProductPrice = (priceData, isBogoActive = true) => {
-  if (!priceData) return { price: 299, originalPrice: 399, isDiscounted: false };
+  if (!priceData) return { price: 249, originalPrice: 399, isDiscounted: false };
 
-  const bogoOn = Boolean(isBogoActive);
-  const promoPrice = Number(priceData.price) || 299;
-  const regularPrice = Number(priceData.originalPrice) || promoPrice;
+  const sellingPrice = Number(priceData.price) || 249;
+  const mrp = Number(priceData.originalPrice) || sellingPrice;
 
-  if (bogoOn) {
-    return {
-      price: promoPrice,
-      originalPrice: regularPrice,
-      isDiscounted: regularPrice > promoPrice
-    };
-  }
-
-  // When B1G1 is OFF: price reverts to regular MRP (no discount)
   return {
-    price: regularPrice,
-    originalPrice: regularPrice,
-    isDiscounted: false
+    price: sellingPrice,
+    originalPrice: mrp,
+    isDiscounted: mrp > sellingPrice
   };
 };
