@@ -82,11 +82,12 @@ export default function BestSellersPage({ onAddToCart, onNavigateHome, storeOffe
     }
   ].filter(p => p && p.id);
 
-  const handleAdd = (prod) => {
+  const handleAdd = (prod, e) => {
     const size = selectedSizes[prod.id] || '200ml';
     const rawPriceData = prod.prices[size];
     const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
     const priceData = getEffectiveProductPrice(rawPriceData, isBogoActive);
+    const targetEl = e?.currentTarget || e?.target;
 
     if (onAddToCart) {
       onAddToCart({
@@ -104,12 +105,13 @@ export default function BestSellersPage({ onAddToCart, onNavigateHome, storeOffe
         purchaseType: 'one-time',
         isBOGO: isBogoActive,
         frequency: null
-      });
+      }, targetEl);
       showToast(prod.shortName);
     }
   };
 
-  const handleAddBundle = (bundle) => {
+  const handleAddBundle = (bundle, e) => {
+    const targetEl = e?.currentTarget || e?.target;
     if (onAddToCart) {
       onAddToCart({
         id: `${bundle.id}-combo-one-time-0`,
@@ -122,7 +124,7 @@ export default function BestSellersPage({ onAddToCart, onNavigateHome, storeOffe
         purchaseType: 'bundle',
         bundleItems: bundle.includes,
         frequency: null
-      });
+      }, targetEl);
       showToast(bundle.name);
     }
   };
@@ -293,7 +295,7 @@ export default function BestSellersPage({ onAddToCart, onNavigateHome, storeOffe
 
                   <button
                     type="button"
-                    onClick={() => handleAdd(product)}
+                    onClick={(e) => handleAdd(product, e)}
                     style={{
                       width: '100%',
                       padding: '12px',
@@ -361,7 +363,7 @@ export default function BestSellersPage({ onAddToCart, onNavigateHome, storeOffe
 
                 <button
                   type="button"
-                  onClick={() => handleAddBundle(bundle)}
+                  onClick={(e) => handleAddBundle(bundle, e)}
                   style={{
                     backgroundColor: 'var(--color-primary, #2D3E2F)',
                     color: '#FFFFFF',

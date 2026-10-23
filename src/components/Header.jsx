@@ -7,7 +7,8 @@ export default function Header({
   onOpenPolicy, 
   currentPath, 
   onNavigate,
-  onSearchOpen
+  onSearchOpen,
+  isCartBumping = false
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -159,8 +160,14 @@ export default function Header({
             </svg>
           </button>
 
-          {/* Cart Drawer Toggle */}
-          <button className="minimalist-action-btn" onClick={onCartOpen} aria-label="Open shopping bag" title="Bag">
+          {/* Cart Checkout Toggle */}
+          <button 
+            id="header-cart-icon-btn"
+            className={`minimalist-action-btn cart-header-action-btn ${isCartBumping ? 'cart-icon-bump' : ''}`} 
+            onClick={onCartOpen} 
+            aria-label="View shopping bag and checkout" 
+            title="Cart & Checkout"
+          >
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
               <line x1="3" y1="6" x2="21" y2="6"></line>

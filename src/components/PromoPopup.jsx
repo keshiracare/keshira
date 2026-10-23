@@ -194,7 +194,7 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
               lineHeight: '1.5',
               margin: '0 0 16px'
             }}>
-              Order the 200ml Keshira Herbal Shampoo (₹499) and receive a complimentary <strong>30ml Herbal Hair Oil</strong> (worth ₹199) for deep scalp nourishment and hair-fall defense.
+              Order the 200ml Keshira Herbal Shampoo (₹249) and receive a complimentary <strong>30ml Herbal Hair Oil</strong> (worth ₹199) for deep scalp nourishment and hair-fall defense.
             </p>
           </div>
 
@@ -302,7 +302,7 @@ export default function PromoPopup({ isOpen, onClose, onClaimOffer }) {
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <span>Claim Free 30ml Oil with Shampoo 200ml • ₹499</span>
+            <span>Claim Free 30ml Oil with Shampoo 200ml • ₹249</span>
             <span>→</span>
           </button>
 

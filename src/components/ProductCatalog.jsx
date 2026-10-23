@@ -84,7 +84,7 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
     setTimeout(() => setAddedNotice(null), 2500);
   };
 
-  const handleAddSingleProduct = (product) => {
+  const handleAddSingleProduct = (product, e) => {
     const size = selectedSizes[product.id] || '200ml';
     const isOil = product.productType === 'oil' || product.id?.includes('oil');
     const defaultPrice = size === '100ml' ? (isOil ? 299 : 149) : (isOil ? 399 : 249);
@@ -93,6 +93,7 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
     const rawPriceInfo = product.prices?.[size] || { price: defaultPrice, originalPrice: defaultMrp, bogoPairPrice: defaultBogo };
     const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
     const effectivePrice = getEffectiveProductPrice(rawPriceInfo, isBogoActive);
+    const targetEl = e?.currentTarget || e?.target;
 
     if (onAddToCart) {
       onAddToCart({
@@ -110,7 +111,7 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
         purchaseType: 'one-time',
         isBOGO: isBogoActive,
         frequency: null
-      });
+      }, targetEl);
       showNotice(product.shortName);
     }
   };
@@ -294,7 +295,7 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
                     ) : (
                       <button
                         type="button"
-                        onClick={() => handleAddSingleProduct(product)}
+                        onClick={(e) => handleAddSingleProduct(product, e)}
                         className="product-add-to-cart-btn"
                       >
                         <span>Add to Bag</span>

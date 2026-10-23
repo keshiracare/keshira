@@ -154,8 +154,9 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
     ? currentBundle.originalPrice
     : effectiveProductPrice.originalPrice;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e) => {
     if (!onAddToCart) return;
+    const targetEl = e?.currentTarget || e?.target;
 
     if (isBundle) {
       onAddToCart({
@@ -169,7 +170,7 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
         purchaseType: 'bundle',
         bundleItems: currentBundle.includes,
         frequency: null
-      });
+      }, targetEl);
     } else {
       onAddToCart({
         id: `keshira-${currentProduct.id}-${activeVariant}-one-time-0`,
@@ -186,7 +187,7 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
         purchaseType: 'one-time',
         isBOGO: currentProduct.isBOGO,
         frequency: null
-      });
+      }, targetEl);
     }
     setQuantity(1);
   };
@@ -349,7 +350,7 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
 
           {/* Pricing */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-            <span style={{ fontSize: '2.1rem', fontWeight: 800, color: 'var(--color-primary)', fontFamily: 'var(--font-serif)' }}>
+            <span style={{ fontSize: '2.1rem', fontWeight: 800, color: 'var(--color-primary)', fontFamily: 'var(--font-sans)' }}>
               ₹{price}
             </span>
             {originalPrice > price && (

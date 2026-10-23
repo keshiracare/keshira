@@ -9,7 +9,6 @@ import ProductDetail from './components/ProductDetail';
 import IngredientsSection from './components/IngredientsSection';
 import HairJourney from './components/HairJourney';
 import OrderTracker from './components/OrderTracker';
-import OffersZone from './components/OffersZone';
 import FAQAccordion from './components/FAQAccordion';
 import SocialCollage from './components/SocialCollage';
 import CartDrawer from './components/CartDrawer';
@@ -21,6 +20,7 @@ import TestimonialsSection from './components/TestimonialsSection';
 import ShampooComparisonTable from './components/ShampooComparisonTable';
 import MinimalistPillars from './components/MinimalistPillars';
 import MinimalistConcernSlider from './components/MinimalistConcernSlider';
+import OffersZone from './components/OffersZone';
 
 // Code-Split Heavy Subpages & Modals for Fast Initial Page Load
 const AdminPage = lazy(() => import('./components/AdminPage'));
@@ -31,6 +31,7 @@ const CollectionsShop = lazy(() => import('./components/CollectionsShop'));
 const HairCarePage = lazy(() => import('./components/HairCarePage'));
 const HairQuiz = lazy(() => import('./components/HairQuiz'));
 const CheckoutModal = lazy(() => import('./components/CheckoutModal'));
+const CheckoutPage = lazy(() => import('./components/CheckoutPage'));
 const SearchModal = lazy(() => import('./components/SearchModal'));
 const PromoPopup = lazy(() => import('./components/PromoPopup'));
 const SubscriptionPortal = lazy(() => import('./components/SubscriptionPortal'));
@@ -54,6 +55,7 @@ export default function App() {
 
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCartBumping, setIsCartBumping] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isPortalOpen, setIsPortalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -68,6 +70,7 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     if (path.includes('/admin') || hash.includes('admin') || params.get('admin') === 'true') return '/admin';
     if (path.includes('/account') || hash.includes('account') || path.includes('/orders') || hash.includes('orders') || path.includes('/portal')) return '/account';
+    if (path.includes('/checkout') || hash.includes('checkout')) return '/checkout';
     if (path.includes('/best-sellers') || hash.includes('best-sellers')) return '/best-sellers';
     if (path.includes('/hair-care') || hash.includes('hair-care') || path.includes('/shop') || hash.includes('#shop')) return '/hair-care';
     if (path.includes('/collections') || hash.includes('collections')) return '/collections';
@@ -188,7 +191,79 @@ export default function App() {
     total: 0
   });
 
-  const handleAddToCart = (newItem) => {
+  // Animate item flying/throwing in a smooth curved arc towards the header cart icon and pulse badge
+  const triggerCartAnimation = (imageSrc, sourceElement) => {
+    // 1. Locate destination: header cart icon button
+    const cartBtn = document.getElementById('header-cart-icon-btn') || document.querySelector('.cart-header-action-btn');
+    const destRect = cartBtn ? cartBtn.getBoundingClientRect() : {
+      left: window.innerWidth - 60,
+      top: 20,
+      width: 40,
+      height: 40
+    };
+
+    // 2. Locate origin: sourceElement, or active click event target, or center screen fallback
+    let startRect = null;
+    if (sourceElement && typeof sourceElement.getBoundingClientRect === 'function') {
+      startRect = sourceElement.getBoundingClientRect();
+    } else if (sourceElement && sourceElement.target && typeof sourceElement.target.getBoundingClientRect === 'function') {
+      startRect = sourceElement.target.getBoundingClientRect();
+    } else if (typeof window !== 'undefined' && window.event && window.event.target && typeof window.event.target.getBoundingClientRect === 'function') {
+      startRect = window.event.target.getBoundingClientRect();
+    }
+
+    const startX = startRect ? (startRect.left + startRect.width / 2) : (window.innerWidth / 2);
+    const startY = startRect ? (startRect.top + startRect.height / 2) : (window.innerHeight / 2);
+
+    const destX = destRect.left + (destRect.width || 40) / 2;
+    const destY = destRect.top + (destRect.height || 40) / 2;
+
+    const deltaX = destX - startX;
+    const deltaY = destY - startY;
+
+    // 3. Create flying flyer with nested container for true 2D parabolic arc trajectory:
+    // Outer flyer handles horizontal motion (ease-in-out), inner flyer handles vertical arc (ease-out curve with upward lift)
+    const flyer = document.createElement('div');
+    flyer.className = 'flying-cart-flyer';
+    const flyerSize = 64; // Initial size in px
+    flyer.style.width = `${flyerSize}px`;
+    flyer.style.height = `${flyerSize}px`;
+    flyer.style.left = `${startX - flyerSize / 2}px`;
+    flyer.style.top = `${startY - flyerSize / 2}px`;
+
+    const inner = document.createElement('div');
+    inner.className = 'flying-cart-inner';
+
+    const img = document.createElement('img');
+    img.src = imageSrc || '/assets/Keshira Herbal Oil.jpeg';
+    img.alt = 'Flying Item';
+    inner.appendChild(img);
+    flyer.appendChild(inner);
+    document.body.appendChild(flyer);
+
+    // Force layout reflow so the starting position is registered
+    void flyer.offsetWidth;
+
+    // Animate smoothly to destination with parabolic throw effect (scale down & fade at finish)
+    requestAnimationFrame(() => {
+      flyer.style.transform = `translateX(${deltaX}px)`;
+      inner.style.transform = `translateY(${deltaY}px) scale(0.2) rotate(360deg)`;
+      inner.style.opacity = '0.85';
+    });
+
+    // 4. On landing: remove flyer, trigger cart bump / bounce animation
+    setTimeout(() => {
+      if (flyer.parentNode) {
+        flyer.parentNode.removeChild(flyer);
+      }
+      setIsCartBumping(true);
+      setTimeout(() => {
+        setIsCartBumping(false);
+      }, 600);
+    }, 720);
+  };
+
+  const handleAddToCart = (newItem, eventOrElement) => {
     setCart((prevCart) => {
       let updatedCart = [...prevCart];
 
@@ -247,8 +322,8 @@ export default function App() {
       return [...updatedCart, newItem];
     });
 
-    // Open cart drawer immediately for visual feedback
-    setIsCartOpen(true);
+    // Animate item flying smoothly to the top-right cart icon
+    triggerCartAnimation(newItem.image, eventOrElement);
     showToast(`🛒 "${newItem.title}" added to your bag!`, 'success');
   };
 
@@ -267,10 +342,10 @@ export default function App() {
       title: 'Keshira Hibiscus Herbal Shampoo (Hair Fall Control) - 200ml',
       variant: '200ml',
       subVariant: 'Hair Fall Control',
-      price: 499,
-      originalPrice: 599,
+      price: 249,
+      originalPrice: 499,
       quantity: 1,
-      image: '/assets/Keshira Hibiscus Herbal Shampoo.jpeg',
+      image: '/assets/Keshira Hibiscus Herbal Shampoo.webp',
       purchaseType: 'one-time',
       frequency: null,
       hasFreeGiftOil: true
@@ -322,7 +397,7 @@ export default function App() {
       return updatedCart;
     });
 
-    setIsCartOpen(true);
+    triggerCartAnimation(shampooItem.image);
     showToast('🎁 Offer claimed! 200ml Shampoo + Free 30ml Herbal Hair Oil added to bag.', 'success');
   };
 
@@ -390,9 +465,9 @@ export default function App() {
 
 
   const handleCheckoutOpen = (summary) => {
-    setCheckoutSummary(summary);
+    if (summary) setCheckoutSummary(summary);
     setIsCartOpen(false); // Close cart drawer
-    setIsCheckoutOpen(true); // Open checkout wizard modal
+    navigateTo('/checkout');
   };
 
   const handleClearCart = () => {
@@ -403,10 +478,46 @@ export default function App() {
 
   const isAdminPage = currentPath === '/admin';
   const isAccountPage = currentPath === '/account';
+  const isCheckoutPage = currentPath === '/checkout' || currentPath === '/checkout-v2';
   const isGuidePage = currentPath === '/ayurvedic-hair-transition-guide';
   const isCollectionsPage = currentPath === '/collections';
   const isBestSellersPage = currentPath === '/best-sellers';
   const isHairCarePage = currentPath === '/hair-care' || currentPath === '/shop';
+
+  // Dedicated Full-Page Separate Checkout Page (Desktop / Direct route)
+  if (isCheckoutPage) {
+    return (
+      <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4F5F7' }}>Loading Checkout...</div>}>
+        <Helmet>
+          <title>Checkout | Keshira Apothecary</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <CheckoutPage 
+          cart={cart}
+          orderSummary={checkoutSummary}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemoveItem={handleRemoveItem}
+          onOpenCheckoutModal={(summary) => {
+            if (summary) setCheckoutSummary(summary);
+            setIsCheckoutOpen(true);
+          }}
+          userEmail={userEmail}
+          setUserEmail={setUserEmail}
+          isFirstTime={isFirstTime}
+          setIsFirstTime={setIsFirstTime}
+          onClearCart={handleClearCart}
+          onNavigateBack={() => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              navigateTo('/');
+            }
+          }}
+          onNavigateHome={() => navigateTo('/')}
+        />
+      </Suspense>
+    );
+  }
 
   // Dedicated Full-Page Admin Portal
   if (isAdminPage) {
@@ -499,92 +610,104 @@ export default function App() {
         <div className="floating-leaf leaf-4"></div>
       </div>
 
-      {/* Top Promo Announcement Bar (Deep Espresso & Warm Ivory) */}
+      {/* Sticky Header Group: Promo Announcement Bar + Navbar */}
       <div 
-        style={{ 
-          backgroundColor: '#271610', 
-          color: '#FAF7F2', 
-          textAlign: 'center', 
-          padding: '9px 16px', 
-          fontSize: '0.83rem', 
-          fontWeight: 700, 
-          letterSpacing: '0.025em',
-          position: 'relative',
-          zIndex: 121,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '12px',
-          borderBottom: '1px solid #3B2219'
+        className="sticky-header-wrapper"
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 120,
+          width: '100%'
         }}
       >
-        <button
-          type="button"
-          onClick={() => setIsPromoOpen(true)}
-          aria-label="Previous announcement"
-          style={{
-            width: '20px',
-            height: '20px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(255,255,255,0.15)',
-            color: '#FFFFFF',
+        {/* Top Promo Announcement Bar (Deep Espresso & Warm Ivory) */}
+        <div 
+          style={{ 
+            backgroundColor: '#271610', 
+            color: '#FAF7F2', 
+            textAlign: 'center', 
+            padding: '9px 16px', 
+            fontSize: '0.83rem', 
+            fontWeight: 700, 
+            letterSpacing: '0.025em',
+            position: 'relative',
+            zIndex: 121,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '0.68rem',
-            fontWeight: 800,
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0
+            gap: '12px',
+            borderBottom: '1px solid #3B2219'
           }}
         >
-          &#9664;
-        </button>
+          <button
+            type="button"
+            onClick={() => setIsPromoOpen(true)}
+            aria-label="Previous announcement"
+            style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0
+            }}
+          >
+            &#9664;
+          </button>
 
-        <div 
-          onClick={() => setIsPromoOpen(true)}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-        >
-          <span>
-            {storeOffers?.isBogoEnabled 
-              ? 'BUY 1 GET 1 FREE (B1G1) ON ALL SHAMPOOS + FREE HAIR OIL ON ORDERS ₹399+' 
-              : 'FREE PAN-INDIA EXPRESS DELIVERY ON ORDERS ₹300+ • 100% PURE BOTANICAL AYURVEDA'}
-          </span>
+          <div 
+            onClick={() => setIsPromoOpen(true)}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <span>
+              {storeOffers?.isBogoEnabled 
+                ? 'BUY 1 GET 1 FREE (B1G1) ON ALL SHAMPOOS + FREE HAIR OIL ON ORDERS ₹399+' 
+                : 'FREE PAN-INDIA EXPRESS DELIVERY ON ORDERS ₹300+ • 100% PURE BOTANICAL AYURVEDA'}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsPromoOpen(true)}
+            aria-label="Next announcement"
+            style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0
+            }}
+          >
+            &#9654;
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsPromoOpen(true)}
-          aria-label="Next announcement"
-          style={{
-            width: '20px',
-            height: '20px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(255,255,255,0.15)',
-            color: '#FFFFFF',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '0.68rem',
-            fontWeight: 800,
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0
-          }}
-        >
-          &#9654;
-        </button>
+        <Header 
+          cartCount={totalCartCount} 
+          onCartOpen={() => navigateTo('/checkout')} 
+          onPortalOpen={() => navigateTo('/account')}
+          onOpenPolicy={handleOpenPolicy}
+          currentPath={currentPath}
+          onNavigate={navigateTo}
+          onSearchOpen={() => setIsSearchOpen(true)}
+          isCartBumping={isCartBumping}
+        />
       </div>
-
-      <Header 
-        cartCount={totalCartCount} 
-        onCartOpen={() => setIsCartOpen(true)} 
-        onPortalOpen={() => navigateTo('/account')}
-        onOpenPolicy={handleOpenPolicy}
-        currentPath={currentPath}
-        onNavigate={navigateTo}
-        onSearchOpen={() => setIsSearchOpen(true)}
-      />
       
       {/* Route Switcher: Multi-Page Architecture (Minimalist Style) */}
       <Suspense fallback={<div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>}>

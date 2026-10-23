@@ -91,11 +91,12 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
         return true;
       });
 
-  const handleAdd = (prod) => {
+  const handleAdd = (prod, e) => {
     const size = selectedSizes[prod.id] || '200ml';
     const rawPriceData = prod.prices[size];
     const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
     const priceData = getEffectiveProductPrice(rawPriceData, isBogoActive);
+    const targetEl = e?.currentTarget || e?.target;
 
     if (onAddToCart) {
       onAddToCart({
@@ -113,7 +114,7 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
         purchaseType: 'one-time',
         isBOGO: isBogoActive,
         frequency: null
-      });
+      }, targetEl);
       showToast(prod.shortName);
     }
   };
@@ -300,7 +301,7 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
 
                     <button
                       type="button"
-                      onClick={() => handleAdd(product)}
+                      onClick={(e) => handleAdd(product, e)}
                       style={{
                         width: '100%',
                         padding: '12px',

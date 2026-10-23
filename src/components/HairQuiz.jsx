@@ -75,7 +75,8 @@ export default function HairQuiz({ onAddToCart, storeOffers: propStoreOffers }) 
 
   const rec = getRecommendation();
 
-  const handleAddSingleShampoo = () => {
+  const handleAddSingleShampoo = (e) => {
+    const targetEl = e?.currentTarget || e?.target;
     if (onAddToCart) {
       onAddToCart({
         id: `keshira-${rec.shampoo.id}-200ml-one-time-0`,
@@ -92,11 +93,12 @@ export default function HairQuiz({ onAddToCart, storeOffers: propStoreOffers }) 
         purchaseType: 'one-time',
         isBOGO: true,
         frequency: null
-      });
+      }, targetEl);
     }
   };
 
-  const handleAddRegimenDuo = () => {
+  const handleAddRegimenDuo = (e) => {
+    const targetEl = e?.currentTarget || e?.target;
     if (onAddToCart) {
       onAddToCart({
         id: `keshira-quiz-bundle-${rec.shampoo.id}-200ml-one-time-0`,
@@ -113,7 +115,7 @@ export default function HairQuiz({ onAddToCart, storeOffers: propStoreOffers }) 
           'Free Express Delivery'
         ],
         frequency: null
-      });
+      }, targetEl);
     }
   };
 
@@ -400,7 +402,7 @@ export default function HairQuiz({ onAddToCart, storeOffers: propStoreOffers }) 
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
-                    onClick={handleAddRegimenDuo}
+                    onClick={(e) => handleAddRegimenDuo(e)}
                     style={{
                       flex: 1,
                       minWidth: '220px',
@@ -419,7 +421,7 @@ export default function HairQuiz({ onAddToCart, storeOffers: propStoreOffers }) 
                   </button>
                   <button
                     type="button"
-                    onClick={handleAddSingleShampoo}
+                    onClick={(e) => handleAddSingleShampoo(e)}
                     style={{
                       padding: '12px 18px',
                       borderRadius: '8px',

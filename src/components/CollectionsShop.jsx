@@ -5,7 +5,8 @@ export default function CollectionsShop({ onAddToCart }) {
   const [activeTab, setActiveTab] = useState('all');
   const [addedBundleId, setAddedBundleId] = useState(null);
 
-  const handleAddBundle = (bundle) => {
+  const handleAddBundle = (bundle, e) => {
+    const targetEl = e?.currentTarget || e?.target;
     if (onAddToCart) {
       onAddToCart({
         id: `${bundle.id}-combo-one-time-0`,
@@ -18,7 +19,7 @@ export default function CollectionsShop({ onAddToCart }) {
         purchaseType: 'bundle',
         bundleItems: bundle.includes,
         frequency: null
-      });
+      }, targetEl);
       setAddedBundleId(bundle.id);
       setTimeout(() => setAddedBundleId(null), 2000);
     }
@@ -142,7 +143,7 @@ export default function CollectionsShop({ onAddToCart }) {
 
                   <button
                     type="button"
-                    onClick={() => handleAddBundle(bundle)}
+                    onClick={(e) => handleAddBundle(bundle, e)}
                     className="bundle-cta-btn"
                   >
                     {addedBundleId === bundle.id ? '✓ Added to Bag!' : `Add to Bag • ₹${bundle.price}`}

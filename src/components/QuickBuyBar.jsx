@@ -17,7 +17,8 @@ export default function QuickBuyBar({ onAddToCart }) {
   const heroBundle = KESHIRA_BUNDLES[0]; // Hairfall Regimen Duo
   const heroOil = catalog.oil || { name: 'Keshira Herbal Oil', shortName: 'Herbal Oil', prices: { '200ml': { price: 599 } }, images: { primary: '/assets/Keshira Herbal Oil.jpeg' } };
 
-  const handleAdd = () => {
+  const handleAdd = (e) => {
+    const targetEl = e?.currentTarget || e?.target;
     if (onAddToCart) {
       if (activeItemType === 'bundle') {
         onAddToCart({
@@ -31,7 +32,7 @@ export default function QuickBuyBar({ onAddToCart }) {
           purchaseType: 'bundle',
           bundleItems: heroBundle.includes,
           frequency: null
-        });
+        }, targetEl);
       } else {
         onAddToCart({
           id: `keshira-oil-200ml-one-time-0`,
@@ -43,7 +44,7 @@ export default function QuickBuyBar({ onAddToCart }) {
           image: heroOil.images.primary,
           purchaseType: 'one-time',
           frequency: null
-        });
+        }, targetEl);
       }
 
       setIsAdded(true);
@@ -128,7 +129,7 @@ export default function QuickBuyBar({ onAddToCart }) {
 
           <button
             type="button"
-            onClick={handleAdd}
+            onClick={(e) => handleAdd(e)}
             style={{
               padding: '10px 20px',
               borderRadius: '4px',
