@@ -185,7 +185,7 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
         quantity: quantity,
         image: currentProduct.images.primary,
         purchaseType: 'one-time',
-        isBOGO: currentProduct.isBOGO,
+        isBOGO: isBogoActive,
         frequency: null
       }, targetEl);
     }

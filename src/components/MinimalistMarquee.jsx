@@ -1,9 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getActiveOffers } from '../data/products';
 
 export default function MinimalistMarquee() {
+  const [storeOffers, setStoreOffers] = useState(getActiveOffers());
+
+  useEffect(() => {
+    const handleOffersUpdated = (e) => {
+      setStoreOffers(e.detail || getActiveOffers());
+    };
+    window.addEventListener('keshira_offers_updated', handleOffersUpdated);
+    return () => window.removeEventListener('keshira_offers_updated', handleOffersUpdated);
+  }, []);
+
+  const isBogoActive = Boolean(storeOffers?.isBogoEnabled);
+
   const announcements = [
     "TRANSPARENT FORMULATIONS • 100% INGREDIENT DISCLOSURE • ZERO HIDDEN CHEMICALS",
-    "BUY 1 GET 1 FREE (BOGO) ON ALL HERBAL SHAMPOOS • 2X BOTTLES DISPATCHED",
+    ...(isBogoActive ? ["BUY 1 GET 1 FREE (BOGO) ON ALL HERBAL SHAMPOOS • 2X BOTTLES DISPATCHED"] : []),
     "pH 5.5 CALIBRATED FOR SCALP MICROBIOME HEALTH • FRESH MICRO-BATCHES BREWED WEEKLY",
     "FREE DELIVERY ACROSS ALL INDIA PINCODES ON ORDERS ABOVE ₹300 • FAST EXPRESS SHIPPING"
   ];

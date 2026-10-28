@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getActiveProducts, KESHIRA_BUNDLES } from '../data/products';
+import { getActiveProducts, getActiveOffers, KESHIRA_BUNDLES } from '../data/products';
 
 export default function SearchModal({ isOpen, onClose, onNavigate }) {
   const [catalog, setCatalog] = useState(() => getActiveProducts());
+  const [storeOffers, setStoreOffers] = useState(getActiveOffers());
   const [query, setQuery] = useState('');
   const inputRef = useRef(null);
 
@@ -10,8 +11,15 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
     const handleProductsUpdated = (e) => {
       if (e.detail) setCatalog(e.detail);
     };
+    const handleOffersUpdated = (e) => {
+      setStoreOffers(e.detail || getActiveOffers());
+    };
     window.addEventListener('keshira_products_updated', handleProductsUpdated);
-    return () => window.removeEventListener('keshira_products_updated', handleProductsUpdated);
+    window.addEventListener('keshira_offers_updated', handleOffersUpdated);
+    return () => {
+      window.removeEventListener('keshira_products_updated', handleProductsUpdated);
+      window.removeEventListener('keshira_offers_updated', handleOffersUpdated);
+    };
   }, []);
 
   useEffect(() => {
@@ -366,9 +374,11 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
                               <div style={{ fontWeight: 800, color: 'var(--color-primary, #122B19)', fontSize: '0.95rem' }}>
                                 ₹{p.prices['200ml'].price}
                               </div>
-                              <span style={{ fontSize: '0.7rem', color: '#2E7D32', fontWeight: 700 }}>
-                                Buy 1 Get 1 FREE
-                              </span>
+                              {storeOffers?.isBogoEnabled && (
+                                <span style={{ fontSize: '0.7rem', color: '#2E7D32', fontWeight: 700 }}>
+                                  Buy 1 Get 1 FREE
+                                </span>
+                              )}
                             </div>
                           </div>
                         ))}

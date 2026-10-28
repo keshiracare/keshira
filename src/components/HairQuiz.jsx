@@ -91,7 +91,7 @@ export default function HairQuiz({ onAddToCart, storeOffers: propStoreOffers }) 
         quantity: 1,
         image: rec.shampoo.images.primary,
         purchaseType: 'one-time',
-        isBOGO: true,
+        isBOGO: isBogoActive,
         frequency: null
       }, targetEl);
     }

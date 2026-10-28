@@ -267,8 +267,14 @@ export default function App() {
     setCart((prevCart) => {
       let updatedCart = [...prevCart];
 
-      // Global B1G1 Offer check: active store-wide for all non-bundle individual products
-      const isBogoActive = Boolean(storeOffers?.isBogoEnabled && newItem.purchaseType !== 'bundle');
+      // Global B1G1 Offer check: must be active store-wide for all non-bundle individual products
+      const activeOffers = getActiveOffers();
+      const isBogoActive = Boolean(
+        storeOffers?.isBogoEnabled !== false &&
+        activeOffers?.isBogoEnabled !== false &&
+        storeOffers?.isBogoEnabled &&
+        newItem.purchaseType !== 'bundle'
+      );
 
       if (isBogoActive && newItem.purchaseType !== 'bundle' && !newItem.isFreeBogoItem) {
         // Customer adds 1 paid bottle
@@ -515,6 +521,17 @@ export default function App() {
           }}
           onNavigateHome={() => navigateTo('/')}
         />
+        {isCheckoutOpen && (
+          <CheckoutModal 
+            isOpen={isCheckoutOpen}
+            onClose={() => setIsCheckoutOpen(false)}
+            orderSummary={checkoutSummary}
+            cart={cart}
+            onClearCart={handleClearCart}
+            prefilledEmail={userEmail}
+            setIsFirstTime={setIsFirstTime}
+          />
+        )}
       </Suspense>
     );
   }
