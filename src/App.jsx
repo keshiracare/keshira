@@ -22,7 +22,11 @@ import MinimalistPillars from './components/MinimalistPillars';
 import MinimalistConcernSlider from './components/MinimalistConcernSlider';
 import OffersZone from './components/OffersZone';
 
-// Code-Split Heavy Subpages & Modals for Fast Initial Page Load
+// Eager load critical Checkout components for instant response
+import CheckoutPage from './components/CheckoutPage';
+import CheckoutModal from './components/CheckoutModal';
+
+// Code-Split Heavy Secondary Subpages & Modals for Fast Initial Page Load
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const CustomerPortalPage = lazy(() => import('./components/CustomerPortalPage'));
 const AyurvedicTransitionGuide = lazy(() => import('./components/AyurvedicTransitionGuide'));
@@ -30,8 +34,6 @@ const BestSellersPage = lazy(() => import('./components/BestSellersPage'));
 const CollectionsShop = lazy(() => import('./components/CollectionsShop'));
 const HairCarePage = lazy(() => import('./components/HairCarePage'));
 const HairQuiz = lazy(() => import('./components/HairQuiz'));
-const CheckoutModal = lazy(() => import('./components/CheckoutModal'));
-const CheckoutPage = lazy(() => import('./components/CheckoutPage'));
 const SearchModal = lazy(() => import('./components/SearchModal'));
 const PromoPopup = lazy(() => import('./components/PromoPopup'));
 const SubscriptionPortal = lazy(() => import('./components/SubscriptionPortal'));
@@ -503,7 +505,7 @@ export default function App() {
   // Dedicated Full-Page Separate Checkout Page (Desktop / Direct route)
   if (isCheckoutPage) {
     return (
-      <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4F5F7' }}>Loading Checkout...</div>}>
+      <>
         <Helmet>
           <title>Checkout | Keshira Apothecary</title>
           <meta name="robots" content="noindex, nofollow" />
@@ -546,14 +548,23 @@ export default function App() {
             initialAddress={checkoutInitialAddress}
           />
         )}
-      </Suspense>
+      </>
     );
   }
 
   // Dedicated Full-Page Admin Portal
   if (isAdminPage) {
     return (
-      <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FDFBF7' }}>Loading Admin Portal...</div>}>
+      <Suspense fallback={
+        <div className="keshira-page-loader">
+          <div className="keshira-loader-spinner-wrapper">
+            <div className="keshira-loader-ring"></div>
+            <span className="keshira-loader-leaf">🌿</span>
+          </div>
+          <p className="keshira-loader-text">KESHIRA APOTHECARY</p>
+          <p className="keshira-loader-sub">Preparing authentic Ayurvedic care...</p>
+        </div>
+      }>
         <Helmet>
           <title>Operations & Orders Portal | Keshira Apothecary Admin</title>
           <meta name="robots" content="noindex, nofollow" />
@@ -566,7 +577,16 @@ export default function App() {
   // Dedicated Full-Page Customer Orders & Account Portal
   if (isAccountPage) {
     return (
-      <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FDFBF7' }}>Loading Account...</div>}>
+      <Suspense fallback={
+        <div className="keshira-page-loader">
+          <div className="keshira-loader-spinner-wrapper">
+            <div className="keshira-loader-ring"></div>
+            <span className="keshira-loader-leaf">🌿</span>
+          </div>
+          <p className="keshira-loader-text">KESHIRA APOTHECARY</p>
+          <p className="keshira-loader-sub">Accessing your orders & account...</p>
+        </div>
+      }>
         <CustomerPortalPage 
           onNavigateHome={(path = '/') => navigateTo(path)} 
           onNavigateShop={(path = '/shop') => navigateTo(path)} 
@@ -741,7 +761,16 @@ export default function App() {
       </div>
       
       {/* Route Switcher: Multi-Page Architecture (Minimalist Style) */}
-      <Suspense fallback={<div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>}>
+      <Suspense fallback={
+        <div className="keshira-page-loader">
+          <div className="keshira-loader-spinner-wrapper">
+            <div className="keshira-loader-ring"></div>
+            <span className="keshira-loader-leaf">🌿</span>
+          </div>
+          <p className="keshira-loader-text">KESHIRA APOTHECARY</p>
+          <p className="keshira-loader-sub">Preparing authentic Ayurvedic care...</p>
+        </div>
+      }>
         {isGuidePage ? (
           <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', backgroundColor: 'var(--color-bg-parchment-light, #FAF7F2)', outline: 'none' }}>
             <AyurvedicTransitionGuide 
