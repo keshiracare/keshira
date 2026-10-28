@@ -57,6 +57,8 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCartBumping, setIsCartBumping] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutInitialStep, setCheckoutInitialStep] = useState(1);
+  const [checkoutInitialAddress, setCheckoutInitialAddress] = useState(null);
   const [isPortalOpen, setIsPortalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [policyModal, setPolicyModal] = useState({ isOpen: false, type: '' });
@@ -422,18 +424,26 @@ export default function App() {
       const shampooGiftId = targetItem.hasFreeGiftOil ? targetItem.id : targetItem.parentGiftShampooId;
       const freeGiftOilId = 'keshira-oil-30ml-free-promo';
 
+      // Safety guard: Maximum 10 items per product for retail orders
+      const MAX_QTY = 10;
+      const currentParentQty = prevCart.find(i => i.id === parentId)?.quantity || 1;
+      const calculatedQty = currentParentQty + delta;
+      const boundedDelta = delta > 0 
+        ? Math.max(0, Math.min(MAX_QTY, calculatedQty) - currentParentQty)
+        : Math.max(-currentParentQty, delta);
+
       let updated = prevCart.map((item) => {
         if (item.id === parentId) {
-          return { ...item, quantity: item.quantity + delta };
+          return { ...item, quantity: Math.min(MAX_QTY, Math.max(0, item.quantity + boundedDelta)) };
         }
         if (item.id === freeItemId) {
-          return { ...item, quantity: item.quantity + delta };
+          return { ...item, quantity: Math.min(MAX_QTY, Math.max(0, item.quantity + boundedDelta)) };
         }
         if (hasFreeGift && item.id === freeGiftOilId && shampooGiftId) {
-          return { ...item, quantity: item.quantity + delta };
+          return { ...item, quantity: Math.min(MAX_QTY, Math.max(0, item.quantity + boundedDelta)) };
         }
         if (item.id === id && item.id !== parentId && item.id !== freeItemId && item.id !== freeGiftOilId) {
-          return { ...item, quantity: item.quantity + delta };
+          return { ...item, quantity: Math.min(MAX_QTY, Math.max(0, item.quantity + boundedDelta)) };
         }
         return item;
       });
@@ -505,6 +515,8 @@ export default function App() {
           onRemoveItem={handleRemoveItem}
           onOpenCheckoutModal={(summary) => {
             if (summary) setCheckoutSummary(summary);
+            setCheckoutInitialStep(2);
+            setCheckoutInitialAddress(summary?.shippingAddress || null);
             setIsCheckoutOpen(true);
           }}
           userEmail={userEmail}
@@ -530,6 +542,8 @@ export default function App() {
             onClearCart={handleClearCart}
             prefilledEmail={userEmail}
             setIsFirstTime={setIsFirstTime}
+            initialStep={checkoutInitialStep}
+            initialAddress={checkoutInitialAddress}
           />
         )}
       </Suspense>
@@ -739,6 +753,8 @@ export default function App() {
           <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', outline: 'none' }}>
             <BestSellersPage 
               onAddToCart={handleAddToCart}
+              cart={cart}
+              onGoToBag={() => navigateTo('/checkout')}
               onNavigateHome={(path = '/') => navigateTo(path)}
               storeOffers={storeOffers}
             />
@@ -747,6 +763,8 @@ export default function App() {
           <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', outline: 'none' }}>
             <HairCarePage 
               onAddToCart={handleAddToCart}
+              cart={cart}
+              onGoToBag={() => navigateTo('/checkout')}
               onNavigateHome={(path = '/') => navigateTo(path)}
               storeOffers={storeOffers}
             />
@@ -755,6 +773,8 @@ export default function App() {
           <main id="main-content" tabIndex={-1} style={{ position: 'relative', zIndex: 1, minHeight: '80vh', outline: 'none' }}>
             <CollectionsShop 
               onAddToCart={handleAddToCart}
+              cart={cart}
+              onGoToBag={() => navigateTo('/checkout')}
               onNavigateHome={(target = 'purchase-section', productType) => {
                 navigateTo('/', target === 'top' ? null : target);
                 if (productType) {
@@ -771,7 +791,12 @@ export default function App() {
 
             {/* 1. Our Best Sellers / Product Catalog with 1-Click Buy (Minimalist Section 1) */}
             <ScrollReveal>
-              <ProductCatalog onAddToCart={handleAddToCart} storeOffers={storeOffers} />
+              <ProductCatalog 
+                onAddToCart={handleAddToCart} 
+                cart={cart}
+                onGoToBag={() => navigateTo('/checkout')}
+                storeOffers={storeOffers} 
+              />
             </ScrollReveal>
 
             {/* 2. Minimalist "Shop by Concern" Component (Minimalist Section 2) */}
@@ -821,7 +846,12 @@ export default function App() {
 
           {/* 7. Apothecary Customizer & Deep Configurator */}
           <ScrollReveal>
-            <ProductDetail onAddToCart={handleAddToCart} storeOffers={storeOffers} />
+            <ProductDetail 
+              onAddToCart={handleAddToCart} 
+              cart={cart}
+              onGoToBag={() => navigateTo('/checkout')}
+              storeOffers={storeOffers} 
+            />
           </ScrollReveal>
 
           {/* 8. Verified Customer Reviews & Transformations */}

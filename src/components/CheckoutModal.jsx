@@ -2,35 +2,55 @@ import React, { useState, useEffect } from 'react';
 import { supabase, normalizeEmail } from '../supabase';
 import { useToast } from '../context/ToastContext';
 
-export default function CheckoutModal({ isOpen, onClose, orderSummary, cart, onClearCart, prefilledEmail, setIsFirstTime }) {
+export default function CheckoutModal({ 
+  isOpen, 
+  onClose, 
+  orderSummary, 
+  cart, 
+  onClearCart, 
+  prefilledEmail, 
+  setIsFirstTime,
+  initialStep = 1,
+  initialAddress = null
+}) {
   const { showToast } = useToast();
 
-  const [step, setStep] = useState(1); // 1: Shipping, 2: Payment, 3: Processing, 4: Success
-  const [shippingForm, setShippingForm] = useState({
-    fullName: '',
-    email: prefilledEmail || '',
-    phone: '',
-    address: '',
-    city: '',
-    pinCode: ''
-  });
+  const [step, setStep] = useState(initialStep || 1); // 1: Shipping, 2: Payment, 3: Processing, 4: Success
+  const [shippingForm, setShippingForm] = useState(() => ({
+    fullName: initialAddress?.fullName || '',
+    email: initialAddress?.email || prefilledEmail || '',
+    phone: initialAddress?.phone || '',
+    address: initialAddress?.street || initialAddress?.address || '',
+    city: initialAddress?.city || '',
+    pinCode: initialAddress?.pinCode || ''
+  }));
 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
-  const [isEditingEmail, setIsEditingEmail] = useState(!prefilledEmail);
+  const [isEditingEmail, setIsEditingEmail] = useState(!prefilledEmail && !initialAddress?.email);
 
-  // Sync prefilled email and reset step when modal opens
+  // Sync prefilled email/address and step when modal opens
   useEffect(() => {
     if (isOpen) {
-      setStep(1);
-      if (prefilledEmail) {
+      setStep(initialStep || 1);
+      if (initialAddress) {
+        setShippingForm({
+          fullName: initialAddress.fullName || '',
+          email: initialAddress.email || prefilledEmail || '',
+          phone: initialAddress.phone || '',
+          address: initialAddress.street || initialAddress.address || '',
+          city: initialAddress.city || '',
+          pinCode: initialAddress.pinCode || ''
+        });
+        setIsEditingEmail(false);
+      } else if (prefilledEmail) {
         setShippingForm(prev => ({ ...prev, email: prefilledEmail }));
         setIsEditingEmail(false);
       } else {
         setIsEditingEmail(true);
       }
     }
-  }, [isOpen, prefilledEmail]);
+  }, [isOpen, initialStep, initialAddress, prefilledEmail]);
 
   useEffect(() => {
     if (isOpen) {

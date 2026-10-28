@@ -28,7 +28,7 @@ const INITIAL_REVIEWS = [
   { author: 'Meera Patel', rating: 5, date: 'May 12, 2026', text: 'Gentle Care Shampoo is the best sulfate-free cleanser I have ever tried. My color-treated hair feels soft and glossy.', scalpType: 'Normal & Balanced' }
 ];
 
-export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffers }) {
+export default function ProductDetail({ onAddToCart, cart = [], onGoToBag, storeOffers: propStoreOffers }) {
   const { showToast } = useToast();
   const [catalogMap, setCatalogMap] = useState(getActiveProducts());
 
@@ -439,34 +439,73 @@ export default function ProductDetail({ onAddToCart, storeOffers: propStoreOffer
                 Next fresh micro-batch is brewing. Join waitlist on WhatsApp.
               </span>
             </div>
-          ) : (
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: '8px', backgroundColor: '#FFF' }}>
-                <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))} style={{ width: '40px', height: '44px', fontSize: '1.1rem' }}>-</button>
-                <div style={{ width: '30px', textAlign: 'center', fontWeight: 700 }}>{quantity}</div>
-                <button type="button" onClick={() => setQuantity(q => q + 1)} style={{ width: '40px', height: '44px', fontSize: '1.1rem' }}>+</button>
-              </div>
+          ) : (() => {
+            const isCurrentInCart = isBundle 
+              ? cart.some(item => item.id?.includes(currentBundle.id) || item.purchaseType === 'bundle')
+              : cart.some(item => 
+                  (item.productId === currentProduct.id || item.id?.includes(`keshira-${currentProduct.id}`)) &&
+                  (item.variant === activeVariant || !item.variant)
+                );
 
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                style={{
-                  flex: 1,
-                  height: '46px',
-                  borderRadius: '8px',
-                  backgroundColor: 'var(--color-primary)',
-                  color: '#FAF7F2',
-                  fontWeight: 700,
-                  fontSize: '0.92rem',
-                  border: 'none',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(18, 43, 25, 0.2)'
-                }}
-              >
-                Add to Shopping Bag • ₹{price * quantity}
-              </button>
-            </div>
-          )}
+            if (isCurrentInCart) {
+              return (
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => onGoToBag ? onGoToBag() : window.location.assign('/checkout')}
+                    style={{
+                      flex: 1,
+                      height: '46px',
+                      borderRadius: '8px',
+                      backgroundColor: '#0F5132',
+                      color: '#FAF7F2',
+                      fontWeight: 700,
+                      fontSize: '0.95rem',
+                      border: '1px solid #198754',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 12px rgba(15, 81, 50, 0.25)'
+                    }}
+                  >
+                    <span>Go to Bag</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: '8px', backgroundColor: '#FFF' }}>
+                  <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))} style={{ width: '40px', height: '44px', fontSize: '1.1rem' }}>-</button>
+                  <div style={{ width: '30px', textAlign: 'center', fontWeight: 700 }}>{quantity}</div>
+                  <button type="button" onClick={() => setQuantity(q => q + 1)} style={{ width: '40px', height: '44px', fontSize: '1.1rem' }}>+</button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  style={{
+                    flex: 1,
+                    height: '46px',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--color-primary)',
+                    color: '#FAF7F2',
+                    fontWeight: 700,
+                    fontSize: '0.92rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(18, 43, 25, 0.2)'
+                  }}
+                >
+                  Add to Shopping Bag • ₹{price * quantity}
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Pincode Estimator */}
           <PincodeDeliveryChecker />

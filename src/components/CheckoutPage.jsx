@@ -256,39 +256,58 @@ export default function CheckoutPage({
 
   // Handle Quantity adjustments
   const handleQuantityChange = (id, change) => {
-    setItems((prevItems) => {
-      const updated = prevItems
-        .map((item) => {
-          if (item.id === id) {
-            const newQty = item.quantity + change;
-            if (newQty <= 0) {
-              if (item.isCartItem && onRemoveItem) {
-                onRemoveItem(id);
+    // If onUpdateQuantity exists, it expects the delta change (+1 or -1), not the absolute newQty!
+    if (onUpdateQuantity) {
+      onUpdateQuantity(id, change);
+    } else {
+      setItems((prevItems) => {
+        const updated = prevItems
+          .map((item) => {
+            if (item.id === id) {
+              const newQty = Math.max(0, Math.min(10, item.quantity + change));
+              if (newQty <= 0) {
+                if (item.isCartItem && onRemoveItem) {
+                  onRemoveItem(id);
+                }
+                return null;
               }
-              return null;
+              return { ...item, quantity: newQty };
             }
-            if (item.isCartItem && onUpdateQuantity) {
-              onUpdateQuantity(id, newQty);
-            }
-            return { ...item, quantity: newQty };
-          }
-          return item;
-        })
-        .filter(Boolean);
+            return item;
+          })
+          .filter(Boolean);
 
-      if (updated.length === 0) {
-        if (onNavigateBack) onNavigateBack();
-        else if (onNavigateHome) onNavigateHome();
-      }
-      return updated;
-    });
+        if (updated.length === 0) {
+          if (onNavigateBack) onNavigateBack();
+          else if (onNavigateHome) onNavigateHome();
+        }
+        return updated;
+      });
+    }
   };
 
   // Compute Totals
   const totalItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const itemTotal = items.reduce((sum, item) => sum + item.originalPrice * item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const baseDiscount = Math.max(0, itemTotal - subtotal);
+
+  // Breakdown discounts:
+  // 1. Free complimentary gift or free promo items value
+  const freeGiftDiscount = items
+    .filter(item => item.isFreeGiftItem || item.price === 0 && !item.isFreeBogoItem)
+    .reduce((sum, item) => sum + item.originalPrice * item.quantity, 0);
+
+  // 2. Buy 1 Get 1 Free (B1G1) savings
+  const bogoDiscount = items
+    .filter(item => item.isFreeBogoItem)
+    .reduce((sum, item) => sum + item.originalPrice * item.quantity, 0);
+
+  // 3. Retail product price discount (MRP vs Selling price for regular paid items)
+  const productDiscount = items
+    .filter(item => !item.isFreeGiftItem && !item.isFreeBogoItem && item.price > 0)
+    .reduce((sum, item) => sum + Math.max(0, (item.originalPrice - item.price) * item.quantity), 0);
+
+  const baseDiscount = productDiscount + bogoDiscount + freeGiftDiscount;
   const totalDiscount = baseDiscount + couponDiscount;
 
   // Dynamic Shipping Calculation:
@@ -307,11 +326,9 @@ export default function CheckoutPage({
       setCouponDiscount(disc);
       setAppliedCoupon(cleanCode);
       setShowCouponInput(false);
+      if (showToast) showToast(`✓ Coupon "${cleanCode}" applied! ₹${disc} discount added.`, 'success');
     } else {
-      const disc = 100;
-      setCouponDiscount(disc);
-      setAppliedCoupon(cleanCode);
-      setShowCouponInput(false);
+      if (showToast) showToast('Invalid coupon code. Try KESHIRA10 or SAVE10.', 'warning');
     }
   };
 
@@ -369,75 +386,55 @@ export default function CheckoutPage({
 
   return (
     <div className="checkout-page-root">
-      {/* Top Header Navigation */}
+      {/* Consolidated Single-Layer Premium Checkout Header */}
       <header className="checkout-nav-header">
         <div className="checkout-header-inner">
-          <button 
-            type="button" 
-            className="checkout-back-btn" 
-            onClick={handleBack}
-            aria-label="Back"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-            <span className="checkout-header-title">Checkout</span>
-          </button>
+          <div className="checkout-header-left">
+            <button 
+              type="button" 
+              className="checkout-back-btn" 
+              onClick={handleBack}
+              aria-label="Back"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              <span className="checkout-header-title">Checkout</span>
+            </button>
 
-          <div className="checkout-security-tag">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            <span>100% Secure Checkout</span>
+            {/* Integrated Delivery ETA Pill */}
+            <div className="checkout-header-delivery-chip">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="3" width="15" height="13" />
+                <polygon points="16 8 20 8 23 11 23 16 16 16 8" />
+                <circle cx="5.5" cy="18.5" r="2.5" />
+                <circle cx="18.5" cy="18.5" r="2.5" />
+              </svg>
+              <span>
+                Delivery by <strong>{deliveryEstimate.dateFormatted}</strong>
+                {shippingCharge === 0 ? ' • Free Delivery' : ' • Express ₹49'}
+              </span>
+            </div>
+          </div>
+
+          <div className="checkout-header-right">
+            {totalDiscount > 0 && (
+              <div className="checkout-header-savings-badge">
+                <span className="savings-sparkle">✨</span>
+                <span>You saved <strong>₹{totalDiscount}</strong></span>
+              </div>
+            )}
+
+            <div className="checkout-security-tag">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span>100% Secure Checkout</span>
+            </div>
           </div>
         </div>
       </header>
-
-      {/* Dynamic Top Delivery Announcement Banner */}
-      <div className="checkout-top-delivery">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#047857" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="1" y="3" width="15" height="13" />
-          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-          <circle cx="5.5" cy="18.5" r="2.5" />
-          <circle cx="18.5" cy="18.5" r="2.5" />
-        </svg>
-        <span>
-          <strong>Get by {deliveryEstimate.dateFormatted}</strong> at <strong>{deliveryEstimate.pincode}</strong> 
-          {shippingCharge === 0 ? ' • Free Shipping' : ' • Express Shipping ₹49'}
-        </span>
-      </div>
-
-      {/* Golden Savings Announcement Banner */}
-      {totalDiscount > 0 && (
-        <div className="checkout-savings-bar">
-          <div className="checkout-coin-wrapper">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" fill="#F59E0B" stroke="#D97706" strokeWidth="1.5" />
-              <circle cx="12" cy="12" r="7.5" fill="#FBBF24" />
-              <text x="12" y="15.5" fontSize="11" fontWeight="bold" fill="#78350F" textAnchor="middle">₹</text>
-            </svg>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="#F59E0B">
-              <path d="M5 0L6.2 3.8L10 5L6.2 6.2L5 10L3.8 6.2L0 5L3.8 3.8L5 0Z" />
-            </svg>
-          </div>
-
-          <p className="checkout-savings-text">
-            You saved <span className="checkout-savings-badge">₹{totalDiscount}</span> on this order!
-          </p>
-
-          <div className="checkout-coin-wrapper">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="#F59E0B">
-              <path d="M5 0L6.2 3.8L10 5L6.2 6.2L5 10L3.8 6.2L0 5L3.8 3.8L5 0Z" />
-            </svg>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" fill="#F59E0B" stroke="#D97706" strokeWidth="1.5" />
-              <circle cx="12" cy="12" r="7.5" fill="#FBBF24" />
-              <text x="12" y="15.5" fontSize="11" fontWeight="bold" fill="#78350F" textAnchor="middle">₹</text>
-            </svg>
-          </div>
-        </div>
-      )}
 
       {/* Main Two-Column Layout */}
       <main className="checkout-content-container">
@@ -873,10 +870,35 @@ export default function CheckoutPage({
                 <span>₹{itemTotal}</span>
               </div>
 
-              {totalDiscount > 0 && (
+              {/* Item Price Discount (MRP vs Selling Price) */}
+              {productDiscount > 0 && (
                 <div className="checkout-summary-row">
-                  <span>Botanical Savings & Discounts</span>
-                  <span className="checkout-discount-val">-₹{totalDiscount}</span>
+                  <span>Product Discount</span>
+                  <span className="checkout-discount-val">-₹{productDiscount}</span>
+                </div>
+              )}
+
+              {/* Free B1G1 Item Savings */}
+              {bogoDiscount > 0 && (
+                <div className="checkout-summary-row">
+                  <span>Buy 1 Get 1 Free Offer</span>
+                  <span className="checkout-discount-val">-₹{bogoDiscount}</span>
+                </div>
+              )}
+
+              {/* Complimentary Free Gift */}
+              {freeGiftDiscount > 0 && (
+                <div className="checkout-summary-row">
+                  <span>Free Gift Benefit</span>
+                  <span className="checkout-discount-val">-₹{freeGiftDiscount}</span>
+                </div>
+              )}
+
+              {/* Coupon Code Savings */}
+              {couponDiscount > 0 && (
+                <div className="checkout-summary-row">
+                  <span>Coupon ({appliedCoupon})</span>
+                  <span className="checkout-discount-val">-₹{couponDiscount}</span>
                 </div>
               )}
 
@@ -920,7 +942,7 @@ export default function CheckoutPage({
             </div>
             <div className="checkout-trust-item">
               <span>🔒</span>
-              <span>Encrypted UPI & Card Payments</span>
+              <span>100% Secure Encrypted UPI Payment</span>
             </div>
             <div className="checkout-trust-item">
               <span>🚚</span>

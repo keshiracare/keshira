@@ -26,7 +26,7 @@ export default function PrivacyPolicy() {
       <section>
         <h4 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--color-primary, #132E1B)', marginBottom: '8px' }}>3. Data Protection & Security</h4>
         <p style={{ lineHeight: '1.7', color: 'var(--color-text-dark, #1F2220)' }}>
-          We employ strict security measures to protect your personal details. We do NOT store full payment card details or net banking credentials on our servers. All financial transactions are processed securely through certified payment gateways.
+          We employ strict security measures to protect your personal details. We do NOT store sensitive financial credentials or banking passwords on our servers. All transactions are securely completed via UPI prepayment.
         </p>
       </section>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getActiveProducts, getProductsWithLiveRatings, getActiveOffers, getEffectiveProductPrice } from '../data/products';
 
-export default function HairCarePage({ onAddToCart, onNavigateHome, initialConcern = 'all', storeOffers: propStoreOffers }) {
+export default function HairCarePage({ onAddToCart, cart = [], onGoToBag, onNavigateHome, initialConcern = 'all', storeOffers: propStoreOffers }) {
   const [selectedConcern, setSelectedConcern] = useState(initialConcern);
   const [storeOffers, setStoreOffers] = useState(propStoreOffers || getActiveOffers());
 
@@ -299,26 +299,62 @@ export default function HairCarePage({ onAddToCart, onNavigateHome, initialConce
                       )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={(e) => handleAdd(product, e)}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        borderRadius: '6px',
-                        backgroundColor: 'var(--color-primary, #2D3E2F)',
-                        color: '#FFFFFF',
-                        fontSize: '0.88rem',
-                        fontWeight: 700,
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-primary-light, #3D533F)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-primary, #2D3E2F)'; }}
-                    >
-                      Add to Bag &rarr;
-                    </button>
+                    {(() => {
+                      const size = selectedSizes[product.id] || '200ml';
+                      const isItemInCart = cart.some(item => 
+                        (item.productId === product.id || item.id?.includes(`keshira-${product.id}`)) &&
+                        (item.variant === size || !item.variant)
+                      );
+
+                      if (isItemInCart) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => onGoToBag ? onGoToBag() : window.location.assign('/checkout')}
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              borderRadius: '6px',
+                              backgroundColor: '#0F5132',
+                              color: '#FFFFFF',
+                              fontSize: '0.88rem',
+                              fontWeight: 700,
+                              border: '1px solid #198754',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            Go to Bag &rarr;
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          type="button"
+                          onClick={(e) => handleAdd(product, e)}
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            borderRadius: '6px',
+                            backgroundColor: 'var(--color-primary, #2D3E2F)',
+                            color: '#FFFFFF',
+                            fontSize: '0.88rem',
+                            fontWeight: 700,
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-primary-light, #3D533F)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-primary, #2D3E2F)'; }}
+                        >
+                          Add to Bag &rarr;
+                        </button>
+                      );
+                    })()}
                   </div>
               </div>
             );

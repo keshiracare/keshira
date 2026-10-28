@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { KESHIRA_BUNDLES } from '../data/products';
 
-export default function CollectionsShop({ onAddToCart }) {
+export default function CollectionsShop({ onAddToCart, cart = [], onGoToBag }) {
   const [activeTab, setActiveTab] = useState('all');
   const [addedBundleId, setAddedBundleId] = useState(null);
 
@@ -141,13 +141,32 @@ export default function CollectionsShop({ onAddToCart }) {
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={(e) => handleAddBundle(bundle, e)}
-                    className="bundle-cta-btn"
-                  >
-                    {addedBundleId === bundle.id ? '✓ Added to Bag!' : `Add to Bag • ₹${bundle.price}`}
-                  </button>
+                  {(() => {
+                    const isBundleInCart = cart.some(item => item.id?.includes(bundle.id) || item.title?.includes(bundle.name));
+
+                    if (isBundleInCart) {
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => onGoToBag ? onGoToBag() : window.location.assign('/checkout')}
+                          className="bundle-cta-btn"
+                          style={{ backgroundColor: '#0F5132', border: '1px solid #198754' }}
+                        >
+                          Go to Bag &rarr;
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => handleAddBundle(bundle, e)}
+                        className="bundle-cta-btn"
+                      >
+                        {addedBundleId === bundle.id ? '✓ Added to Bag!' : `Add to Bag • ₹${bundle.price}`}
+                      </button>
+                    );
+                  })()}
                 </div>
 
               </div>

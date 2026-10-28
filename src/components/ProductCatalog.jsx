@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getActiveProducts, getActiveOffers, getProductsWithLiveRatings, getEffectiveProductPrice } from '../data/products';
 
-export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffers }) {
+export default function ProductCatalog({ onAddToCart, cart = [], onGoToBag, storeOffers: propStoreOffers }) {
   const [catalogMap, setCatalogMap] = useState(() => {
     try {
       const saved = localStorage.getItem('keshira_reviews');
@@ -292,16 +292,38 @@ export default function ProductCatalog({ onAddToCart, storeOffers: propStoreOffe
                       >
                         Sold Out
                       </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(e) => handleAddSingleProduct(product, e)}
-                        className="product-add-to-cart-btn"
-                      >
-                        <span>Add to Bag</span>
-                        <span className="btn-plus">+</span>
-                      </button>
-                    )}
+                    ) : (() => {
+                      const size = selectedSizes[product.id] || '200ml';
+                      const isItemInCart = cart.some(item => 
+                        (item.productId === product.id || item.id?.includes(`keshira-${product.id}`)) &&
+                        (item.variant === size || !item.variant)
+                      );
+
+                      if (isItemInCart) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => onGoToBag ? onGoToBag() : window.location.assign('/checkout')}
+                            className="product-add-to-cart-btn in-cart"
+                            title="Item already in bag. Click to proceed to Checkout"
+                          >
+                            <span>Go to Bag</span>
+                            <span className="btn-plus">→</span>
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          type="button"
+                          onClick={(e) => handleAddSingleProduct(product, e)}
+                          className="product-add-to-cart-btn"
+                        >
+                          <span>Add to Bag</span>
+                          <span className="btn-plus">+</span>
+                        </button>
+                      );
+                    })()}
                   </div>
 
                 </div>
